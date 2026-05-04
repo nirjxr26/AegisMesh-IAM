@@ -23,6 +23,9 @@ const path = require('path');
 
 const app = express();
 
+// Needed when running behind nginx reverse proxy in Docker.
+app.set('trust proxy', 1);
+
 // ═══════════════════════════════════════
 // SECURITY MIDDLEWARE
 // ═══════════════════════════════════════

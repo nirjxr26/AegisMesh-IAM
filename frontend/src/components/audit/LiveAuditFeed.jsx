@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AuditLogTable from './AuditLogTable';
 
 const MAX_ATTEMPTS = 5;
@@ -7,33 +7,35 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
     const [isLive, setIsLive] = useState(false);
     const [logs, setLogs] = useState([]);
     const [connState, setConnState] = useState('connecting'); // connecting | connected | error | reconnecting
+    const [attemptCount, setAttemptCount] = useState(0);
     const eventSourceRef = useRef(null);
     const reconnectRef = useRef(null);
     const attemptRef = useRef(0);
     const pollRef = useRef(null);
+    const connectRef = useRef(null);
 
-    const clearReconnect = () => {
+    const clearReconnect = useCallback(() => {
         if (reconnectRef.current) {
             clearTimeout(reconnectRef.current);
             reconnectRef.current = null;
         }
-    };
+    }, []);
 
-    const clearPolling = () => {
+    const clearPolling = useCallback(() => {
         if (pollRef.current) {
             clearInterval(pollRef.current);
             pollRef.current = null;
         }
-    };
+    }, []);
 
-    const stopConnection = () => {
+    const stopConnection = useCallback(() => {
         clearReconnect();
         clearPolling();
         eventSourceRef.current?.close();
         eventSourceRef.current = null;
-    };
+    }, [clearPolling, clearReconnect]);
 
-    const connect = () => {
+    const connect = useCallback(() => {
         stopConnection();
         setConnState('connecting');
 
@@ -48,6 +50,7 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
         es.onopen = () => {
             setConnState('connected');
             attemptRef.current = 0;
+            setAttemptCount(0);
             clearPolling();
         };
 
@@ -69,8 +72,10 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
                 const delay = Math.min(1000 * (2 ** attemptRef.current), 30000);
                 setConnState('reconnecting');
                 reconnectRef.current = setTimeout(() => {
-                    attemptRef.current += 1;
-                    connect();
+                    const nextAttempt = attemptRef.current + 1;
+                    attemptRef.current = nextAttempt;
+                    setAttemptCount(nextAttempt);
+                    connectRef.current?.();
                 }, delay);
                 return;
             }
@@ -80,21 +85,27 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
                 refetchAuditLogs?.();
             }, 30000);
         };
-    };
+    }, [clearPolling, refetchAuditLogs, stopConnection]);
+
+    useEffect(() => {
+        connectRef.current = connect;
+    }, [connect]);
 
     useEffect(() => {
         if (!isLive) {
             stopConnection();
-            setConnState('error');
             return;
         }
 
-        connect();
+        const timer = window.setTimeout(() => {
+            connect();
+        }, 0);
 
         return () => {
+            window.clearTimeout(timer);
             stopConnection();
         };
-    }, [isLive]);
+    }, [connect, isLive, stopConnection]);
 
     const statusConfig = {
         connecting: { dotColor: '#fbbf24', text: 'Connecting...', textColor: '#92400e', pulse: true },
@@ -104,7 +115,7 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
     };
 
     const status = statusConfig[connState] || statusConfig.error;
-    const inPollingMode = connState === 'error' && attemptRef.current >= MAX_ATTEMPTS;
+    const inPollingMode = connState === 'error' && attemptCount >= MAX_ATTEMPTS;
 
     return (
         <div style={{
@@ -144,7 +155,8 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
                                     type="button"
                                     onClick={() => {
                                         attemptRef.current = 0;
-                                        connect();
+                                        setAttemptCount(0);
+                                        connectRef.current?.();
                                     }}
                                     style={{
                                         border: 'none',
@@ -162,7 +174,13 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
                     ) : null}
 
                     <button
-                        onClick={() => setIsLive(!isLive)}
+                        onClick={() => {
+                            if (isLive) {
+                                setConnState('error');
+                                setAttemptCount(0);
+                            }
+                            setIsLive(!isLive);
+                        }}
                         style={{
                             padding: '6px 14px', fontSize: '12px', fontWeight: 600, borderRadius: '6px',
                             border: 'none', cursor: 'pointer',

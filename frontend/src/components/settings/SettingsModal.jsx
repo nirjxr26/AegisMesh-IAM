@@ -1936,7 +1936,7 @@ export default function SettingsModal({ isOpen = false, onClose, initialTab = 'p
         [apiKeysData]
     );
 
-    const connectedAppsData = connectedAppsResponse?.data || [];
+    const connectedAppsData = useMemo(() => connectedAppsResponse?.data ?? [], [connectedAppsResponse]);
 
     const activeConnectedAppCount = useMemo(
         () => connectedAppsData.length,

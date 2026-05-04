@@ -16,18 +16,19 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
     const passwordInputRef = useRef(null);
     const mfaInputRef = useRef(null);
 
-    useEffect(() => {
-        if (!isOpen) {
-            setPassword('');
-            setMfaToken('');
-            setShowPassword(false);
-            setError('');
-            setIsSubmitting(false);
-            return;
-        }
-
+    const handleClose = () => {
+        setPassword('');
+        setMfaToken('');
+        setShowPassword(false);
         setError('');
         setIsSubmitting(false);
+        onClose?.();
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
 
         const focusTimer = window.setTimeout(() => {
             if (requiresMfa) {
@@ -79,7 +80,7 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
             className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget && !isSubmitting) {
-                    onClose?.();
+                    handleClose();
                 }
             }}
         >
@@ -156,7 +157,7 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
                     <div className="pt-2">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="w-full mb-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50"
                             disabled={isSubmitting}
                         >

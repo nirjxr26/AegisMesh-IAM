@@ -1,44 +1,81 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import InputField from '../components/InputField';
 
-const loginSchema = z.object({
-    email: z.string().email('Please enter a valid email'),
-    password: z.string().min(1, 'Password is required'),
-    totpCode: z.string().optional(),
-});
-
 export default function Login() {
-    const { user, login } = useAuth();
+    const { user, login, isLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [mfaRequired, setMfaRequired] = useState(false);
-
-    if (user) return <Navigate to="/dashboard" replace />;
+    const [formData, setFormData] = useState({
+        email: '',
+        password: '',
+        totpCode: '',
+    });
+    const [formErrors, setFormErrors] = useState({});
 
     const from = location.state?.from?.pathname || '/dashboard';
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-    } = useForm({
-        resolver: zodResolver(loginSchema),
-        defaultValues: { email: '', password: '', totpCode: '' },
-    });
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-aws-dark">
+                <div className="flex flex-col items-center gap-3 text-aws-text-dim">
+                    <div className="w-9 h-9 border-2 border-aws-orange border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
-    const onSubmit = async (data) => {
+    if (user) return <Navigate to="/dashboard" replace />;
+
+    const handleChange = (field) => (event) => {
+        const value = event.target.value;
+        setFormData((prev) => ({ ...prev, [field]: value }));
+        if (formErrors[field]) {
+            setFormErrors((prev) => ({ ...prev, [field]: '' }));
+        }
+    };
+
+    const validate = () => {
+        const nextErrors = {};
+
+        if (!formData.email.trim()) {
+            nextErrors.email = 'Email is required';
+        } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+            nextErrors.email = 'Please enter a valid email';
+        }
+
+        if (!formData.password) {
+            nextErrors.password = 'Password is required';
+        }
+
+        if (mfaRequired && !formData.totpCode.trim()) {
+            nextErrors.totpCode = 'Two-factor code is required';
+        }
+
+        setFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const onSubmit = async (event) => {
+        event.preventDefault();
+        if (!validate()) {
+            return;
+        }
+
         setError('');
         setLoading(true);
         try {
-            await login(data);
+            await login({
+                email: formData.email.trim(),
+                password: formData.password,
+                totpCode: formData.totpCode?.trim() || undefined,
+            });
             navigate(from, { replace: true });
         } catch (err) {
             const errorData = err.response?.data?.error;
@@ -69,21 +106,25 @@ export default function Login() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={onSubmit} className="space-y-5" noValidate>
                 <InputField
                     label="Email Address"
                     type="email"
                     placeholder="you@example.com"
-                    error={errors.email?.message}
-                    {...register('email')}
+                    value={formData.email}
+                    onChange={handleChange('email')}
+                    error={formErrors.email}
+                    autoComplete="email"
                 />
 
                 <InputField
                     label="Password"
                     type="password"
                     placeholder="Enter your password"
-                    error={errors.password?.message}
-                    {...register('password')}
+                    value={formData.password}
+                    onChange={handleChange('password')}
+                    error={formErrors.password}
+                    autoComplete="current-password"
                 />
 
                 {mfaRequired && (
@@ -92,9 +133,11 @@ export default function Login() {
                             label="Two-Factor Code"
                             type="text"
                             placeholder="Enter 6-digit code"
-                            error={errors.totpCode?.message}
+                            value={formData.totpCode}
+                            onChange={handleChange('totpCode')}
+                            error={formErrors.totpCode}
                             maxLength={6}
-                            {...register('totpCode')}
+                            autoComplete="one-time-code"
                         />
                         <p className="text-xs text-aws-text-dim mt-1.5">
                             Enter the code from your authenticator app or a backup code.

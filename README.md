@@ -39,33 +39,22 @@ Managing authentication, authorization, and security governance across modern ap
 - **Notification Center:** Fetch notifications, mark single/all as read, and delete notification entries.
 - **Security Hardening:** Built-in validation, rate limiting, account protection controls, and middleware-driven authorization on protected routes.
 
-## Architecture 
 
-![Architecture](./diagrams/Architecture.png)
+## Architecture
 
-## Application Flow
+![Architecture](./diagrams/Architecture_.png)
 
-1. User opens the frontend and lands on public routes (login, register, password reset, verify email, or OAuth callback).
-2. On login/register/OAuth success, backend returns access and refresh tokens plus user profile data.
-3. Frontend stores tokens, sets auth state, and schedules silent token refresh before access-token expiry.
-4. Protected routes are enforced in the client; unauthenticated users are redirected to login.
-5. For protected API calls, backend receives requests through security middleware (Helmet, CORS, parsing, CSRF checks for mutating routes, and rate limiting).
-6. Authentication middleware validates JWT (or scoped API key token), loads the active user/session, and applies organization-level policy checks.
-7. Authorization logic evaluates effective permissions from direct role assignments, group-inherited roles, and attached policies; explicit DENY takes precedence over ALLOW.
-8. If authorized, controller/service layers execute the action (user management, roles, policies, groups, settings, notifications, or security operations).
-9. Sensitive and administrative actions are written to audit logs; audit endpoints provide stream, stats, filtering, export, and cleanup support.
-10. Frontend updates views using React Query and route-level modules, keeping dashboard state synchronized with backend responses.
 
-### Sensitive Action Flow
+## Application Flow 
 
-1. User triggers a high-risk operation (for example: password change, account deletion, or privileged API key creation).
-2. Backend enforces reauthentication requirements for the operation.
-3. After reauth succeeds, the action proceeds through the same authentication and authorization pipeline.
-4. Result is returned to frontend and the event is captured in audit logs for traceability.
+1. User authenticates (email/password, OAuth, MFA) via frontend.
+2. Backend issues JWT tokens and manages sessions.
+3. Each API call passes through security, authentication, and RBAC checks.
+4. Authorized actions are performed; sensitive actions require reauthentication and are logged.
+5. Frontend updates state based on backend responses.
 
-### Core Request Pipeline
-
-`Client Request -> Security Middleware -> Authentication -> Org Policy Checks -> RBAC Evaluation -> Controller/Service -> Prisma/PostgreSQL -> Audit/Response -> Frontend Refresh`
+**CI/CD:**
+- Jenkins pipeline runs on code changes: installs dependencies, lints, tests, builds, and (optionally) builds/pushes Docker images and deploys to Kubernetes.
 
 ## Tech Stack
 
@@ -82,48 +71,133 @@ Managing authentication, authorization, and security governance across modern ap
 4. Protected routes enforce auth + authorization middleware before actions are executed.
 5. Sensitive actions are written to audit logs for traceability and compliance.
 
-## Installation / Setup
+## Installation & Setup
+
+### Option 1: Docker (Recommended)
+
+**Requirements:** Docker & Docker Compose
 
 ```bash
 git clone https://github.com/Nirjar26/Aegismesh-IAM.git
+cd AegisMesh-IAM
 
-cd backend
-npm install
+# Copy and configure environment variables
+cp .env.example .env
 
-cd ../frontend
-npm install
+# Start all services (PostgreSQL, Backend, Frontend)
+docker-compose up --build
 ```
+
+**Access the application:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
+- Database: localhost:5432
+
+**Development mode with hot reload:**
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+For detailed Docker setup instructions, see [Docker_Setup.md](./DOCKER_SETUP.md).
+
+### Option 2: Local Development
+
+**Requirements:** Node.js 18+, PostgreSQL 15+
 
 ```bash
-# Run backend (default: port 5000)
+git clone https://github.com/Nirjar26/Aegismesh-IAM.git
+cd AegisMesh-IAM
+
+# Backend setup
+cd backend
+npm install
+npm run prisma:generate
+
+# Frontend setup
+cd ../frontend
+npm install
+```
+
+**Run services:**
+```bash
+# Terminal 1: Backend (default: port 5000)
 cd backend
 npm run dev
 
-# Run frontend (default: port 5173)
-cd ../frontend
+# Terminal 2: Frontend (default: port 5173)
+cd frontend
 npm run dev
 ```
+
+### Option 3: Kubernetes (Docker Desktop)
+
+This repository includes Kubernetes manifests for PostgreSQL, backend, and frontend, configured for Docker Desktop Kubernetes.
+
+Quick start:
+
+```bash
+docker build -t aegismesh-backend:local-v2 ./backend
+docker build -t aegismesh-frontend:local ./frontend
+kubectl apply -k ./k8s
+kubectl -n aegismesh port-forward svc/frontend 3000:3000
+kubectl -n aegismesh port-forward svc/backend 5000:5000
+```
+
+Open the app at `http://aegismesh.localhost:3000`.
+
+Full guide: [k8s/README.md](./k8s/README.md)
+
+## Jenkins CI/CD
+
+This repository includes a ready-to-use Jenkins pipeline at `Jenkinsfile`.
+
+### Pipeline stages
+
+1. Checkout code
+2. Install dependencies (`backend` + `frontend`) in parallel
+3. Run backend tests, frontend lint, and frontend build in parallel
+4. Optionally build Docker images for backend and frontend
+5. Archive frontend build artifacts
+
+### Quick start
+
+1. Create a Jenkins **Pipeline** job.
+2. Set **Pipeline script from SCM** and point to this repository.
+3. Set **Script Path** to `Jenkinsfile`.
+4. Run a build.
+
+Detailed Jenkins setup (plugins, node requirements, parameters, and first-run checklist):
+[jenkins/README.md](./jenkins/README.md)
 
 ## Environment Variables
 
-Configure environment values (primarily in `backend/.env`):
+Copy `.env.example` to `.env` and configure:
 
 ```env
-DATABASE_URL=
+# Database (Docker uses 'db' as hostname, local uses 'localhost')
+DATABASE_URL=""
 
-JWT_SECRET=
-JWT_REFRESH_SECRET=
+# JWT
+JWT_SECRET="your-secret-key"
+JWT_REFRESH_SECRET="your-refresh-secret"
 
+# OAuth (Google & GitHub)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 
-SMTP_HOST=
+# Email
+SMTP_HOST=smtp.ethereal.email
 SMTP_USER=
 SMTP_PASS=
+
+# Frontend API URL
+VITE_API_URL="http://localhost:5000"
 ```
+
+See [`.env.example`](./.env.example) for all available options.
 
 ## API Endpoints
 
@@ -159,6 +233,11 @@ SMTP_PASS=
 │   │   ├── services/
 │   │   └── utils/
 │   └── package.json
+├── k8s/
+│   ├── manifests/
+│   ├── deploy-docker-desktop.ps1
+│   ├── kustomization.yaml
+│   └── README.md
 ├── diagrams/
 └── README.md
 ```

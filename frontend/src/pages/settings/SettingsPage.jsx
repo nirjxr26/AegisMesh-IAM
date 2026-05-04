@@ -1,4 +1,4 @@
-import { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     AlertTriangle,
@@ -1791,10 +1791,6 @@ export default function SettingsPage() {
     }, [legacyTab, location.state, searchParams]);
 
     const [activeTab, setActiveTab] = useState(initialTab);
-
-    useEffect(() => {
-        setActiveTab(initialTab);
-    }, [initialTab]);
 
     const { data: profileData } = useQuery({
         queryKey: ['settings-profile'],

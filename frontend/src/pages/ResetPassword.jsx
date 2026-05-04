@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -32,13 +32,13 @@ export default function ResetPassword() {
     const {
         register,
         handleSubmit,
-        watch,
+        control,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(resetSchema),
     });
 
-    const password = watch('newPassword', '');
+    const password = useWatch({ control, name: 'newPassword', defaultValue: '' });
 
     if (!token) {
         return (

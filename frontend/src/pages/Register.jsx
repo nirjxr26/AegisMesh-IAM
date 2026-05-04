@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
@@ -33,13 +33,13 @@ export default function Register() {
     const {
         register,
         handleSubmit,
-        watch,
+        control,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(registerSchema),
     });
 
-    const password = watch('password', '');
+    const password = useWatch({ control, name: 'password', defaultValue: '' });
 
     const onSubmit = async (data) => {
         setError('');

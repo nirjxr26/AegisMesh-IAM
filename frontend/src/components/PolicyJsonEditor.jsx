@@ -1,16 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 
 export default function PolicyJsonEditor({ value, onChange, label }) {
-    const [text, setText] = useState('');
     const [error, setError] = useState(null);
-
-    useEffect(() => {
-        setText(JSON.stringify(value || [], null, 2));
-    }, [value]);
+    const initialText = useMemo(() => JSON.stringify(value || [], null, 2), [value]);
 
     const handleChange = (e) => {
         const newText = e.target.value;
-        setText(newText);
         try {
             const parsed = JSON.parse(newText);
             if (!Array.isArray(parsed)) throw new Error('Must be an array');
@@ -25,7 +20,8 @@ export default function PolicyJsonEditor({ value, onChange, label }) {
         <div className="mb-4">
             <label className="block text-sm font-medium text-[#3a4560] mb-1">{label}</label>
             <textarea
-                value={text}
+                key={initialText}
+                defaultValue={initialText}
                 onChange={handleChange}
                 rows={5}
                 className={`w-full bg-[#ffffff] border rounded p-3 text-[#0f1623] font-mono text-sm focus:outline-none ${error ? 'border-red-500 focus:border-red-500' : 'border-[#d0d7e8] focus:border-[#4f46e5]'

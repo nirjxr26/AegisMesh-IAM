@@ -31,8 +31,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.6.0",
-    "@prisma/client": "^7.6.0",
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -51,7 +51,7 @@
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.20.0",
-    "prisma": "^7.6.0",
+    "prisma": "^7.7.0",
     "qrcode": "^1.5.4",
     "uuid": "^13.0.0",
     "winston": "^3.19.0"

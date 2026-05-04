@@ -108,7 +108,7 @@ export default function ConnectedApps() {
         },
     });
 
-    const apps = data?.data || [];
+    const apps = useMemo(() => data?.data ?? [], [data]);
     const summary = data?.summary || {
         total: apps.length,
         oauth: apps.filter((app) => app.type === 'oauth').length,

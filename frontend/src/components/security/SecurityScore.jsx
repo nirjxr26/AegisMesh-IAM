@@ -117,7 +117,6 @@ export default function SecurityScore({ user, sessions, apiKeys, connectedApps, 
     const completedChecks = useMemo(() => result.checks.filter((check) => check.passed), [result.checks]);
 
     useEffect(() => {
-        setAnimatedScore(0);
         const frame = window.requestAnimationFrame(() => {
             window.setTimeout(() => {
                 setAnimatedScore(result.score);

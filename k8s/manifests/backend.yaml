@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: aegismesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -p 5432 -U "$DB_USER" -d "$DB_NAME"; do
+                echo "waiting for postgres";
+                sleep 2;
+              done
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_PASSWORD
+        - name: prisma-migrate
+          image: aegismesh-backend:local-v2
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "npx prisma migrate deploy"]
+          envFrom:
+            - configMapRef:
+                name: aegismesh-config
+            - secretRef:
+                name: aegismesh-secrets
+      containers:
+        - name: backend
+          image: aegismesh-backend:local-v2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: aegismesh-config
+            - secretRef:
+                name: aegismesh-secrets
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 5
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: aegismesh
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000

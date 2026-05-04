@@ -1,6 +1,6 @@
 import { createElement, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
     AlertTriangle,
     ArrowRight,
@@ -999,24 +999,13 @@ function AnalyticsSection() {
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const location = useLocation();
 
     const [sessions, setSessions] = useState([]);
     const [sessionsLoading, setSessionsLoading] = useState(true);
     const [revokingSession, setRevokingSession] = useState(null);
     const [activeSection, setActiveSection] = useState('overview');
-    const [collapsed, setCollapsed] = useState(false);
-    const [expandedSections, setExpandedSections] = useState({
-        identity: true,
-        accessControl: true,
-        audit: true,
-    });
 
-    useEffect(() => {
-        fetchSessions();
-    }, []);
-
-    const fetchSessions = async () => {
+    async function fetchSessions() {
         try {
             const { data } = await authAPI.getSessions();
             setSessions(data.data);
@@ -1025,7 +1014,15 @@ export default function Dashboard() {
         } finally {
             setSessionsLoading(false);
         }
-    };
+    }
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            fetchSessions();
+        }, 0);
+
+        return () => window.clearTimeout(timer);
+    }, []);
 
     const handleRevokeSession = async (sessionId) => {
         setRevokingSession(sessionId);
@@ -1058,37 +1055,6 @@ export default function Dashboard() {
         }
         return 'AegisMesh User';
     }, [user]);
-
-    const pathname = location.pathname;
-    const isOverviewActive = pathname === '/dashboard' && activeSection === 'overview';
-    const isSessionsActive = pathname === '/dashboard' && activeSection === 'sessions';
-    const isSecurityActive = pathname === '/dashboard' && activeSection === 'security';
-
-    const accessRouteActive = {
-        users: pathname === '/dashboard/users' || pathname.startsWith('/dashboard/users/'),
-        roles: pathname === '/dashboard/roles' || pathname.startsWith('/dashboard/roles/'),
-        policies: pathname === '/dashboard/policies' || pathname.startsWith('/dashboard/policies/'),
-        groups: pathname === '/dashboard/groups' || pathname.startsWith('/dashboard/groups/'),
-    };
-
-    const auditRouteActive = {
-        systemLogs: pathname === '/dashboard/audit-logs',
-        analytics: pathname === '/dashboard/audit-logs/stats',
-    };
-
-    const identityActive = isSessionsActive || isSecurityActive;
-    const accessControlActive =
-        Object.values(accessRouteActive).some(Boolean) ||
-        ['users', 'roles', 'policies', 'groups'].includes(activeSection);
-    const auditActive = Object.values(auditRouteActive).some(Boolean);
-
-    const identityExpanded = expandedSections.identity || identityActive;
-    const accessControlExpanded = expandedSections.accessControl || accessControlActive;
-    const auditExpanded = expandedSections.audit || auditActive;
-
-    const toggleSection = (key) => {
-        setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
-    };
 
     const renderSectionContent = () => {
         switch (activeSection) {

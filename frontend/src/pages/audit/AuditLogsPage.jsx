@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -148,16 +148,6 @@ export default function AuditLogsPage() {
     const [searchInput, setSearchInput] = useState('');
     const debouncedSearch = useDebounce(searchInput, 400);
 
-    useEffect(() => {
-        setFilters((prev) => {
-            if (prev.search === debouncedSearch) {
-                return prev;
-            }
-            return { ...prev, search: debouncedSearch };
-        });
-        setPage(1);
-    }, [debouncedSearch]);
-
     const toIsoDayStart = (value) => {
         if (!value) return undefined;
         const date = new Date(`${value}T00:00:00.000Z`);
@@ -175,6 +165,7 @@ export default function AuditLogsPage() {
             page,
             limit: perPage,
             ...filters,
+            search: debouncedSearch,
             dateFrom: toIsoDayStart(filters.startDate),
             dateTo: toIsoDayEnd(filters.endDate),
         };
@@ -182,7 +173,7 @@ export default function AuditLogsPage() {
             if (!next[key]) delete next[key];
         });
         return next;
-    }, [page, perPage, filters]);
+    }, [page, perPage, filters, debouncedSearch]);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ['audit-logs', queryParams],
@@ -352,7 +343,10 @@ export default function AuditLogsPage() {
                         <input
                             type="text"
                             value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
+                            onChange={(e) => {
+                                setSearchInput(e.target.value);
+                                setPage(1);
+                            }}
                             placeholder="Search action, resource, IP..."
                             className="w-full border border-[#d0d7e8] rounded-xl pl-9 pr-4 py-2.5 text-sm text-[#3a4560] placeholder:text-[#7a87a8] focus:ring-2 focus:ring-[#4f46e5]/25 focus:border-[#4f46e5] outline-none"
                         />

@@ -13,20 +13,47 @@ const { encryptText } = require('../utils/crypto');
 
 const router = express.Router();
 
-function setAuthCookies(res, accessToken, refreshToken) {
+function isSecureRequest(req) {
+    if (process.env.COOKIE_SECURE === 'true') {
+        return true;
+    }
+
+    if (process.env.COOKIE_SECURE === 'false') {
+        return false;
+    }
+
+    return req.secure || req.headers['x-forwarded-proto'] === 'https';
+}
+
+function getCookieOptions(req) {
+    const secure = isSecureRequest(req);
+
+    return {
+        access: {
+            httpOnly: true,
+            secure,
+            sameSite: secure ? 'none' : 'lax',
+            maxAge: 15 * 60 * 1000,
+        },
+        refresh: {
+            httpOnly: true,
+            secure,
+            sameSite: secure ? 'none' : 'lax',
+            path: '/api/auth/refresh-token',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        },
+    };
+}
+
+function setAuthCookies(req, res, accessToken, refreshToken) {
+    const options = getCookieOptions(req);
+
     res.cookie('accessToken', encryptText(accessToken), {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000,
+        ...options.access,
     });
 
     res.cookie('refreshToken', encryptText(refreshToken), {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
-        path: '/api/auth/refresh-token',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        ...options.refresh,
     });
 }
 
@@ -165,7 +192,10 @@ router.get(
 
 router.get(
     '/oauth/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: '/login' }),
+    passport.authenticate('google', {
+        session: false,
+        failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
+    }),
     async (req, res) => {
         try {
             const user = req.user;
@@ -181,7 +211,7 @@ router.get(
             const accessToken = tokenService.generateAccessToken(user, session.id);
             await auditAuth.oauthLogin(req, user.id, 'google', session.id);
 
-            setAuthCookies(res, accessToken, refreshToken);
+            setAuthCookies(req, res, accessToken, refreshToken);
             const redirectUrl = `${process.env.FRONTEND_URL}/oauth/callback`;
             res.redirect(redirectUrl);
         } catch (error) {
@@ -199,7 +229,10 @@ router.get(
 
 router.get(
     '/oauth/github/callback',
-    passport.authenticate('github', { session: false, failureRedirect: '/login' }),
+    passport.authenticate('github', {
+        session: false,
+        failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
+    }),
     async (req, res) => {
         try {
             const user = req.user;
@@ -215,7 +248,7 @@ router.get(
             const accessToken = tokenService.generateAccessToken(user, session.id);
             await auditAuth.oauthLogin(req, user.id, 'github', session.id);
 
-            setAuthCookies(res, accessToken, refreshToken);
+            setAuthCookies(req, res, accessToken, refreshToken);
             const redirectUrl = `${process.env.FRONTEND_URL}/oauth/callback`;
             res.redirect(redirectUrl);
         } catch (error) {

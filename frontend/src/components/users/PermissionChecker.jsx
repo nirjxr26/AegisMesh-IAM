@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CheckCircle2, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import { rbacAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -9,18 +9,13 @@ export default function PermissionChecker({
     resource: initialResource = 'users/*',
     onResult,
 }) {
-    const [action, setAction] = useState(initialAction);
-    const [resource, setResource] = useState(initialResource);
+    const [actionInput, setActionInput] = useState(null);
+    const [resourceInput, setResourceInput] = useState(null);
     const [result, setResult] = useState(null);
     const [status, setStatus] = useState('idle'); // idle | loading | result
 
-    useEffect(() => {
-        setAction(initialAction);
-    }, [initialAction]);
-
-    useEffect(() => {
-        setResource(initialResource);
-    }, [initialResource]);
+    const action = actionInput ?? initialAction;
+    const resource = resourceInput ?? initialResource;
 
     const loading = status === 'loading';
 
@@ -81,7 +76,7 @@ export default function PermissionChecker({
                     <input
                         type="text"
                         value={action}
-                        onChange={(e) => setAction(e.target.value)}
+                        onChange={(e) => setActionInput(e.target.value)}
                         placeholder="e.g. users:read"
                         className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm"
                     />
@@ -91,7 +86,7 @@ export default function PermissionChecker({
                     <input
                         type="text"
                         value={resource}
-                        onChange={(e) => setResource(e.target.value)}
+                        onChange={(e) => setResourceInput(e.target.value)}
                         placeholder="e.g. users/*"
                         className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm"
                     />

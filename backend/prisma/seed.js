@@ -1,8 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
-
-const prisma = new PrismaClient();
+const prisma = require('../src/config/database');
 
 const now = new Date();
 

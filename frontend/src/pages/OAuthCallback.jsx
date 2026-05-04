@@ -6,15 +6,18 @@ export default function OAuthCallback() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { loadProfile } = useAuth();
-    const [errorMessage, setErrorMessage] = useState('');
+    const [runtimeErrorMessage, setRuntimeErrorMessage] = useState('');
+
+    const error = searchParams.get('error');
+    const errorMessage = error
+        ? 'OAuth sign-in failed. Please try again.'
+        : runtimeErrorMessage;
 
     useEffect(() => {
-        const error = searchParams.get('error');
         const accessToken = searchParams.get('accessToken');
         const refreshToken = searchParams.get('refreshToken');
 
         if (error) {
-            setErrorMessage('OAuth sign-in failed. Please try again.');
             return;
         }
 
@@ -30,12 +33,12 @@ export default function OAuthCallback() {
                 await loadProfile();
                 navigate('/dashboard', { replace: true });
             } catch {
-                setErrorMessage('Unable to complete OAuth sign-in. Please retry from login.');
+                setRuntimeErrorMessage('Unable to complete OAuth sign-in. Please retry from login.');
             }
         };
 
         finalizeOAuth();
-    }, [loadProfile, navigate, searchParams]);
+    }, [error, loadProfile, navigate, searchParams]);
 
     if (errorMessage) {
         return (

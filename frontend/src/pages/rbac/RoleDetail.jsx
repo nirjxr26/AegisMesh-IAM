@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -57,28 +57,9 @@ export default function RoleDetail() {
     const allUsers = allUsersData?.data?.data || [];
     const [expandedChips, setExpandedChips] = useState({});
 
-    const relativeTime = useMemo(() => new Intl.RelativeTimeFormat('en', { numeric: 'auto' }), []);
-
     const formatRelative = (value) => {
         if (!value) return 'Unknown';
-
-        const date = new Date(value);
-        const seconds = Math.round((date.getTime() - Date.now()) / 1000);
-        const steps = [
-            { unit: 'year', seconds: 60 * 60 * 24 * 365 },
-            { unit: 'month', seconds: 60 * 60 * 24 * 30 },
-            { unit: 'day', seconds: 60 * 60 * 24 },
-            { unit: 'hour', seconds: 60 * 60 },
-            { unit: 'minute', seconds: 60 },
-        ];
-
-        for (const step of steps) {
-            if (Math.abs(seconds) >= step.seconds) {
-                return relativeTime.format(Math.round(seconds / step.seconds), step.unit);
-            }
-        }
-
-        return relativeTime.format(seconds, 'second');
+        return formatDate(value);
     };
 
     const formatDate = (value) => {

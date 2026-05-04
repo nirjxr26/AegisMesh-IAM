@@ -48,7 +48,7 @@ export default function PolicyDetail() {
             return JSON.stringify(jsonObject, null, 4)
                 .replace(/"([^"\\]+)":/g, '<span style="color:#7dd3fc">"$1"</span>:')
                 .replace(/: "([^"\\]*)"/g, ': <span style="color:#86efac">"$1"</span>')
-                .replace(/[{}\[\]]/g, '<span style="color:#f8fafc">$&</span>');
+                .replace(/[{}[\]]/g, '<span style="color:#f8fafc">$&</span>');
         };
     }, []);
 

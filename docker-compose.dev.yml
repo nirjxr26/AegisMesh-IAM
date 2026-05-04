@@ -1,0 +1,43 @@
+# Development override - use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: aegismesh_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      BACKEND_PORT: 5000
+      FRONTEND_PORT: 5173
+      DB_PORT: 5432
+      DATABASE_URL: postgresql://dev_user:dev_password@db:5432/aegismesh_dev
+      FRONTEND_URL: http://localhost:5173
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - /app/node_modules
+    command: npm run dev
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      VITE_API_URL: http://localhost:5000
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - /app/node_modules
+    command: npm run dev
+    ports:
+      - "5173:5173"

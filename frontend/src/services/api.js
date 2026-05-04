@@ -57,6 +57,19 @@ const notifyAuthExpired = () => {
     window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
 };
 
+const redirectToLoginIfNeeded = () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const currentPath = window.location.pathname || '';
+    if (currentPath === '/login') {
+        return;
+    }
+
+    window.location.href = '/login';
+};
+
 const isRefreshRequest = (url = '') => url.includes('/auth/refresh-token');
 const isPublicAuthRequest = (url = '') => PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
 
@@ -151,9 +164,7 @@ api.interceptors.response.use(
                 if (!refreshToken) {
                     clearStoredAuth();
                     notifyAuthExpired();
-                    if (typeof window !== 'undefined') {
-                        window.location.href = '/login';
-                    }
+                    redirectToLoginIfNeeded();
                     return Promise.reject(error);
                 }
 
@@ -177,9 +188,7 @@ api.interceptors.response.use(
                 processQueue(refreshError, null);
                 clearStoredAuth();
                 notifyAuthExpired();
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
-                }
+                redirectToLoginIfNeeded();
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;

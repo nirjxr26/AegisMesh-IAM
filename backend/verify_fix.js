@@ -15,8 +15,7 @@ const options = {
     }
 };
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('./src/config/database');
 
 async function verify() {
     const result = await prisma.user.count();

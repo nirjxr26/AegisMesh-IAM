@@ -155,7 +155,7 @@ export default function UsersList() {
         locked: users.filter(u => u.status === 'LOCKED').length,
         unverified: users.filter(u => !u.emailVerified).length,
     };
-    const roles = rolesResponse?.data || [];
+    const roles = useMemo(() => rolesResponse?.data ?? [], [rolesResponse]);
     const visibleRoles = useMemo(() => {
         const query = roleSearch.trim().toLowerCase();
         if (!query) {

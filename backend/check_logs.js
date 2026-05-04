@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('./src/config/database');
 async function main() {
     console.log('Fetching audit logs counts...');
     const logs = await prisma.auditLog.groupBy({

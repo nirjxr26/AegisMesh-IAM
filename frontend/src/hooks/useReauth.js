@@ -63,9 +63,11 @@ export function useReauth() {
         }
     }, [resetState]);
 
+    const pendingCall = reauthModal.pendingCall;
+
     const handleReauthSuccess = useCallback((credentials) => {
-        return reauthModal.pendingCall?.(credentials);
-    }, [reauthModal.pendingCall]);
+        return pendingCall?.(credentials);
+    }, [pendingCall]);
 
     const handleReauthClose = useCallback(() => {
         pendingPromiseRef.current.reject?.(new Error('Re-authentication cancelled'));

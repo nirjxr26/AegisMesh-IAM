@@ -12,7 +12,7 @@ export default function SessionsManagement() {
         fetchSessions();
     }, []);
 
-    const fetchSessions = async () => {
+    async function fetchSessions() {
         try {
             const { data } = await settingsAPI.getSessions();
             setSessions(data.data);
@@ -22,7 +22,7 @@ export default function SessionsManagement() {
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     const handleRevokeSession = async (sessionId) => {
         setRevokingSession(sessionId);
