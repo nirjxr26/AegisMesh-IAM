@@ -1,22 +1,13 @@
-# Multi-stage build for production
-FROM node:22-alpine AS dependencies
+# Build stage - for running migrations and setup
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production
-
-
-# Build stage - for running migrations and setup
-FROM node:22-alpine AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci
+# Install all dependencies (including dev)
+RUN npm install --no-audit --no-fund
 
 # Copy prisma schema and migrations
 COPY prisma ./prisma
@@ -36,14 +27,12 @@ WORKDIR /app
 # Install runtime utilities used by container startup and healthchecks
 RUN apk add --no-cache dumb-init curl
 
-# Copy production dependencies
-COPY --from=dependencies /app/node_modules ./node_modules
+# Copy all node_modules and app code from builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
 
 # Copy app code
 COPY . .
-
-# Copy generated Prisma client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S nodejs
