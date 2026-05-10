@@ -89,7 +89,7 @@ docker-compose up --build
 ```
 
 **Access the application:**
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3001
 - Backend API: http://localhost:5000
 - Database: localhost:5432
 
