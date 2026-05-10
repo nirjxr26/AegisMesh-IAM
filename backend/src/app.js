@@ -18,6 +18,7 @@ const auditLogRoutes = require('./routes/auditLog.routes');
 const notificationsRoutes = require('./routes/notifications.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const logger = require('./utils/logger');
+const { metricsHandler, metricsMiddleware } = require('./utils/metrics');
 const { scheduleCleanup } = require('./utils/auditCleanup');
 const path = require('path');
 
@@ -43,6 +44,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(metricsMiddleware);
 
 const csrfProtection = csurf({
     cookie: {
@@ -110,6 +112,8 @@ app.get('/api/health', (req, res) => {
         },
     });
 });
+
+app.get('/metrics', metricsHandler);
 
 app.get('/api/csrf-token', csrfProtection, (req, res) => {
     res.json({
