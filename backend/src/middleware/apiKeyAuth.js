@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
+const { recordApiKeyEvent } = require('../utils/metrics');
 
 function getRequiredScope(method, fullPath) {
     const path = (fullPath || '').toLowerCase();
@@ -72,11 +73,13 @@ async function authenticateApiKeyToken(req, rawToken) {
                 where: { id: token.id },
                 data: { isActive: false, revokedAt: token.expiresAt },
             });
+            recordApiKeyEvent('API_KEY_EXPIRED', 'BLOCKED');
             return null;
         }
 
         const requiredScope = getRequiredScope(req.method, req.originalUrl || req.path || '');
         if (requiredScope && !token.scopes.includes(requiredScope) && !token.scopes.includes('*')) {
+            recordApiKeyEvent('API_KEY_DENIED', 'BLOCKED');
             return { scopeError: true };
         }
 
@@ -87,6 +90,8 @@ async function authenticateApiKeyToken(req, rawToken) {
 
         const user = token.user;
         if (!user) return null;
+
+        recordApiKeyEvent('API_KEY_USED', 'SUCCESS');
 
         return {
             id: user.id,

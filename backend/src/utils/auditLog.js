@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const logger = require('./logger');
 const { createNotificationFromAudit } = require('./notifications');
+const { recordAuditMetrics, recordAuditWriteFailure } = require('./metrics');
 
 const USER_INCLUDE = {
     user: {
@@ -174,9 +175,16 @@ async function audit({
 
         await createNotificationFromAudit(entry);
         broadcastToSSE(entry);
+        recordAuditMetrics({
+            action,
+            category,
+            result,
+            metadata,
+        });
 
         return entry;
     } catch (error) {
+        recordAuditWriteFailure(category);
         logger.error('Audit log write failed', {
             action,
             category,
