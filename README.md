@@ -89,7 +89,7 @@ docker-compose up --build
 ```
 
 **Access the application:**
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3001
 - Backend API: http://localhost:5000
 - Database: localhost:5432
 
@@ -168,6 +168,29 @@ This repository includes a ready-to-use Jenkins pipeline at `Jenkinsfile`.
 
 Detailed Jenkins setup (plugins, node requirements, parameters, and first-run checklist):
 [jenkins/README.md](./jenkins/README.md)
+
+## Monitoring (Prometheus & Grafana)
+
+This project includes a lightweight monitoring stack provisioned via Docker Compose. Prometheus scrapes application metrics and Grafana provides dashboards and datasources.
+
+- Compose services: see `docker-compose.yml` (Prometheus + Grafana) and `docker-compose.dev.yml` (dev overrides).
+- Prometheus config: `monitoring/prometheus/prometheus.yml` — scrapes the backend at `backend:5000/metrics` every 15s.
+- Grafana provisioning: `monitoring/grafana/provisioning` — datasources and dashboards are auto-provisioned on startup.
+
+Quick start (Docker Compose):
+```bash
+# Start all services including monitoring
+docker-compose up --build
+
+# Open Grafana: http://localhost:3002 (default admin/admin or set GRAFANA_ADMIN_* env vars)
+# Prometheus UI: http://localhost:9090
+```
+
+Notes:
+- Grafana datasources include a Prometheus datasource (`http://prometheus:9090`) and a PostgreSQL datasource pointing at the `db` service. Credentials are read from environment variables used by `docker-compose.yml`.
+- Dashboards live in `monitoring/grafana/dashboards` (example: `aegismesh-overview.json`).
+- Persistent data is stored in Docker volumes (`prometheus_data`, `grafana_data`) declared in `docker-compose.yml`.
+
 
 ## Environment Variables
 
