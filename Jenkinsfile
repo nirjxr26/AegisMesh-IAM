@@ -122,7 +122,6 @@ pipeline {
     }
 
     parameters {
-        booleanParam(name: 'RUN_DOCKER_BUILD', defaultValue: false, description: 'Build Docker images after tests pass')
         booleanParam(name: 'RUN_FRONTEND_LINT', defaultValue: true, description: 'Run frontend lint stage')
         booleanParam(name: 'FAIL_ON_LINT', defaultValue: false, description: 'Fail build if frontend lint reports errors')
         booleanParam(name: 'USE_JENKINS_CREDENTIALS', defaultValue: true, description: 'Use Jenkins credentials for backend secrets')
@@ -237,12 +236,7 @@ pipeline {
             }
         }
 
-        stage('Docker Build (Optional)') {
-            when {
-                expression {
-                    return params.RUN_DOCKER_BUILD
-                }
-            }
+        stage('Docker Build') {
             steps {
                 script {
                     buildDockerImage('./backend', params.BACKEND_IMAGE, params.IMAGE_TAG)
