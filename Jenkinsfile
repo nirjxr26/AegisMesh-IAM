@@ -111,6 +111,22 @@ def buildDockerImage(String contextDir, String imageName, String imageTag) {
     }
 }
 
+def verifyDockerAvailability() {
+    if (isUnix()) {
+        int status = sh(returnStatus: true, script: 'command -v docker >/dev/null 2>&1')
+        if (status != 0) {
+            error('Docker CLI is not available on this Jenkins agent. Install Docker and ensure it is on PATH for the Jenkins user.')
+        }
+        sh 'docker --version'
+    } else {
+        int status = bat(returnStatus: true, script: '@echo off\r\nwhere docker >nul 2>&1')
+        if (status != 0) {
+            error('Docker CLI is not available on this Jenkins agent. Install Docker Desktop/Engine and ensure docker.exe is on PATH for the Jenkins user.')
+        }
+        bat 'docker --version'
+    }
+}
+
 pipeline {
     agent any
 
@@ -161,6 +177,14 @@ pipeline {
                         }
                         verifyNodeVersion()
                     }
+                }
+            }
+        }
+
+        stage('Docker Toolchain Check') {
+            steps {
+                script {
+                    verifyDockerAvailability()
                 }
             }
         }
