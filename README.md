@@ -1,281 +1,201 @@
 <div align="center">
-  <h1>AegisMesh</h1>
-  <p>Enterprise-ready IAM platform with MFA, OAuth, session control, audit logs, and dynamic RBAC in one unified admin console.</p>
+
+<h1>AegisMesh</h1>
+
+<p>A self-hosted IAM platform with RBAC, MFA, session management, and audit logging.</p>
 </div>
 
+## Overview
 
-## Problem Statement
+AegisMesh is a full-stack identity and access management platform built for teams that want AWS IAM-style access controls without handing user data to a third party. It handles authentication, fine-grained RBAC, MFA, session control, and security auditing — all in one place, self-hosted.
 
-Managing authentication, authorization, and security governance across modern applications is often fragmented and difficult to scale. Teams need centralized identity controls, policy-based permissions, and clear auditability for sensitive operations. AegisMesh solves this by combining auth, MFA, RBAC, and audit logging into a single platform.
+
+## Tech Stack
+
+| Layer | Tools |
+|---|---|
+| **Frontend** | React 19, Vite, Tailwind CSS |
+| **Backend** | Node.js, Express |
+| **Database** | PostgreSQL 15, Prisma |
+| **Security & Auth** | JWT, Passport, TOTP MFA, OAuth 2.0 |
+| **DevOps** | Docker, Kubernetes, Jenkins, Prometheus, Grafana |
+
 
 
 ## Features
 
 ### Authentication & Sessions
-
-- **Secure Authentication:** Supports email/password auth, JWT access and refresh tokens, secure cookies, and token refresh flow.
-- **OAuth Sign-In:** Google and GitHub OAuth login with organization policy enforcement to allow or block OAuth.
-- **Multi-Factor Authentication (MFA):** TOTP setup, verification, disable flow, and backup-code regeneration for stronger account security.
-- **Session Control:** View active sessions, revoke specific sessions, revoke all other sessions, and monitor device-level access.
+- JWT access and refresh tokens with secure cookie handling.
+- Google and GitHub OAuth with organization-level policy enforcement.
+- TOTP-based MFA with backup code support.
+- Active session viewer with per-session and bulk revocation.
 
 ### Authorization & Access Control
-
-- **Dynamic RBAC Engine:** Evaluates permissions in real time across users, roles, groups, and policies, with explicit DENY always overriding ALLOW.
-- **Policy Simulation:** Lets admins test policy outcomes before rollout to validate access behavior and reduce permission mistakes.
-- **Role Management:** Create, update, delete, template, and assign roles, including attaching and detaching policies per role.
-- **Group Management:** Organize users into groups, then attach roles to groups for scalable permission inheritance.
-- **Granular User Permissions View:** Inspect effective user permissions, assigned roles, and group memberships for fast access audits.
+- Dynamic RBAC engine across users, roles, groups, and policies. Explicit DENY always wins.
+- Policy simulator — test access outcomes before pushing changes.
+- Role and group management with policy attachment and inheritance.
+- Per-user effective permissions view for fast access audits.
 
 ### User & Organization Management
+- Full user lifecycle: create, update, verify, bulk operations, delete.
+- Organization-level admin controls with data export.
+- Scoped API keys with privileged reauth and revocation.
 
-- **User Lifecycle Management:** Create users, update status, verify email, delete users, and perform bulk operations (status, roles, groups, delete, export).
-- **Organization Administration:** SuperAdmin controls for organization settings, policy reset, and organization data export.
-- **API Key Management:** Create scoped API keys/tokens with extra reauth for privileged scopes, plus key revocation.
-
-### Security, Monitoring & Operations
-
-- **Reauthentication for Sensitive Actions:** Requires fresh identity verification for high-risk operations like password change, account deletion, and privileged token creation.
-- **Audit & Security Monitoring:** Centralized audit logs with stream, stats, security alerts, user-specific history, export, and cleanup actions.
-- **Notification Center:** Fetch notifications, mark single/all as read, and delete notification entries.
-- **Security Hardening:** Built-in validation, rate limiting, account protection controls, and middleware-driven authorization on protected routes.
+### Security & Monitoring
+- Reauthentication required for sensitive actions (password change, account deletion, privileged tokens).
+- Centralized audit logs with filtering, export, and security alerts.
+- Rate limiting, input validation, and middleware-based route protection.
+- Notification center for user-facing security events.
 
 
-## Architecture
-
+## Application Architecture
 ![Architecture](./diagrams/architecture__.png)
 
 
-## Pipeline Architecture
+## CI/CD Architecture
+<div align="center">
+<img 
+  src="./diagrams/devops.png" 
+  alt="Pipeline Architecture"
+  width="300"
+  height="700"
+/>
+</div>
 
-![Pipeline Architecture](./diagrams/devops.png)
 
+**Pipeline overview:**
+- Push or PR triggers Jenkins via webhook. Parallel frontend and backend jobs run lint, tests, and build.
+- On success, Jenkins builds and pushes Docker images to the configured registry.
+- Jenkins applies Kubernetes manifests and waits for readiness probes before marking the deploy complete.
+- Prometheus scrapes `/metrics`. Grafana handles dashboards and alerts. Failed rollouts revert with `kubectl rollout undo`.
 
-## Application Flow 
+Full pipeline docs: [`jenkins/README.md`](./jenkins/README.md)
 
-1. User authenticates (email/password, OAuth, MFA) via frontend.
-2. Backend issues JWT tokens and manages sessions.
-3. Each API call passes through security, authentication, and RBAC checks.
-4. Authorized actions are performed; sensitive actions require reauthentication and are logged.
-5. Frontend updates state based on backend responses.
+---
 
-**CI/CD:**
-- Jenkins pipeline runs on code changes: installs dependencies, lints, tests, builds, and (optionally) builds/pushes Docker images and deploys to Kubernetes.
+## Quick Start
 
-## Tech Stack
+### Prerequisites
 
-**Frontend:** React, Vite, Tailwind CSS  
-**Backend:** Node.js, Express  
-**Database:** PostgreSQL, Prisma  
-**Security & Auth:** JWT, Passport, TOTP MFA, OAuth
-
-## How It Works
-
-1. Users authenticate via email/password or OAuth, with MFA where enabled.
-2. Backend issues JWT access/refresh tokens and tracks active sessions.
-3. RBAC engine evaluates user permissions from roles, groups, and policies.
-4. Protected routes enforce auth + authorization middleware before actions are executed.
-5. Sensitive actions are written to audit logs for traceability and compliance.
-
-## Installation & Setup
-
-### Option 1: Docker (Recommended)
-
-**Requirements:** Docker & Docker Compose
+Clone the repo first:
 
 ```bash
-git clone https://github.com/Nirjar26/Aegismesh-IAM.git
+git clone https://github.com/nirjxr26/Aegismesh-IAM.git
 cd AegisMesh-IAM
-
-# Copy and configure environment variables
 cp .env.example .env
+```
 
-# Start all services (PostgreSQL, Backend, Frontend)
+Edit `.env` with your values before starting any option below.
+
+
+
+### Option 1 — Docker (Recommended)
+
+Requires Docker and Docker Compose.
+
+```bash
 docker-compose up --build
 ```
 
-**Access the application:**
-- Frontend: http://localhost:3001
-- Backend API: http://localhost:5000
-- Database: localhost:5432
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3001 |
+| Backend API | http://localhost:5000 |
+| Grafana | http://localhost:3002 |
+| Prometheus | http://localhost:9090 |
 
-**Development mode with hot reload:**
+Dev mode with hot reload:
+
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
-For detailed Docker setup instructions, see [Docker_Setup.md](./DOCKER_SETUP.md).
+Full setup guide: [`Docker_Setup.md`](./Docker_Setup.md)
 
-### Option 2: Local Development
 
-**Requirements:** Node.js 18+, PostgreSQL 15+
+### Option 2 — Local Development
+
+Requires Node.js 18+ and PostgreSQL 15+.
 
 ```bash
-git clone https://github.com/Nirjar26/Aegismesh-IAM.git
-cd AegisMesh-IAM
-
-# Backend setup
+# Backend
 cd backend
 npm install
 npm run prisma:generate
+npm run dev        # runs on :5000
 
-# Frontend setup
-cd ../frontend
-npm install
-```
-
-**Run services:**
-```bash
-# Terminal 1: Backend (default: port 5000)
-cd backend
-npm run dev
-
-# Terminal 2: Frontend (default: port 5173)
+# Frontend (separate terminal)
 cd frontend
-npm run dev
+npm install
+npm run dev        # runs on :5173
 ```
 
-### Option 3: Kubernetes (Docker Desktop)
 
-This repository includes Kubernetes manifests for PostgreSQL, backend, and frontend, configured for Docker Desktop Kubernetes.
 
-Quick start:
+### Option 3 — Kubernetes (Docker Desktop)
 
 ```bash
-docker build -t aegismesh-backend:local-v2 ./backend
+docker build -t aegismesh-backend:local ./backend
 docker build -t aegismesh-frontend:local ./frontend
 kubectl apply -k ./k8s
 kubectl -n aegismesh port-forward svc/frontend 3000:3000
 kubectl -n aegismesh port-forward svc/backend 5000:5000
 ```
 
-Open the app at `http://aegismesh.localhost:3000`.
+App runs at `http://aegismesh.localhost:3000`.
 
-Full guide: [k8s/README.md](./k8s/README.md)
+Full guide: [`k8s/README.md`](./k8s/README.md)
 
-## Jenkins CI/CD
-
-This repository includes a ready-to-use Jenkins pipeline at `Jenkinsfile`.
-
-### Pipeline stages
-
-1. Checkout code
-2. Install dependencies (`backend` + `frontend`) in parallel
-3. Run backend tests, frontend lint, and frontend build in parallel
-4. Optionally build Docker images for backend and frontend
-5. Archive frontend build artifacts
-
-### Quick start
-
-1. Create a Jenkins **Pipeline** job.
-2. Set **Pipeline script from SCM** and point to this repository.
-3. Set **Script Path** to `Jenkinsfile`.
-4. Run a build.
-
-Detailed Jenkins setup (plugins, node requirements, parameters, and first-run checklist):
-[jenkins/README.md](./jenkins/README.md)
-
-## Monitoring (Prometheus & Grafana)
-
-This project includes a lightweight monitoring stack provisioned via Docker Compose. Prometheus scrapes application metrics and Grafana provides dashboards and datasources.
-
-- Compose services: see `docker-compose.yml` (Prometheus + Grafana) and `docker-compose.dev.yml` (dev overrides).
-- Prometheus config: `monitoring/prometheus/prometheus.yml` — scrapes the backend at `backend:5000/metrics` every 15s.
-- Grafana provisioning: `monitoring/grafana/provisioning` — datasources and dashboards are auto-provisioned on startup.
-
-Quick start (Docker Compose):
-```bash
-# Start all services including monitoring
-docker-compose up --build
-
-# Open Grafana: http://localhost:3002 (default admin/admin or set GRAFANA_ADMIN_* env vars)
-# Prometheus UI: http://localhost:9090
-```
-
-Notes:
-- Grafana datasources include a Prometheus datasource (`http://prometheus:9090`) and a PostgreSQL datasource pointing at the `db` service. Credentials are read from environment variables used by `docker-compose.yml`.
-- Dashboards live in `monitoring/grafana/dashboards` (example: `aegismesh-overview.json`).
-- Persistent data is stored in Docker volumes (`prometheus_data`, `grafana_data`) declared in `docker-compose.yml`.
-
+---
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and configure:
+See [`.env.example`](./.env.example) for all options. Key variables:
 
 ```env
-# Database (Docker uses 'db' as hostname, local uses 'localhost')
-DATABASE_URL=""
+DATABASE_URL=postgresql://postgres:password@localhost:5432/aegismesh
 
-# JWT
-JWT_SECRET="your-secret-key"
-JWT_REFRESH_SECRET="your-refresh-secret"
+JWT_SECRET=your-secret-key
+JWT_REFRESH_SECRET=your-refresh-secret
 
-# OAuth (Google & GitHub)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 
-# Email
 SMTP_HOST=smtp.ethereal.email
 SMTP_USER=
 SMTP_PASS=
 
-# Frontend API URL
-VITE_API_URL="http://localhost:5000"
+VITE_API_URL=http://localhost:5000
 ```
 
-See [`.env.example`](./.env.example) for all available options.
+---
 
-## API Endpoints
+## Project Structure
 
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `POST /api/auth/refresh-token`
-- `GET /api/auth/me`
-- `GET /api/roles`
-- `POST /api/policies`
-- `GET /api/users/:id/permissions`
-
-## Folder Structure
-
-```text
-.
-├── backend/
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   └── migrations/
-│   ├── src/
-│   │   ├── config/
-│   │   ├── controllers/
-│   │   ├── middleware/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   └── utils/
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── context/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   └── utils/
-│   └── package.json
-├── k8s/
-│   ├── manifests/
-│   ├── deploy-docker-desktop.ps1
-│   ├── kustomization.yaml
-│   └── README.md
-├── diagrams/
-└── README.md
 ```
+├── backend/          # Node.js API, Prisma schema, auth, RBAC engine
+├── frontend/         # React 19 app, Tailwind CSS
+├── k8s/              # Kubernetes manifests and kustomization
+├── monitoring/       # Prometheus config, Grafana dashboards
+├── jenkins/          # Jenkinsfile and pipeline docs
+└── diagrams/         # Architecture diagrams
+```
+
+---
+
+## Documentation
+
+| Topic | Link |
+|---|---|
+| Docker Setup | [`Docker_Setup.md`](./Docker_Setup.md) |
+| Kubernetes | [`k8s/README.md`](./k8s/README.md) |
+| Jenkins CI/CD | [`jenkins/README.md`](./jenkins/README.md) |
+
+---
 
 ## License
 
-MIT License
-
-## Author / Contact
-
-Nirjar Goswami  
-GitHub: https://github.com/Nirjar26
-
+MIT — see [`LICENSE`](./LICENSE)

@@ -162,7 +162,10 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                script {
+                    currentBuild.displayName = "AegisMesh #${env.BUILD_NUMBER}"
+                    checkout scm
+                }
             }
         }
 
