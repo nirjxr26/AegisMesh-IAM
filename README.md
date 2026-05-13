@@ -12,15 +12,11 @@ AegisMesh is a full-stack identity and access management platform built for team
 
 ## Tech Stack
 
-| Layer | Tools |
-|---|---|
-| **Frontend** | React 19, Vite, Tailwind CSS |
-| **Backend** | Node.js, Express |
-| **Database** | PostgreSQL 15, Prisma |
-| **Security & Auth** | JWT, Passport, TOTP MFA, OAuth 2.0 |
-| **DevOps** | Docker, Kubernetes, Jenkins, Prometheus, Grafana |
-
-
+- **Frontend:** React 19, Vite, Tailwind CSS  
+- **Backend:** Node.js, Express  
+- **Database:** PostgreSQL 15, Prisma  
+- **Security & Authentication:** JWT, Passport, TOTP MFA, OAuth 2.0  
+- **DevOps & Infrastructure:** Docker, Kubernetes, Jenkins, Prometheus, Grafana  
 
 ## Features
 
@@ -46,10 +42,6 @@ AegisMesh is a full-stack identity and access management platform built for team
 - Centralized audit logs with filtering, export, and security alerts.
 - Rate limiting, input validation, and middleware-based route protection.
 - Notification center for user-facing security events.
-
-
-## Application Architecture
-![Architecture](./diagrams/architecture__.png)
 
 
 ## CI/CD Architecture
