@@ -42,7 +42,12 @@ Managing authentication, authorization, and security governance across modern ap
 
 ## Architecture
 
-![Architecture](./diagrams/Architecture_.png)
+![Architecture](./diagrams/architecture__.png)
+
+
+## Pipeline Architecture
+
+![Pipeline Architecture](./diagrams/devops.png)
 
 
 ## Application Flow 
