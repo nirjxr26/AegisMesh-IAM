@@ -6,13 +6,19 @@
 .env
 .env.local
 .env.*.local
+.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 .DS_Store
 
 # Dependencies
 node_modules/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 
 # Logs
 logs/
@@ -33,9 +39,6 @@ build/
 *.swp
 *.swo
 *~
-.editorconfig
-.eslintrc
-.prettierrc
 
 # OS
 .DS_Store
@@ -47,7 +50,6 @@ ehthumbs.db
 
 # Project specific
 AegisMesh-IAM-Fix-Logic-Guide.md
-.git/
 
 # Test coverage
 coverage/
@@ -66,3 +68,6 @@ db_data/
 *.tfstate
 *.tfstate.backup
 terraform.tfvars
+terraform/*.tfvars
+terraform/*.tfvars.json
+terraform/crash.log

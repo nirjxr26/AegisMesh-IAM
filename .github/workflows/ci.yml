@@ -2,25 +2,26 @@ name: CI
 
 on:
   pull_request:
+    branches: [ main, aws-k3s-argocd ]
     paths:
       - 'backend/**'
       - 'frontend/**'
   push:
-    branches: [ main ]
+    branches: [ main, aws-k3s-argocd ]
     paths:
       - 'backend/**'
       - 'frontend/**'
 
 jobs:
   backend:
-    name: Backend: lint / test / build
+    name: "Backend: lint / test / build"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 18
+      - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '22.12.0'
       - name: Install backend deps
         working-directory: backend
         run: |
@@ -36,14 +37,14 @@ jobs:
         run: npm run build --if-present
 
   frontend:
-    name: Frontend: lint / test / build
+    name: "Frontend: lint / test / build"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 18
+      - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '22.12.0'
       - name: Install frontend deps
         working-directory: frontend
         run: npm ci

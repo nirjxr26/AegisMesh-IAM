@@ -2,7 +2,7 @@ name: CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, aws-k3s-argocd ]
     paths:
       - 'k8s/**'
       - 'argocd/**'
@@ -29,8 +29,8 @@ jobs:
           export KUBECONFIG=$PWD/kubeconfig
           kubectl version --short
 
-      - name: Apply ArgoCD Application manifest
+      - name: Apply ArgoCD Application manifests
         env:
           KUBECONFIG: ${{ github.workspace }}/kubeconfig
         run: |
-          kubectl apply -f argocd/aegismesh-app.yaml
+          kubectl apply -f argocd/

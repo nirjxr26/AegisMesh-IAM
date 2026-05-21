@@ -137,6 +137,11 @@ pipeline {
         timeout(time: 45, unit: 'MINUTES')
     }
 
+    triggers {
+        // Webhook-free auto-detection of SCM changes (configure each branch job in Multibranch).
+        pollSCM('H/5 * * * *')
+    }
+
     parameters {
         booleanParam(name: 'RUN_FRONTEND_LINT', defaultValue: true, description: 'Run frontend lint stage')
         booleanParam(name: 'FAIL_ON_LINT', defaultValue: false, description: 'Fail build if frontend lint reports errors')
