@@ -214,7 +214,7 @@ router.get(
             setAuthCookies(req, res, accessToken, refreshToken);
             const redirectUrl = `${process.env.FRONTEND_URL}/oauth/callback`;
             res.redirect(redirectUrl);
-        } catch (error) {
+        } catch (_error) {
             res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
         }
     }
@@ -251,7 +251,7 @@ router.get(
             setAuthCookies(req, res, accessToken, refreshToken);
             const redirectUrl = `${process.env.FRONTEND_URL}/oauth/callback`;
             res.redirect(redirectUrl);
-        } catch (error) {
+        } catch (_error) {
             res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
         }
     }

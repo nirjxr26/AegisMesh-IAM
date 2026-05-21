@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: aegismesh-rules
+  namespace: monitoring
+spec:
+  groups:
+    - name: aegismesh.rules
+      rules:
+        - alert: AegisMeshHighCPU
+          expr: sum(rate(container_cpu_usage_seconds_total{namespace="aegismesh"}[5m])) by (pod) > 0.5
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "AegisMesh pod high CPU"
+            description: "Pod {{ $labels.pod }} in namespace aegismesh is using high CPU."
+        - alert: AegisMeshHighMemory
+          expr: sum(container_memory_usage_bytes{namespace="aegismesh"}) by (pod) > 200 * 1024 * 1024
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "AegisMesh pod high memory"
+            description: "Pod {{ $labels.pod }} in namespace aegismesh is using high memory."

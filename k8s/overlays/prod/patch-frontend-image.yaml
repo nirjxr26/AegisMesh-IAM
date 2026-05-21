@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: aegismesh
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ecr-regcred
+      containers:
+        - name: frontend
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:latest
+          imagePullPolicy: Always

@@ -7,7 +7,7 @@ This repository includes a root `Jenkinsfile` for CI/CD.
 1. Checks out source code.
 2. Installs backend and frontend dependencies in parallel.
 3. Runs backend tests, frontend lint, and frontend build in parallel.
-4. Optionally builds backend/frontend Docker images.
+4. Builds backend/frontend Docker images.
 5. Archives frontend build artifacts (`frontend/dist/**`).
 
 ## Jenkins Job Configuration
@@ -18,7 +18,33 @@ Create a **Pipeline** job and configure:
 - **SCM:** Git
 - **Repository URL:** your repo URL
 - **Branch Specifier:** `*/main` (or your branch)
+- **Branch Specifier:** `*/main` (create a second Pipeline job with `*/aws-k3s-argocd` if not using Multibranch)
 - **Script Path:** `Jenkinsfile`
+
+## Multibranch Pipeline (Recommended, No Webhook)
+
+Use this when you want Jenkins to auto-detect changes on both `main` and `aws-k3s-argocd` without webhooks.
+
+1. Create a new job: **Multibranch Pipeline**
+2. In **Branch Sources**, add **Git** (or **GitHub**):
+   - Repository URL: your repo URL
+   - Credentials: set if repo is private
+3. In **Behaviors**:
+   - Add **Filter by name (with wildcards)**
+   - Include: `main aws-k3s-argocd`
+   - Exclude: *(leave empty)*
+4. In **Build Configuration**:
+   - Mode: **by Jenkinsfile**
+   - Script Path: `Jenkinsfile`
+5. In **Scan Multibranch Pipeline Triggers**:
+   - Enable **Periodically if not otherwise run**
+   - Schedule: `H/5 * * * *`
+6. Save and click **Scan Repository Now**
+
+Notes:
+- `Jenkinsfile` already contains `pollSCM('H/5 * * * *')`, so each discovered branch job polls for commits.
+- Branch indexing schedule discovers branch-level updates; `pollSCM` detects commit updates per discovered branch.
+- If you later enable webhooks, you can reduce polling frequency.
 
 ## Recommended Jenkins Plugins
 
@@ -49,7 +75,7 @@ Your Jenkins agent must have:
 
 - Node.js 22.12+ and npm (or Node.js 24+)
 - Git
-- Docker (only for `RUN_DOCKER_BUILD=true`)
+- Docker (required; pipeline always builds Docker images)
 
 If you use Jenkins tool management for Node, define a Node.js installation at 22.12+.
 
@@ -90,16 +116,15 @@ If credentials are not configured yet, you can temporarily set `USE_JENKINS_CRED
 	- `aegismesh-google-client-secret`
 	- `aegismesh-github-client-secret`
 
-## Optional Docker Build
+## Docker Build
 
-At build time, set parameters:
+The pipeline always builds Docker images using:
 
-- `RUN_DOCKER_BUILD=true`
-- `BACKEND_IMAGE=your-registry/aegismesh-backend`
-- `FRONTEND_IMAGE=your-registry/aegismesh-frontend`
-- `IMAGE_TAG=<tag>`
+- `BACKEND_IMAGE` (default `aegismesh/backend`)
+- `FRONTEND_IMAGE` (default `aegismesh/frontend`)
+- `IMAGE_TAG` (default `latest`)
 
-Current pipeline builds images only. If you want push/deploy stages, add registry login and deployment steps in your Jenkins job or extend the `Jenkinsfile`.
+If you want push/deploy stages, add registry login and deployment steps in your Jenkins job or extend the `Jenkinsfile`.
 
 ## Lint Behavior Controls
 
@@ -117,12 +142,15 @@ Recommended rollout while fixing existing lint debt:
 
 ## Suggested Triggers
 
-- GitHub webhook: trigger on push/PR
+- No-webhook mode (recommended): use `pollSCM('H/5 * * * *')` from `Jenkinsfile`
+- For multiple branches (`main` and `aws-k3s-argocd`):
+  - Best: Multibranch Pipeline + periodic branch indexing
+  - Alternative: two Pipeline jobs (one per branch), both using polling
 - Optional nightly build for regression checks
 
 ## First Run Checklist
 
 1. Ensure Jenkins agent has Node.js 22.12+.
-2. Run one build with `RUN_DOCKER_BUILD=false`.
-3. Fix any lint/test issues surfaced by CI.
-4. Enable Docker build parameter and verify image build if needed.
+2. Ensure Jenkins agent has Docker CLI available for Jenkins user.
+3. Run one build from `main`, then one from `aws-k3s-argocd`.
+4. Fix any lint/test issues surfaced by CI.
