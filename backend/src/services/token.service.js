@@ -60,7 +60,7 @@ function generateRefreshToken(user) {
 function verifyAccessToken(token) {
     try {
         return jwt.verify(token, ACCESS_SECRET);
-    } catch (error) {
+    } catch (_error) {
         return null;
     }
 }
@@ -71,7 +71,7 @@ function verifyAccessToken(token) {
 function verifyRefreshToken(token) {
     try {
         return jwt.verify(token, REFRESH_SECRET);
-    } catch (error) {
+    } catch (_error) {
         return null;
     }
 }

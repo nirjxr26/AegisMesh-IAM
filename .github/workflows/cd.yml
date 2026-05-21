@@ -70,20 +70,6 @@ jobs:
             echo "No image changes detected"
           fi
 
-      - name: Trigger ArgoCD sync (optional)
-        env:
-          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
-        run: |
-          set -eux
-          if [ -z "$ARGOCD_SERVER" ] || [ -z "$ARGOCD_TOKEN" ]; then
-            echo "ARGOCD secrets not provided, skipping sync"
-            exit 0
-          fi
-          echo "Triggering ArgoCD sync for application aegismesh"
-          curl -k -s -X POST -H "Authorization: Bearer $ARGOCD_TOKEN" \
-            "$ARGOCD_SERVER/api/v1/applications/aegismesh/sync" -d '{}'
-
       - name: "Note: ArgoCD will detect overlay changes"
         run: echo "Overlay updates pushed to branch aws-k3s-argocd - ArgoCD will sync automatically if configured."
 
@@ -116,7 +102,7 @@ jobs:
         run: |
           echo "${{ secrets.KUBECONFIG }}" > kubeconfig
           export KUBECONFIG=$PWD/kubeconfig
-          kubectl version --short
+          kubectl version --client
 
       - name: Apply ArgoCD Application manifests
         env:
@@ -142,7 +128,7 @@ jobs:
         run: |
           echo "${{ secrets.KUBECONFIG }}" > kubeconfig
           export KUBECONFIG=$PWD/kubeconfig
-          kubectl version --short
+          kubectl version --client
 
       - name: Run smoke tests
         id: smoke

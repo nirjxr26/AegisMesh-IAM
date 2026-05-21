@@ -213,8 +213,6 @@ const users = userProfiles.map(([firstName, lastName], idx) => {
     };
 });
 
-const userIdByEmail = Object.fromEntries(users.map((u) => [u.email, u.id]));
-
 const policies = [
     {
         id: uuidv4(),
