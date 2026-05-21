@@ -1,13 +1,92 @@
 name: CD
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ main, aws-k3s-argocd ]
     paths:
       - 'k8s/**'
       - 'argocd/**'
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
 
 jobs:
+  update-overlays:
+    name: Update k8s overlays with latest ECR images
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: write
+    env:
+      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+      - name: Resolve latest image tags from ECR
+        id: resolve-tags
+        run: |
+          set -eux
+          BACKEND_TAG=$(aws ecr describe-images --region "$AWS_REGION" --repository-name aegismesh-backend --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text || echo "latest")
+          FRONTEND_TAG=$(aws ecr describe-images --region "$AWS_REGION" --repository-name aegismesh-frontend --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text || echo "latest")
+          echo "backend=$BACKEND_TAG" >> $GITHUB_OUTPUT
+          echo "frontend=$FRONTEND_TAG" >> $GITHUB_OUTPUT
+
+      - name: Update k8s/overlays/prod image patches
+        run: |
+          set -eux
+          BE_TAG=${{ steps.resolve-tags.outputs.backend }}
+          FE_TAG=${{ steps.resolve-tags.outputs.frontend }}
+          REG=${ECR_REGISTRY}
+          sed -i "s|image: .*aegismesh-backend:.*|image: ${REG}/aegismesh-backend:${BE_TAG}|g" k8s/overlays/prod/patch-backend-image.yaml || true
+          sed -i "s|image: .*aegismesh-frontend:.*|image: ${REG}/aegismesh-frontend:${FE_TAG}|g" k8s/overlays/prod/patch-frontend-image.yaml || true
+
+      - name: Commit and push overlay updates
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/overlays/prod/patch-backend-image.yaml k8s/overlays/prod/patch-frontend-image.yaml || true
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update prod overlay images to ${GITHUB_SHA:0:7} [skip ci]" || true
+            git push origin HEAD:aws-k3s-argocd
+          else
+            echo "No image changes detected"
+          fi
+
+      - name: Trigger ArgoCD sync (optional)
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+        run: |
+          set -eux
+          if [ -z "$ARGOCD_SERVER" ] || [ -z "$ARGOCD_TOKEN" ]; then
+            echo "ARGOCD secrets not provided, skipping sync"
+            exit 0
+          fi
+          echo "Triggering ArgoCD sync for application aegismesh"
+          curl -k -s -X POST -H "Authorization: Bearer $ARGOCD_TOKEN" \
+            "$ARGOCD_SERVER/api/v1/applications/aegismesh/sync" -d '{}'
+
+      - name: "Note: ArgoCD will detect overlay changes"
+        run: echo "Overlay updates pushed to branch aws-k3s-argocd - ArgoCD will sync automatically if configured."
+
   argocd-sync:
     name: Apply ArgoCD app (if KUBECONFIG available)
     runs-on: ubuntu-latest
@@ -17,6 +96,16 @@ jobs:
         run: |
           if [ -z "${{ secrets.KUBECONFIG }}" ]; then
             echo "KUBECONFIG secret is not set, skipping ArgoCD apply"
+            exit 78
+          fi
+
+      - name: Check KUBECONFIG secret presence (masked)
+        run: |
+          if [ -n "${{ secrets.KUBECONFIG }}" ]; then
+            LEN=$(echo -n "${{ secrets.KUBECONFIG }}" | wc -c || true)
+            echo "KUBECONFIG secret found (masked); length: ${LEN:-?} bytes"
+          else
+            echo "KUBECONFIG secret not found"
             exit 78
           fi
 
@@ -34,3 +123,41 @@ jobs:
           KUBECONFIG: ${{ github.workspace }}/kubeconfig
         run: |
           kubectl apply -f argocd/
+
+  smoke-test:
+    name: Run smoke tests and rollback on failure
+    runs-on: ubuntu-latest
+    needs: [update-overlays, argocd-sync]
+    if: ${{ github.event_name == 'workflow_run' || github.ref == 'refs/heads/aws-k3s-argocd' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Write kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl version --short
+
+      - name: Run smoke tests
+        id: smoke
+        run: |
+          set -eux
+          chmod +x scripts/ci/smoke-test.sh
+          ./scripts/ci/smoke-test.sh
+
+      - name: Rollback overlay commit on failure
+        if: failure()
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin aws-k3s-argocd
+          git checkout -B aws-k3s-argocd origin/aws-k3s-argocd
+          git revert --no-edit HEAD || true
+          git push origin aws-k3s-argocd
