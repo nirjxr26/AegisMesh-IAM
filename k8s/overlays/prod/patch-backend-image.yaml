@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ecr-regcred
+      containers:
+        - name: backend
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
+          imagePullPolicy: Always

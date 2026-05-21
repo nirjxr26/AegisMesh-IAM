@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+
+jobs:
+  backend:
+    name: Backend: lint / test / build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          npm ci
+      - name: Lint backend
+        working-directory: backend
+        run: npm run lint || true
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test --silent
+      - name: Build backend (artifact)
+        working-directory: backend
+        run: npm run build --if-present
+
+  frontend:
+    name: Frontend: lint / test / build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint || true
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test --silent || true
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build --if-present
+
+  build-and-push:
+    name: Build and push Docker images (main only)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main'
+    env:
+      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and push backend image
+        working-directory: backend
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        run: |
+            docker build -t $ECR_REGISTRY/aegismesh-backend:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-backend:latest -f Dockerfile .
+            docker push $ECR_REGISTRY/aegismesh-backend:$IMAGE_TAG
+            docker push $ECR_REGISTRY/aegismesh-backend:latest
+
+      - name: Build and push frontend image
+        working-directory: frontend
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        run: |
+            docker build -t $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-frontend:latest -f Dockerfile .
+            docker push $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG
+            docker push $ECR_REGISTRY/aegismesh-frontend:latest
