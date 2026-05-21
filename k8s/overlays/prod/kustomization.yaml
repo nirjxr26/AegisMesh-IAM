@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - ../../manifests
 
-patchesStrategicMerge:
-  - patch-backend-image.yaml
-  - patch-frontend-image.yaml
-  - patch-resources.yaml
+patches:
+  - path: patch-backend-image.yaml
+  - path: patch-frontend-image.yaml
+  - path: patch-resources.yaml
