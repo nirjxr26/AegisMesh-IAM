@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: aegismesh
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ecr-regcred
+      initContainers:
+        - name: prisma-migrate
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
+          imagePullPolicy: Always
+      containers:
+        - name: backend
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
+          imagePullPolicy: Always

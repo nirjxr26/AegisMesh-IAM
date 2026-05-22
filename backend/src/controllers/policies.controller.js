@@ -40,7 +40,7 @@ exports.createPolicy = async (req, res, next) => {
             return res.status(400).json({ success: false, error: 'effect must be ALLOW or DENY' });
         }
 
-        const isValidAction = (a) => a === '*' || /^[a-zA-Z0-9_*]+:[a-zA-Z0-9_*\-]+$/.test(a);
+        const isValidAction = (a) => a === '*' || /^[a-zA-Z0-9_*]+:[a-zA-Z0-9_*]+$/.test(a);
         if (!Array.isArray(actions) || actions.length === 0 || !actions.every(isValidAction)) {
             return res.status(400).json({ success: false, error: 'Invalid actions format' });
         }

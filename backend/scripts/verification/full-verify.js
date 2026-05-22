@@ -1,5 +1,5 @@
 require('dotenv').config();
-const prisma = require('./src/config/database');
+const prisma = require('../../src/config/database');
 
 async function verify() {
   console.log('\n╔════════════════════════════════════════════════════════╗');
@@ -7,7 +7,6 @@ async function verify() {
   console.log('╚════════════════════════════════════════════════════════╝\n');
 
   try {
-    // Test 1: User new fields
     console.log('📝 Testing User new fields...');
     const user = await prisma.user.findFirst({
       select: {
@@ -23,7 +22,7 @@ async function verify() {
         passwordChangedAt: true,
         backupCodes: true,
         apiTokens: true,
-      }
+      },
     });
     if (user) {
       console.log('✅ User new fields accessible');
@@ -35,7 +34,6 @@ async function verify() {
       console.log('❌ No users found');
     }
 
-    // Test 2: OrganizationSettings
     console.log('\n🏢 Testing OrganizationSettings...');
     const org = await prisma.organizationSettings.findFirst();
     if (org) {
@@ -48,16 +46,14 @@ async function verify() {
       console.log('❌ No OrganizationSettings found');
     }
 
-    // Test 3: ApiToken
     console.log('\n🔑 Testing ApiToken...');
     const tokenCount = await prisma.apiToken.count();
     console.log(`✅ ApiToken table accessible`);
     console.log(`   - Tokens in DB: ${tokenCount}`);
 
-    // Test 4: Session lastActiveAt
     console.log('\n⏰ Testing Session.lastActiveAt...');
     const session = await prisma.session.findFirst({
-      select: { id: true, lastActiveAt: true, createdAt: true }
+      select: { id: true, lastActiveAt: true, createdAt: true },
     });
     if (session) {
       console.log('✅ Session.lastActiveAt accessible');
@@ -65,7 +61,6 @@ async function verify() {
       console.log(`   - Last Active: ${session.lastActiveAt}`);
     }
 
-    // Test 5: Full column list
     console.log('\n📋 Full User Table Columns:');
     const columns = await prisma.$queryRaw`
       SELECT column_name, data_type
@@ -75,29 +70,27 @@ async function verify() {
     `;
     const newFields = [
       'jobTitle', 'department', 'timezone', 'language', 'avatarUrl',
-      'mfaType', 'backupCodes', 'trustedDevices', 'notificationPreferences', 'passwordChangedAt'
+      'mfaType', 'backupCodes', 'trustedDevices', 'notificationPreferences', 'passwordChangedAt',
     ];
-    const allFields = columns.map(c => c.column_name);
+    const allFields = columns.map((column) => column.column_name);
     let allPresent = true;
-    newFields.forEach(field => {
+    newFields.forEach((field) => {
       if (!allFields.includes(field)) {
         allPresent = false;
       }
     });
-    
+
     console.log(`\n✅ All ${newFields.length} new fields present:\n`);
-    newFields.forEach(field => {
+    newFields.forEach((field) => {
       console.log(`   ✅ ${field}`);
     });
 
-    // Final summary
     console.log('\n╔════════════════════════════════════════════════════════╗');
     console.log('║               ✅ ALL VERIFICATION PASSED                ║');
     console.log('╚════════════════════════════════════════════════════════╝\n');
-
-  } catch(e) {
-    console.error('\n❌ Verification Error:', e.message);
-    console.error(e);
+  } catch (error) {
+    console.error('\n❌ Verification Error:', error.message);
+    console.error(error);
   } finally {
     await prisma.$disconnect();
   }
