@@ -3,5 +3,7 @@ import { defineConfig } from 'prisma/config';
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  seed: 'node prisma/seed.js',
+  migrations: {
+    seed: 'node prisma/seed.js',
+  },
 });
