@@ -73,53 +73,25 @@ jobs:
       - name: "Note: ArgoCD will detect overlay changes"
         run: echo "Overlay updates pushed to branch aws-k3s-argocd - ArgoCD will sync automatically if configured."
 
-  argocd-sync:
-    name: Apply ArgoCD app (if KUBECONFIG available)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify KUBECONFIG
-        run: |
-          if [ -z "${{ secrets.KUBECONFIG }}" ]; then
-            echo "KUBECONFIG secret is not set, skipping ArgoCD apply"
-            exit 78
-          fi
-
-      - name: Check KUBECONFIG secret presence (masked)
-        run: |
-          if [ -n "${{ secrets.KUBECONFIG }}" ]; then
-            LEN=$(echo -n "${{ secrets.KUBECONFIG }}" | wc -c || true)
-            echo "KUBECONFIG secret found (masked); length: ${LEN:-?} bytes"
-          else
-            echo "KUBECONFIG secret not found"
-            exit 78
-          fi
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
-
-      - name: Write kubeconfig
-        run: |
-          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
-          export KUBECONFIG=$PWD/kubeconfig
-          kubectl version --client
-
-      - name: Apply ArgoCD Application manifests
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig
-        run: |
-          kubectl apply -f argocd/
+  # NOTE: Removed `argocd-sync` job to enforce GitOps: CI will only update overlays and NOT apply manifests directly.
 
   smoke-test:
-    name: Run smoke tests and rollback on failure
+    name: Run smoke tests and rollback on failure (only if KUBECONFIG present)
     runs-on: ubuntu-latest
-    needs: [update-overlays, argocd-sync]
+    needs: [update-overlays]
     if: ${{ github.event_name == 'workflow_run' || github.ref == 'refs/heads/aws-k3s-argocd' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Verify KUBECONFIG
+        run: |
+          if [ -z "${{ secrets.KUBECONFIG }}" ]; then
+            echo "KUBECONFIG secret is not set, skipping smoke tests"
+            exit 78
+          fi
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
