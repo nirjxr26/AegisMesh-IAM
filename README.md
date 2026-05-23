@@ -2,21 +2,34 @@
 
 <h1>AegisMesh</h1>
 
-<p>A self-hosted IAM platform with RBAC, MFA, session management, and audit logging.</p>
+<p>A self-hosted IAM platform for teams that need strong authorization rules, step-up authentication, session control, and auditability without outsourcing identity data.</p>
+
 </div>
 
 ## Overview
 
-AegisMesh is a full-stack identity and access management platform built for teams that want AWS IAM-style access controls without handing user data to a third party. It handles authentication, fine-grained RBAC, MFA, session control, and security auditing — all in one place, self-hosted.
+AegisMesh is a full-stack identity and access management platform built for teams that want AWS IAM-style access controls without handing user data to a third party. It combines authentication, policy-driven authorization, MFA, session control, and security auditing in a single self-hosted stack.
 
+The current implementation focuses on a few IAM rules that matter in production:
+
+- DENY always wins over ALLOW when policies conflict.
+- Sensitive actions require step-up authentication before they execute.
+- Sessions can be revoked individually or in bulk without logging out every device.
+- Audit logging is treated as a first-class control, not an afterthought.
+
+---
 
 ## Tech Stack
 
-- **Frontend:** React 19, Vite, Tailwind CSS  
-- **Backend:** Node.js, Express  
-- **Database:** PostgreSQL 15, Prisma  
-- **Security & Authentication:** JWT, Passport, TOTP MFA, OAuth 2.0  
-- **DevOps & Infrastructure:** Docker, Kubernetes, Jenkins, Prometheus, Grafana  
+- **Frontend:** React 19, Vite, Tailwind CSS
+- **Backend:** Node.js, Express
+- **Database:** PostgreSQL 15, Prisma
+- **Security & Auth:** JWT, Passport, TOTP MFA, OAuth 2.0
+- **DevOps:** Docker, Kubernetes, Kustomize, Helm, Argo CD, GitHub Actions
+- **Infra:** Terraform (EC2, ECR), AWS ECR, SealedSecrets, Falco
+- **Observability:** Prometheus, Grafana
+
+---
 
 ## Features
 
@@ -25,12 +38,15 @@ AegisMesh is a full-stack identity and access management platform built for team
 - Google and GitHub OAuth with organization-level policy enforcement.
 - TOTP-based MFA with backup code support.
 - Active session viewer with per-session and bulk revocation.
+- Step-up reauthentication for password changes, account deletion, and privileged token actions.
 
 ### Authorization & Access Control
-- Dynamic RBAC engine across users, roles, groups, and policies. Explicit DENY always wins.
-- Policy simulator — test access outcomes before pushing changes.
+- Dynamic RBAC engine across users, roles, groups, and policies.
+- Explicit DENY precedence across direct, inherited, and attached policy sources.
+- Policy simulator to test access outcomes before pushing changes.
 - Role and group management with policy attachment and inheritance.
 - Per-user effective permissions view for fast access audits.
+- Scoped authorization for admin and support workflows.
 
 ### User & Organization Management
 - Full user lifecycle: create, update, verify, bulk operations, delete.
@@ -38,30 +54,36 @@ AegisMesh is a full-stack identity and access management platform built for team
 - Scoped API keys with privileged reauth and revocation.
 
 ### Security & Monitoring
-- Reauthentication required for sensitive actions (password change, account deletion, privileged tokens).
-- Centralized audit logs with filtering, export, and security alerts.
+- Centralized audit logs with filtering, export, streaming, and security alerts.
 - Rate limiting, input validation, and middleware-based route protection.
-- Notification center for user-facing security events.
+- Notification center for user-facing security events and access changes.
 
+---
 
 ## CI/CD Architecture
+
 <div align="center">
-<img 
-  src="./diagrams/devops.png" 
+<img
+  src="./diagrams/_architecture.png"
   alt="Pipeline Architecture"
-  width="300"
-  height="700"
 />
 </div>
 
+### Pipeline Overview
 
-**Pipeline overview:**
-- Push or PR triggers Jenkins via webhook. Parallel frontend and backend jobs run lint, tests, and build.
-- On success, Jenkins builds and pushes Docker images to the configured registry.
-- Jenkins applies Kubernetes manifests and waits for readiness probes before marking the deploy complete.
-- Prometheus scrapes `/metrics`. Grafana handles dashboards and alerts. Failed rollouts revert with `kubectl rollout undo`.
+- Push or PR triggers GitHub Actions CI, which runs lint, tests, and builds for both backend and frontend. On merge to main, CI builds multi-stage Docker images and pushes them to AWS ECR tagged by commit SHA.
+- On CI success, the CD workflow resolves the latest ECR image tags, patches the Kustomize overlay files under `k8s/overlays/prod`, and commits those changes to the `aws-k3s-argocd` deploy branch.
+- Argo CD watches that branch and applies the manifests to the cluster automatically. The SealedSecrets controller decrypts encrypted credentials into live Kubernetes Secrets.
+- On rollout, init containers run in order — `wait-for-db` first, then `prisma-migrate` — before the app starts. Smoke tests run post-deploy; failure triggers an automatic revert of the overlay commit.
 
-Full pipeline docs: [`jenkins/README.md`](./jenkins/README.md)
+### Key Design Decisions
+
+- CI does not run `kubectl apply`. CD writes overlay commits. Argo CD is the only thing that touches the cluster.
+- Every deploy is a Git commit — fully auditable and revertable.
+- SealedSecrets keep credentials encrypted in the repo. The in-cluster controller handles decryption.
+- Smoke test failure triggers an automatic `git revert` of the overlay commit, rolling back the image update without manual intervention.
+
+Full pipeline docs: [`ci-cd/README.md`](./ci-cd/README.md)
 
 ---
 
@@ -69,21 +91,17 @@ Full pipeline docs: [`jenkins/README.md`](./jenkins/README.md)
 
 ### Prerequisites
 
-Clone the repo first:
-
 ```bash
 git clone https://github.com/nirjxr26/Aegismesh-IAM.git
 cd AegisMesh-IAM
 cp .env.example .env
 ```
 
-Edit `.env` with your values before starting any option below.
+Edit `.env` with your values before starting.
 
-
+---
 
 ### Option 1 — Docker (Recommended)
-
-Requires Docker and Docker Compose.
 
 ```bash
 docker-compose up --build
@@ -91,7 +109,7 @@ docker-compose up --build
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:3001 |
+| Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000 |
 | Grafana | http://localhost:3002 |
 | Prometheus | http://localhost:9090 |
@@ -104,6 +122,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 Full setup guide: [`Docker_Setup.md`](./Docker_Setup.md)
 
+---
 
 ### Option 2 — Local Development
 
@@ -122,9 +141,13 @@ npm install
 npm run dev        # runs on :5173
 ```
 
+---
 
+### Option 3 — Kubernetes (GitOps)
 
-### Option 3 — Kubernetes (Docker Desktop)
+Provision infra with Terraform first, then push to main to trigger the full CI/CD pipeline. Argo CD will sync the cluster from the deploy branch automatically.
+
+For local testing with Docker Desktop:
 
 ```bash
 docker build -t aegismesh-backend:local ./backend
@@ -163,6 +186,8 @@ SMTP_PASS=
 VITE_API_URL=http://localhost:5000
 ```
 
+For CI/CD secrets, see [`ci-cd/README.md`](./ci-cd/README.md).
+
 ---
 
 ## Project Structure
@@ -170,9 +195,10 @@ VITE_API_URL=http://localhost:5000
 ```
 ├── backend/          # Node.js API, Prisma schema, auth, RBAC engine
 ├── frontend/         # React 19 app, Tailwind CSS
-├── k8s/              # Kubernetes manifests and kustomization
+├── k8s/              # Kubernetes manifests, Kustomize overlays, SealedSecrets
+├── terraform/        # AWS infra (EC2, ECR, IAM)
 ├── monitoring/       # Prometheus config, Grafana dashboards
-├── jenkins/          # Jenkinsfile and pipeline docs
+├── install/          # Cluster component install scripts
 └── diagrams/         # Architecture diagrams
 ```
 
@@ -184,7 +210,7 @@ VITE_API_URL=http://localhost:5000
 |---|---|
 | Docker Setup | [`Docker_Setup.md`](./Docker_Setup.md) |
 | Kubernetes | [`k8s/README.md`](./k8s/README.md) |
-| Jenkins CI/CD | [`jenkins/README.md`](./jenkins/README.md) |
+| CI/CD Pipeline | [`ci-cd/README.md`](./ci-cd/README.md) |
 
 ---
 

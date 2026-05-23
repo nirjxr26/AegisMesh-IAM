@@ -60,8 +60,13 @@ tmp/
 temp/
 *.tmp
 
+# Jenkins
+.jenkins/
+.archive/
+
 # Docker volumes (local development)
 db_data/
+docs/
 
 # Terraform
 **/.terraform/

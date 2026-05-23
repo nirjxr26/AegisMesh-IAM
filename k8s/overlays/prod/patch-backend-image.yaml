@@ -9,10 +9,20 @@ spec:
       imagePullSecrets:
         - name: ecr-regcred
       initContainers:
+        - name: wait-for-db
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
         - name: prisma-migrate
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
       containers:
         - name: backend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

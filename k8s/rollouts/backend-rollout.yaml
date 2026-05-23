@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend-rollout
+  namespace: aegismesh
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: aegismesh/backend:REPLACE_WITH_TAG
+        ports:
+        - containerPort: 5000
+  strategy:
+    canary:
+      steps:
+      - setWeight: 20
+      - pause: {duration: 60}
+      - setWeight: 50
+      - pause: {duration: 60}
