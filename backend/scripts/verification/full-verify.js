@@ -72,13 +72,8 @@ async function verify() {
       'jobTitle', 'department', 'timezone', 'language', 'avatarUrl',
       'mfaType', 'backupCodes', 'trustedDevices', 'notificationPreferences', 'passwordChangedAt',
     ];
-    const allFields = columns.map((column) => column.column_name);
-    let allPresent = true;
-    newFields.forEach((field) => {
-      if (!allFields.includes(field)) {
-        allPresent = false;
-      }
-    });
+    const allFields = new Set(columns.map((column) => column.column_name));
+    const allPresent = newFields.every((field) => allFields.has(field));
 
     console.log(`\n✅ All ${newFields.length} new fields present:\n`);
     newFields.forEach((field) => {

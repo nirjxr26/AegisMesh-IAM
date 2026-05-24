@@ -25,8 +25,8 @@ RUN apk add --no-cache curl
 # Copy built application from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration template; nginx entrypoint will envsubst it at startup.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 3000
 

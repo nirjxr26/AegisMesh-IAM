@@ -30,7 +30,7 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
             return;
         }
 
-        const focusTimer = window.setTimeout(() => {
+        const focusTimer = globalThis.setTimeout(() => {
             if (requiresMfa) {
                 mfaInputRef.current?.focus();
                 return;
@@ -39,7 +39,7 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
             passwordInputRef.current?.focus();
         }, 40);
 
-        return () => window.clearTimeout(focusTimer);
+        return () => globalThis.clearTimeout(focusTimer);
     }, [isOpen, requiresMfa, action]);
 
     if (!isOpen) return null;
@@ -78,13 +78,19 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
     return (
         <div
             className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4"
-            onMouseDown={(event) => {
-                if (event.target === event.currentTarget && !isSubmitting) {
-                    handleClose();
-                }
-            }}
         >
-            <div className="mx-4 w-full max-w-sm rounded-t-[20px] bg-white p-6 shadow-2xl sm:mx-0 sm:rounded-2xl" onMouseDown={(event) => event.stopPropagation()}>
+            <button
+                type="button"
+                aria-label="Close verification dialog"
+                className="absolute inset-0 cursor-default border-0 bg-transparent p-0"
+                onClick={() => {
+                    if (!isSubmitting) {
+                        handleClose();
+                    }
+                }}
+                disabled={isSubmitting}
+            />
+            <div className="relative z-10 mx-4 w-full max-w-sm rounded-t-[20px] bg-white p-6 shadow-2xl sm:mx-0 sm:rounded-2xl">
                 <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
                     <ShieldAlert size={26} />
                 </div>

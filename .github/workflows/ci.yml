@@ -9,12 +9,12 @@ concurrency:
 
 on:
   pull_request:
-    branches: [ main, aws-k3s-argocd ]
+    branches: [ main ]
     paths:
       - 'backend/**'
       - 'frontend/**'
   push:
-    branches: [ main, aws-k3s-argocd ]
+    branches: [ main ]
     paths:
       - 'backend/**'
       - 'frontend/**'

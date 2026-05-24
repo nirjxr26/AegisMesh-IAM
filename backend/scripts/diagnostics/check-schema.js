@@ -30,10 +30,10 @@ async function checkSchema() {
             'jobTitle', 'department', 'timezone', 'language', 'avatarUrl',
             'mfaType', 'backupCodes', 'trustedDevices', 'notificationPreferences', 'passwordChangedAt',
         ];
-        const existingFields = columns.map((c) => c.column_name);
+        const existingFields = new Set(columns.map((c) => c.column_name));
 
         newFields.forEach((field) => {
-            const exists = existingFields.includes(field);
+            const exists = existingFields.has(field);
             console.log(`${exists ? '✅' : '❌'} ${field.padEnd(30)}`);
         });
     } catch (error) {

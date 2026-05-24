@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: 'https://github.com/nirjxr26/AegisMesh-IAM' # REPLACE with your repo URL
-    targetRevision: aws-k3s-argocd
+    targetRevision: main
     path: k8s/overlays/prod
   destination:
     server: 'https://kubernetes.default.svc'

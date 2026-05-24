@@ -13,11 +13,11 @@ spec:
           image: postgres:17-alpine
           imagePullPolicy: IfNotPresent
         - name: prisma-migrate
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
+          image: REPLACE_BACKEND_IMAGE
           imagePullPolicy: IfNotPresent
       containers:
         - name: backend
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
+          image: REPLACE_BACKEND_IMAGE
           imagePullPolicy: IfNotPresent
           resources:
             requests:

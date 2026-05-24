@@ -35,8 +35,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY . .
 
 # Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 USER nodejs
 
 EXPOSE 5000
