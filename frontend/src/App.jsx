@@ -1,4 +1,5 @@
 import { Component, Suspense, lazy } from 'react';
+import PropTypes from 'prop-types';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -67,7 +68,7 @@ class AppErrorBoundary extends Component {
   }
 
   handleReload = () => {
-    window.location.reload();
+    globalThis.location?.reload?.();
   };
 
   render() {
@@ -95,6 +96,14 @@ class AppErrorBoundary extends Component {
     return this.props.children;
   }
 }
+
+AppErrorBoundary.propTypes = {
+  children: PropTypes.node,
+};
+
+LazyRoute.propTypes = {
+  children: PropTypes.node,
+};
 
 export default function App() {
   return (

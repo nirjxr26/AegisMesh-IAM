@@ -60,7 +60,8 @@ function generateRefreshToken(user) {
 function verifyAccessToken(token) {
     try {
         return jwt.verify(token, ACCESS_SECRET);
-    } catch (_error) {
+    } catch (error) {
+        logger.debug('Access token verification failed', { message: error.message });
         return null;
     }
 }
@@ -71,7 +72,8 @@ function verifyAccessToken(token) {
 function verifyRefreshToken(token) {
     try {
         return jwt.verify(token, REFRESH_SECRET);
-    } catch (_error) {
+    } catch (error) {
+        logger.debug('Refresh token verification failed', { message: error.message });
         return null;
     }
 }

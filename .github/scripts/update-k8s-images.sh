@@ -2,7 +2,7 @@
 set -euo pipefail
 IMAGE_BACKEND=${1:-}
 IMAGE_FRONTEND=${2:-}
-if [ -z "$IMAGE_BACKEND" ] || [ -z "$IMAGE_FRONTEND" ]; then
+if [[ -z "$IMAGE_BACKEND" || -z "$IMAGE_FRONTEND" ]]; then
   echo "Usage: update-k8s-images.sh <backend-image> <frontend-image>"
   exit 2
 fi

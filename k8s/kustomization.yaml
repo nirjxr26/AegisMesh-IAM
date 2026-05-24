@@ -10,3 +10,5 @@ resources:
   - manifests/postgres.yaml
   - manifests/backend.yaml
   - manifests/frontend.yaml
+  - networkpolicies/default-deny.yaml
+  - networkpolicies/allow-backend-to-postgres.yaml

@@ -21,7 +21,7 @@ spec:
             - sh
             - -c
             - |
-              until pg_isready -h postgres -p 5432 -U "$DB_USER" -d "$DB_NAME"; do
+              until pg_isready -h postgres.aegismesh.svc.cluster.local -p 5432 -U "$DB_USER" -d "$DB_NAME"; do
                 echo "waiting for postgres";
                 sleep 2;
               done

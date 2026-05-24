@@ -7,9 +7,10 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 
 run() {
-  echo
-  echo "==> $1"
+  local description=$1
   shift
+  echo
+  echo "==> ${description}"
   "$@"
 }
 

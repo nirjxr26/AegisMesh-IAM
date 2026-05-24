@@ -7,7 +7,7 @@ async function verify() {
             !key.startsWith('_') &&
             !key.startsWith('$') &&
             key !== 'constructor'
-        ).sort();
+        ).sort((left, right) => String(left).localeCompare(String(right), 'en', { numeric: true, sensitivity: 'base' }));
 
         models.forEach((model, index) => {
             console.log(`  ${(index + 1).toString().padStart(2)}. ${model}`);

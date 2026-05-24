@@ -10,6 +10,7 @@ const tokenService = require('../services/token.service');
 const { auditAuth } = require('../utils/auditLog');
 const { getOrganizationSettings } = require('../services/organizationSettings.service');
 const { encryptText } = require('../utils/crypto');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -55,6 +56,14 @@ function setAuthCookies(req, res, accessToken, refreshToken) {
     res.cookie('refreshToken', encryptText(refreshToken), {
         ...options.refresh,
     });
+}
+
+function getFrontendUrl() {
+    return process.env.FRONTEND_URL || 'http://localhost:3000';
+}
+
+function getOAuthFailureUrl() {
+    return `${getFrontendUrl()}/login?error=oauth_failed`;
 }
 
 async function enforceOAuthAllowed(req, res, next) {
@@ -194,7 +203,7 @@ router.get(
     '/oauth/google/callback',
     passport.authenticate('google', {
         session: false,
-        failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
+        failureRedirect: getOAuthFailureUrl(),
     }),
     async (req, res) => {
         try {
@@ -212,10 +221,10 @@ router.get(
             await auditAuth.oauthLogin(req, user.id, 'google', session.id);
 
             setAuthCookies(req, res, accessToken, refreshToken);
-            const redirectUrl = `${process.env.FRONTEND_URL}/oauth/callback`;
-            res.redirect(redirectUrl);
-        } catch (_error) {
-            res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+            return res.redirect(`${getFrontendUrl()}/oauth/callback`);
+        } catch (error) {
+            logger.warn('Google OAuth callback failed', { message: error.message });
+            return res.redirect(getOAuthFailureUrl());
         }
     }
 );
@@ -231,7 +240,7 @@ router.get(
     '/oauth/github/callback',
     passport.authenticate('github', {
         session: false,
-        failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
+        failureRedirect: getOAuthFailureUrl(),
     }),
     async (req, res) => {
         try {
@@ -249,10 +258,10 @@ router.get(
             await auditAuth.oauthLogin(req, user.id, 'github', session.id);
 
             setAuthCookies(req, res, accessToken, refreshToken);
-            const redirectUrl = `${process.env.FRONTEND_URL}/oauth/callback`;
-            res.redirect(redirectUrl);
-        } catch (_error) {
-            res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+            return res.redirect(`${getFrontendUrl()}/oauth/callback`);
+        } catch (error) {
+            logger.warn('GitHub OAuth callback failed', { message: error.message });
+            return res.redirect(getOAuthFailureUrl());
         }
     }
 );

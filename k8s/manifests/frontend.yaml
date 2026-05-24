@@ -17,6 +17,9 @@ spec:
         - name: frontend
           image: aegismesh-frontend:local
           imagePullPolicy: IfNotPresent
+          env:
+            - name: BACKEND_UPSTREAM
+              value: backend.aegismesh.svc.cluster.local:5000
           ports:
             - containerPort: 3000
           resources:

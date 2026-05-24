@@ -102,7 +102,7 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
         }, 0);
 
         return () => {
-            window.clearTimeout(timer);
+            globalThis.clearTimeout(timer);
             stopConnection();
         };
     }, [connect, isLive, stopConnection]);

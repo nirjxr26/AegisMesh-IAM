@@ -12,6 +12,9 @@ const PUBLIC_AUTH_PATHS = [
     '/auth/logout',
 ];
 
+const getLocalStorage = () => globalThis.localStorage;
+const getSessionStorage = () => globalThis.sessionStorage;
+
 const api = axios.create({
     baseURL: '/api',
     withCredentials: true,
@@ -21,53 +24,48 @@ const api = axios.create({
 });
 
 const getStoredReauthToken = () => {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    return window.sessionStorage.getItem(REAUTH_TOKEN_STORAGE_KEY);
+    return getSessionStorage()?.getItem(REAUTH_TOKEN_STORAGE_KEY) || null;
 };
 
 const storeReauthToken = (token) => {
-    if (typeof window === 'undefined') {
+    const sessionStorage = getSessionStorage();
+    if (!sessionStorage) {
         return;
     }
 
     if (token) {
-        window.sessionStorage.setItem(REAUTH_TOKEN_STORAGE_KEY, token);
+        sessionStorage.setItem(REAUTH_TOKEN_STORAGE_KEY, token);
     }
 };
 
 const clearStoredReauthToken = () => {
-    if (typeof window === 'undefined') {
+    const sessionStorage = getSessionStorage();
+    if (!sessionStorage) {
         return;
     }
 
-    window.sessionStorage.removeItem(REAUTH_TOKEN_STORAGE_KEY);
+    sessionStorage.removeItem(REAUTH_TOKEN_STORAGE_KEY);
 };
 
 const clearStoredAuth = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    const localStorage = getLocalStorage();
+    localStorage?.removeItem('accessToken');
+    localStorage?.removeItem('refreshToken');
     clearStoredReauthToken();
     delete api.defaults.headers.common.Authorization;
 };
 
 const notifyAuthExpired = () => {
-    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    globalThis.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
 };
 
 const redirectToLoginIfNeeded = () => {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    const currentPath = window.location.pathname || '';
+    const currentPath = globalThis.location?.pathname || '';
     if (currentPath === '/login') {
         return;
     }
 
-    window.location.href = '/login';
+    globalThis.location.href = '/login';
 };
 
 const isRefreshRequest = (url = '') => url.includes('/auth/refresh-token');
@@ -80,7 +78,7 @@ api.interceptors.request.use(
             return config;
         }
 
-        const token = localStorage.getItem('accessToken');
+        const token = getLocalStorage()?.getItem('accessToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         } else if (config.headers?.Authorization) {
@@ -126,7 +124,7 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
         const requestUrl = originalRequest?.url || '';
-        const hasRefreshToken = Boolean(localStorage.getItem('refreshToken'));
+        const hasRefreshToken = Boolean(getLocalStorage()?.getItem('refreshToken'));
         const responseCode = error.response?.data?.code || error.response?.data?.error?.code;
 
         if (responseCode === 'REAUTH_REQUIRED') {
@@ -160,7 +158,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const refreshToken = localStorage.getItem('refreshToken');
+                const refreshToken = getLocalStorage()?.getItem('refreshToken');
                 if (!refreshToken) {
                     clearStoredAuth();
                     notifyAuthExpired();
@@ -174,9 +172,9 @@ api.interceptors.response.use(
                 });
 
                 const { accessToken, refreshToken: newRefreshToken } = data.data;
-                localStorage.setItem('accessToken', accessToken);
+                getLocalStorage()?.setItem('accessToken', accessToken);
                 if (newRefreshToken) {
-                    localStorage.setItem('refreshToken', newRefreshToken);
+                    getLocalStorage()?.setItem('refreshToken', newRefreshToken);
                 }
 
                 api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;

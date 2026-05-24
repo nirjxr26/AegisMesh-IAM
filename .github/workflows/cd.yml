@@ -1,11 +1,11 @@
 name: CD
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   push:
-    branches: [ main, aws-k3s-argocd ]
+    branches: [ main ]
     paths:
       - 'k8s/**'
       - 'argocd/**'
@@ -54,8 +54,8 @@ jobs:
           BE_TAG=${{ steps.resolve-tags.outputs.backend }}
           FE_TAG=${{ steps.resolve-tags.outputs.frontend }}
           REG=${ECR_REGISTRY}
-          sed -i "s|image: .*aegismesh-backend:.*|image: ${REG}/aegismesh-backend:${BE_TAG}|g" k8s/overlays/prod/patch-backend-image.yaml || true
-          sed -i "s|image: .*aegismesh-frontend:.*|image: ${REG}/aegismesh-frontend:${FE_TAG}|g" k8s/overlays/prod/patch-frontend-image.yaml || true
+          sed -i "s|REPLACE_BACKEND_IMAGE|${REG}/aegismesh-backend:${BE_TAG}|g" k8s/overlays/prod/patch-backend-image.yaml
+          sed -i "s|REPLACE_FRONTEND_IMAGE|${REG}/aegismesh-frontend:${FE_TAG}|g" k8s/overlays/prod/patch-frontend-image.yaml
 
       - name: Commit and push overlay updates
         run: |
@@ -65,13 +65,13 @@ jobs:
           git add k8s/overlays/prod/patch-backend-image.yaml k8s/overlays/prod/patch-frontend-image.yaml || true
           if ! git diff --cached --quiet; then
             git commit -m "ci: update prod overlay images to ${GITHUB_SHA:0:7} [skip ci]" || true
-            git push origin HEAD:aws-k3s-argocd
+            git push origin HEAD:main
           else
             echo "No image changes detected"
           fi
 
       - name: "Note: ArgoCD will detect overlay changes"
-        run: echo "Overlay updates pushed to branch aws-k3s-argocd - ArgoCD will sync automatically if configured."
+        run: echo "Overlay updates pushed to branch main - ArgoCD will sync automatically if configured."
 
   # NOTE: Removed `argocd-sync` job to enforce GitOps: CI will only update overlays and NOT apply manifests directly.
 
@@ -79,7 +79,7 @@ jobs:
     name: Run smoke tests and rollback on failure (only if KUBECONFIG present)
     runs-on: ubuntu-latest
     needs: [update-overlays]
-    if: ${{ github.event_name == 'workflow_run' || github.ref == 'refs/heads/aws-k3s-argocd' }}
+    if: ${{ github.event_name == 'workflow_run' || github.ref == 'refs/heads/main' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -115,7 +115,7 @@ jobs:
           set -eux
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin aws-k3s-argocd
-          git checkout -B aws-k3s-argocd origin/aws-k3s-argocd
+          git fetch origin main
+          git checkout -B main origin/main
           git revert --no-edit HEAD || true
-          git push origin aws-k3s-argocd
+          git push origin main

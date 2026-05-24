@@ -72,7 +72,7 @@ The current implementation focuses on a few IAM rules that matter in production:
 ### Pipeline Overview
 
 - Push or PR triggers GitHub Actions CI, which runs lint, tests, and builds for both backend and frontend. On merge to main, CI builds multi-stage Docker images and pushes them to AWS ECR tagged by commit SHA.
-- On CI success, the CD workflow resolves the latest ECR image tags, patches the Kustomize overlay files under `k8s/overlays/prod`, and commits those changes to the `aws-k3s-argocd` deploy branch.
+- On CI success, the CD workflow resolves the latest ECR image tags, patches the Kustomize overlay files under `k8s/overlays/prod`, and commits those changes to the `main` branch.
 - Argo CD watches that branch and applies the manifests to the cluster automatically. The SealedSecrets controller decrypts encrypted credentials into live Kubernetes Secrets.
 - On rollout, init containers run in order — `wait-for-db` first, then `prisma-migrate` — before the app starts. Smoke tests run post-deploy; failure triggers an automatic revert of the overlay commit.
 
