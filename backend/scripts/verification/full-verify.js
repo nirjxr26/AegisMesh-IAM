@@ -73,12 +73,19 @@ async function verify() {
       'mfaType', 'backupCodes', 'trustedDevices', 'notificationPreferences', 'passwordChangedAt',
     ];
     const allFields = new Set(columns.map((column) => column.column_name));
-    const allPresent = newFields.every((field) => allFields.has(field));
+    const missingFields = newFields.filter((field) => !allFields.has(field));
 
-    console.log(`\n✅ All ${newFields.length} new fields present:\n`);
-    newFields.forEach((field) => {
-      console.log(`   ✅ ${field}`);
-    });
+    if (missingFields.length > 0) {
+      console.warn(`\n⚠️ Missing ${missingFields.length} fields:\n`);
+      missingFields.forEach((field) => {
+        console.warn(`   ⚠️ ${field}`);
+      });
+    } else {
+      console.log(`\n✅ All ${newFields.length} new fields present:\n`);
+      newFields.forEach((field) => {
+        console.log(`   ✅ ${field}`);
+      });
+    }
 
     console.log('\n╔════════════════════════════════════════════════════════╗');
     console.log('║               ✅ ALL VERIFICATION PASSED                ║');

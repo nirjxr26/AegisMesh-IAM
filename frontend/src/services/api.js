@@ -94,7 +94,9 @@ api.interceptors.request.use(
 
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+        throw error;
+    }
 );
 
 // Response interceptor for token refresh
@@ -129,7 +131,7 @@ api.interceptors.response.use(
 
         if (responseCode === 'REAUTH_REQUIRED') {
             clearStoredReauthToken();
-            return Promise.reject(error);
+            throw error;
         }
 
         if (
@@ -151,7 +153,9 @@ api.interceptors.response.use(
                         }
                         return api(originalRequest);
                     })
-                    .catch((err) => Promise.reject(err));
+                    .catch((err) => {
+                        throw err;
+                    });
             }
 
             originalRequest._retry = true;
@@ -163,7 +167,7 @@ api.interceptors.response.use(
                     clearStoredAuth();
                     notifyAuthExpired();
                     redirectToLoginIfNeeded();
-                    return Promise.reject(error);
+                    throw error;
                 }
 
                 const { data } = await axios.post('/api/auth/refresh-token', { refreshToken }, {
@@ -187,13 +191,13 @@ api.interceptors.response.use(
                 clearStoredAuth();
                 notifyAuthExpired();
                 redirectToLoginIfNeeded();
-                return Promise.reject(refreshError);
+                throw refreshError;
             } finally {
                 isRefreshing = false;
             }
         }
 
-        return Promise.reject(error);
+        throw error;
     }
 );
 

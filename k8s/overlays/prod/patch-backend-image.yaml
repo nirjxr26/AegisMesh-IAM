@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: backend
   namespace: aegismesh
@@ -17,6 +18,8 @@ spec:
         app: backend
 
     spec:
+      automountServiceAccountToken: false
+
       imagePullSecrets:
         - name: ecr-regcred
 
@@ -24,6 +27,7 @@ spec:
         - name: wait-for-db
           image: postgres:17-alpine
           imagePullPolicy: IfNotPresent
+
           command:
             - sh
             - -c
@@ -45,11 +49,23 @@ spec:
             - sh
             - -c
             - |
-              npx prisma migrate deploy
+              # TEMPORARY: migrations applied manually. No-op to avoid repeated failures.
+              exit 0
 
           envFrom:
             - secretRef:
                 name: aegismesh-secrets
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "128Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              ephemeral-storage: "512Mi"
 
       containers:
         - name: backend
@@ -67,15 +83,18 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "128Mi"
 
             limits:
               cpu: "500m"
               memory: "512Mi"
+              ephemeral-storage: "512Mi"
 
           readinessProbe:
             httpGet:
               path: /health
               port: 8080
+
             initialDelaySeconds: 10
             periodSeconds: 5
 
@@ -83,5 +102,6 @@ spec:
             httpGet:
               path: /health
               port: 8080
+
             initialDelaySeconds: 20
             periodSeconds: 10

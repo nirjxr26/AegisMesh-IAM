@@ -3,6 +3,11 @@ const logger = require('../utils/logger');
 
 let transporter = null;
 
+function buildFrontendUrl(pathname, token) {
+  const frontendOrigin = new URL(process.env.FRONTEND_URL || 'https://localhost:3000').origin;
+  return `${frontendOrigin}${pathname}?token=${encodeURIComponent(token)}`;
+}
+
 /**
  * Initialize email transporter
  * In development, creates an Ethereal test account
@@ -13,7 +18,7 @@ async function initializeTransporter() {
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {
         transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT, 10),
+            port: Number.parseInt(process.env.SMTP_PORT, 10),
             secure: process.env.SMTP_PORT === '465',
             auth: {
                 user: process.env.SMTP_USER,
@@ -43,7 +48,7 @@ async function initializeTransporter() {
  */
 async function sendVerificationEmail(email, token) {
     const t = await initializeTransporter();
-    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+  const verifyUrl = buildFrontendUrl('/verify-email', token);
 
     const info = await t.sendMail({
         from: '"IAM Auth System" <noreply@iam-auth.com>',
@@ -81,7 +86,7 @@ async function sendVerificationEmail(email, token) {
  */
 async function sendPasswordResetEmail(email, token) {
     const t = await initializeTransporter();
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const resetUrl = buildFrontendUrl('/reset-password', token);
 
     const info = await t.sendMail({
         from: '"IAM Auth System" <noreply@iam-auth.com>',

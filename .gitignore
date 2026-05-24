@@ -59,6 +59,7 @@ coverage/
 tmp/
 temp/
 *.tmp
+.kpatch/
 
 # Jenkins
 .jenkins/

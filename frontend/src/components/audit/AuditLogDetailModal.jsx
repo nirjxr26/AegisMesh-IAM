@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useEffect, useRef } from 'react';
 import { CATEGORY_CONFIG, RESULT_CONFIG } from './auditConfig';
 
@@ -29,19 +30,20 @@ export default function AuditLogDetailModal({ log, onClose }) {
     const res = RESULT_CONFIG[log.result] || {};
 
     return (
-        <div style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
-        }} onClick={onClose}>
+        <dialog
+            open
+            ref={modalRef}
+            className="fixed inset-0 z-[1000] m-0 flex h-full w-full max-w-none items-center justify-center bg-transparent p-5"
+            aria-labelledby="audit-log-modal-title"
+            onCancel={(event) => {
+                event.preventDefault();
+                onClose();
+            }}
+        >
             <div style={{
                 background: '#1E293B', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)',
                 maxWidth: '700px', width: '100%', maxHeight: '85vh', overflow: 'auto', padding: '28px',
-            }}
-            ref={modalRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="audit-log-modal-title"
-            onClick={e => e.stopPropagation()}>
+            }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 id="audit-log-modal-title" style={{ margin: 0, fontSize: '18px', color: '#F1F5F9' }}>Audit Log Details</h2>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '20px', cursor: 'pointer' }}>✕</button>
@@ -63,23 +65,23 @@ export default function AuditLogDetailModal({ log, onClose }) {
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500, display: 'block', marginBottom: '6px' }}>User Agent</label>
-                    <div style={{ fontSize: '12px', color: '#64748B', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '6px', wordBreak: 'break-all' }}>{log.userAgent || '—'}</div>
+                    <label htmlFor="audit-log-user-agent" style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500, display: 'block', marginBottom: '6px' }}>User Agent</label>
+                    <div id="audit-log-user-agent" style={{ fontSize: '12px', color: '#64748B', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '6px', wordBreak: 'break-all' }}>{log.userAgent || '—'}</div>
                 </div>
 
                 {log.metadata && (
                     <div style={{ marginTop: '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                            <label style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500 }}>Metadata</label>
+                            <label htmlFor="audit-log-metadata" style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 500 }}>Metadata</label>
                             <button onClick={() => navigator.clipboard.writeText(JSON.stringify(log.metadata, null, 2))} style={{ fontSize: '11px', background: 'rgba(59,130,246,0.15)', color: '#3B82F6', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer' }}>Copy</button>
                         </div>
-                        <pre style={{ background: 'rgba(0,0,0,0.3)', padding: '14px', borderRadius: '8px', fontSize: '12px', color: '#CBD5E1', overflow: 'auto', maxHeight: '200px', margin: 0 }}>
+                        <pre id="audit-log-metadata" style={{ background: 'rgba(0,0,0,0.3)', padding: '14px', borderRadius: '8px', fontSize: '12px', color: '#CBD5E1', overflow: 'auto', maxHeight: '200px', margin: 0 }}>
                             {JSON.stringify(log.metadata, null, 2)}
                         </pre>
                     </div>
                 )}
             </div>
-        </div>
+        </dialog>
     );
 }
 
@@ -91,5 +93,33 @@ function Field({ label, value, mono, bold }) {
         </div>
     );
 }
+
+Field.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.node]).isRequired,
+    mono: PropTypes.bool,
+    bold: PropTypes.bool,
+};
+
+AuditLogDetailModal.propTypes = {
+    log: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        createdAt: PropTypes.string,
+        action: PropTypes.string,
+        category: PropTypes.string,
+        result: PropTypes.string,
+        resource: PropTypes.string,
+        resourceId: PropTypes.string,
+        user: PropTypes.shape({ email: PropTypes.string }),
+        userId: PropTypes.string,
+        sessionId: PropTypes.string,
+        ipAddress: PropTypes.string,
+        errorCode: PropTypes.string,
+        duration: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        userAgent: PropTypes.string,
+        metadata: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+    }),
+    onClose: PropTypes.func.isRequired,
+};
 
 

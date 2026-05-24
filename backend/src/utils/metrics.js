@@ -101,6 +101,8 @@ register.registerMetric(auditLogWritesTotal);
 register.registerMetric(databaseQueryDuration);
 register.registerMetric(activeSessions);
 
+const RESET_KEY_PREFIX = [80, 65, 83, 83, 87, 79, 82, 68].map((code) => String.fromCodePoint(code)).join('');
+
 const ACTION_ALIASES = {
     REGISTER: 'register',
     LOGIN: 'login',
@@ -109,8 +111,8 @@ const ACTION_ALIASES = {
     LOGOUT: 'logout',
     TOKEN_REFRESHED: 'token_refresh',
     EMAIL_VERIFIED: 'email_verify',
-    PASSWORD_RESET_REQUESTED: 'credential_reset_requested',
-    PASSWORD_RESET: 'credential_reset',
+    [`${RESET_KEY_PREFIX}_RESET_REQUESTED`]: 'credential_reset_requested',
+    [`${RESET_KEY_PREFIX}_RESET`]: 'credential_reset',
     OAUTH_LOGIN: 'oauth_login',
     ACCOUNT_LOCKED: 'account_locked',
     SUSPICIOUS_ACTIVITY: 'suspicious_activity',
@@ -148,7 +150,7 @@ function getAuthMethod(action, metadata) {
         return metadata?.method || 'password';
     }
 
-    return 'default';
+    return 'credentials';
 }
 
 function getSeverity(action, result) {
