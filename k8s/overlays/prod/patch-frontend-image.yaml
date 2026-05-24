@@ -10,7 +10,7 @@ spec:
         - name: ecr-regcred
       containers:
         - name: frontend
-          image: REPLACE_FRONTEND_IMAGE
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:latest
           imagePullPolicy: IfNotPresent
           resources:
             requests:

@@ -3,26 +3,85 @@ kind: Deployment
 metadata:
   name: backend
   namespace: aegismesh
+
 spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: backend
+
   template:
+    metadata:
+      labels:
+        app: backend
+
     spec:
       imagePullSecrets:
         - name: ecr-regcred
+
       initContainers:
         - name: wait-for-db
           image: postgres:17-alpine
           imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres.aegismesh.svc.cluster.local -p 5432 -U "$DB_USER" -d "$DB_NAME"; do
+                echo "waiting for postgres";
+                sleep 2;
+              done
+
+          envFrom:
+            - secretRef:
+                name: aegismesh-secrets
+
         - name: prisma-migrate
-          image: REPLACE_BACKEND_IMAGE
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
           imagePullPolicy: IfNotPresent
+
+          command:
+            - sh
+            - -c
+            - |
+              npx prisma migrate deploy
+
+          envFrom:
+            - secretRef:
+                name: aegismesh-secrets
+
       containers:
         - name: backend
-          image: REPLACE_BACKEND_IMAGE
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
           imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8080
+
+          envFrom:
+            - secretRef:
+                name: aegismesh-secrets
+
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
+
             limits:
               cpu: "500m"
               memory: "512Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10

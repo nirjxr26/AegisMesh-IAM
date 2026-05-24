@@ -7,8 +7,60 @@ if [[ -z "$IMAGE_BACKEND" || -z "$IMAGE_FRONTEND" ]]; then
   exit 2
 fi
 
-sed -i "s|REPLACE_BACKEND_IMAGE|${IMAGE_BACKEND}|g" k8s/overlays/prod/patch-backend-image.yaml
-sed -i "s|REPLACE_FRONTEND_IMAGE|${IMAGE_FRONTEND}|g" k8s/overlays/prod/patch-frontend-image.yaml
+cat > k8s/overlays/prod/patch-backend-image.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: aegismesh
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ecr-regcred
+      initContainers:
+        - name: wait-for-db
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
+        - name: prisma-migrate
+          image: ${IMAGE_BACKEND}
+          imagePullPolicy: IfNotPresent
+      containers:
+        - name: backend
+          image: ${IMAGE_BACKEND}
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+EOF
+
+cat > k8s/overlays/prod/patch-frontend-image.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: aegismesh
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ecr-regcred
+      containers:
+        - name: frontend
+          image: ${IMAGE_FRONTEND}
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+EOF
 
 git add k8s/overlays/prod/patch-backend-image.yaml k8s/overlays/prod/patch-frontend-image.yaml
 git commit -m "chore(ci): update k8s image tags" || true
