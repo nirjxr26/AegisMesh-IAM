@@ -54,8 +54,7 @@ jobs:
           BE_TAG=${{ steps.resolve-tags.outputs.backend }}
           FE_TAG=${{ steps.resolve-tags.outputs.frontend }}
           REG=${ECR_REGISTRY}
-          sed -i "s|REPLACE_BACKEND_IMAGE|${REG}/aegismesh-backend:${BE_TAG}|g" k8s/overlays/prod/patch-backend-image.yaml
-          sed -i "s|REPLACE_FRONTEND_IMAGE|${REG}/aegismesh-frontend:${FE_TAG}|g" k8s/overlays/prod/patch-frontend-image.yaml
+          bash .github/scripts/update-k8s-images.sh "${REG}/aegismesh-backend:${BE_TAG}" "${REG}/aegismesh-frontend:${FE_TAG}"
 
       - name: Commit and push overlay updates
         run: |
