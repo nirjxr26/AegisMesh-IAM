@@ -7,17 +7,23 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --no-audit --no-fund
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
-# Copy source code
-COPY . .
+# Copy build inputs explicitly so env files and node_modules stay out of the image.
+COPY eslint.config.js ./
+COPY index.html ./
+COPY nginx.conf ./
+COPY tailwind.config.js ./
+COPY vite.config.js ./
+COPY public ./public
+COPY src ./src
 
 # Build the application
 RUN npm run build
 
 
 # Production stage - Nginx
-FROM nginx:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl

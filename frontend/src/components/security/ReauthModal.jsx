@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, ShieldAlert, XCircle } from 'lucide-react';
 
@@ -103,8 +104,9 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
                 <div className="mt-6 space-y-4">
                     {requiresMfa ? (
                         <div>
-                            <label className="text-sm font-medium text-slate-700 block mb-2">Authenticator code</label>
+                            <label htmlFor="reauth-mfa-code" className="text-sm font-medium text-slate-700 block mb-2">Authenticator code</label>
                             <input
+                                id="reauth-mfa-code"
                                 ref={mfaInputRef}
                                 value={mfaToken}
                                 onChange={(event) => {
@@ -130,9 +132,10 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
                     {requiresMfa ? <p className="text-xs text-slate-400 text-center -mt-1">Or use your password instead</p> : null}
 
                     <div>
-                        <label className="text-sm font-medium text-slate-700 block mb-2">Current password</label>
+                        <label htmlFor="reauth-password" className="text-sm font-medium text-slate-700 block mb-2">Current password</label>
                         <div className="relative">
                             <input
+                                id="reauth-password"
                                 ref={passwordInputRef}
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
@@ -178,6 +181,7 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
                             {isSubmitting ? (
                                 <>
                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    {' '}
                                     Verifying...
                                 </>
                             ) : 'Verify & Continue'}
@@ -188,3 +192,12 @@ export default function ReauthModal({ isOpen, onClose, onSuccess, action, requir
         </div>
     );
 }
+
+ReauthModal.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onSuccess: PropTypes.func,
+    action: PropTypes.string,
+    requiresMfa: PropTypes.bool,
+    actionLabel: PropTypes.string,
+};

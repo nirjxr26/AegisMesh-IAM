@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AuditLogTable from './AuditLogTable';
 
@@ -97,7 +98,7 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
             return;
         }
 
-        const timer = window.setTimeout(() => {
+        const timer = globalThis.setTimeout(() => {
             connect();
         }, 0);
 
@@ -202,5 +203,10 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
         </div>
     );
 }
+
+LiveAuditFeed.propTypes = {
+    onRowClick: PropTypes.func,
+    refetchAuditLogs: PropTypes.func,
+};
 
 

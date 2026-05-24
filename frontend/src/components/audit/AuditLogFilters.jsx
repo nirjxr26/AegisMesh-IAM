@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { CATEGORY_CONFIG, RESULT_CONFIG } from './auditConfig';
 
 const categories = Object.keys(CATEGORY_CONFIG);
@@ -19,8 +20,9 @@ export default function AuditLogFilters({ filters, onChange }) {
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#F1F5F9', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filters</h3>
 
             <div>
-                <label style={labelStyle}>Search</label>
+                <label htmlFor="audit-filter-search" style={labelStyle}>Search</label>
                 <input
+                    id="audit-filter-search"
                     type="text"
                     placeholder="Action, resource, IP..."
                     value={filters.search || ''}
@@ -30,34 +32,35 @@ export default function AuditLogFilters({ filters, onChange }) {
             </div>
 
             <div>
-                <label style={labelStyle}>Category</label>
-                <select value={filters.category || ''} onChange={e => update('category', e.target.value)} style={inputStyle}>
+                <label htmlFor="audit-filter-category" style={labelStyle}>Category</label>
+                <select id="audit-filter-category" value={filters.category || ''} onChange={e => update('category', e.target.value)} style={inputStyle}>
                     <option value="">All Categories</option>
                     {categories.map(c => <option key={c} value={c}>{CATEGORY_CONFIG[c].icon} {CATEGORY_CONFIG[c].label}</option>)}
                 </select>
             </div>
 
             <div>
-                <label style={labelStyle}>Result</label>
-                <select value={filters.result || ''} onChange={e => update('result', e.target.value)} style={inputStyle}>
+                <label htmlFor="audit-filter-result" style={labelStyle}>Result</label>
+                <select id="audit-filter-result" value={filters.result || ''} onChange={e => update('result', e.target.value)} style={inputStyle}>
                     <option value="">All Results</option>
                     {results.map(r => <option key={r} value={r}>{RESULT_CONFIG[r].label}</option>)}
                 </select>
             </div>
 
             <div>
-                <label style={labelStyle}>Start Date</label>
-                <input type="date" value={filters.startDate || ''} onChange={e => update('startDate', e.target.value)} style={inputStyle} />
+                <label htmlFor="audit-filter-start-date" style={labelStyle}>Start Date</label>
+                <input id="audit-filter-start-date" type="date" value={filters.startDate || ''} onChange={e => update('startDate', e.target.value)} style={inputStyle} />
             </div>
 
             <div>
-                <label style={labelStyle}>End Date</label>
-                <input type="date" value={filters.endDate || ''} onChange={e => update('endDate', e.target.value)} style={inputStyle} />
+                <label htmlFor="audit-filter-end-date" style={labelStyle}>End Date</label>
+                <input id="audit-filter-end-date" type="date" value={filters.endDate || ''} onChange={e => update('endDate', e.target.value)} style={inputStyle} />
             </div>
 
             <div>
-                <label style={labelStyle}>IP Address</label>
+                <label htmlFor="audit-filter-ip" style={labelStyle}>IP Address</label>
                 <input
+                    id="audit-filter-ip"
                     type="text"
                     placeholder="Filter by IP..."
                     value={filters.ipAddress || ''}
@@ -67,7 +70,7 @@ export default function AuditLogFilters({ filters, onChange }) {
             </div>
 
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                <button onClick={() => onChange({})} style={resetBtnStyle}>Reset</button>
+                <button type="button" onClick={() => onChange({})} style={resetBtnStyle}>Reset</button>
             </div>
         </div>
     );
@@ -83,6 +86,18 @@ const resetBtnStyle = {
     flex: 1, padding: '8px', fontSize: '12px', fontWeight: 600,
     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: '6px', color: '#94A3B8', cursor: 'pointer',
+};
+
+AuditLogFilters.propTypes = {
+    filters: PropTypes.shape({
+        search: PropTypes.string,
+        category: PropTypes.string,
+        result: PropTypes.string,
+        startDate: PropTypes.string,
+        endDate: PropTypes.string,
+        ipAddress: PropTypes.string,
+    }),
+    onChange: PropTypes.func.isRequired,
 };
 
 

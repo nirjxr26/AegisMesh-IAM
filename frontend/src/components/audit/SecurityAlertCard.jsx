@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { SEVERITY_CONFIG } from './auditConfig';
 
 export default function SecurityAlertCard({ alert }) {
@@ -14,7 +15,7 @@ export default function SecurityAlertCard({ alert }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>{sev.icon}</span>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: sev.color, textTransform: 'uppercase' }}>{alert.severity}</span>
-                    <span style={{ fontSize: '12px', color: '#94A3B8', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px' }}>{alert.type.replace(/_/g, ' ')}</span>
+                    <span style={{ fontSize: '12px', color: '#94A3B8', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px' }}>{alert.type.replaceAll('_', ' ')}</span>
                 </div>
                 <span style={{ fontSize: '11px', color: '#64748B' }}>{new Date(alert.lastSeen).toLocaleString()}</span>
             </div>
@@ -26,5 +27,16 @@ export default function SecurityAlertCard({ alert }) {
         </div>
     );
 }
+
+SecurityAlertCard.propTypes = {
+    alert: PropTypes.shape({
+        severity: PropTypes.string,
+        type: PropTypes.string,
+        lastSeen: PropTypes.string,
+        details: PropTypes.string,
+        ipAddress: PropTypes.string,
+        count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    }).isRequired,
+};
 
 

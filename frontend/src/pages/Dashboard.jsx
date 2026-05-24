@@ -1,10 +1,10 @@
+import PropTypes from 'prop-types';
 import { createElement, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
     AlertTriangle,
     ArrowRight,
-    BarChart2,
     CheckCircle2,
     ChevronDown,
     Clock3,
@@ -14,8 +14,6 @@ import {
     LayoutDashboard,
     Mail,
     Monitor,
-    PanelLeftClose,
-    PanelLeftOpen,
     ScrollText,
     ShieldAlert,
     ShieldCheck,
@@ -81,6 +79,17 @@ function NavItem({
     );
 }
 
+NavItem.propTypes = {
+    icon: PropTypes.elementType.isRequired,
+    label: PropTypes.string.isRequired,
+    value: PropTypes.string,
+    href: PropTypes.string,
+    activeSection: PropTypes.string,
+    onSelect: PropTypes.func,
+    collapsed: PropTypes.bool,
+    forceActive: PropTypes.bool,
+};
+
 function SectionToggle({ label, expanded, active, onToggle }) {
     return (
         <button
@@ -98,6 +107,13 @@ function SectionToggle({ label, expanded, active, onToggle }) {
     );
 }
 
+SectionToggle.propTypes = {
+    label: PropTypes.string.isRequired,
+    expanded: PropTypes.bool,
+    active: PropTypes.bool,
+    onToggle: PropTypes.func.isRequired,
+};
+
 function SectionHeader({ title, description }) {
     return (
         <div className="mb-6">
@@ -106,6 +122,11 @@ function SectionHeader({ title, description }) {
         </div>
     );
 }
+
+SectionHeader.propTypes = {
+    title: PropTypes.string.isRequired,
+    description: PropTypes.string.isRequired,
+};
 
 function toTitleCaseAction(action = '') {
     return action
@@ -153,6 +174,83 @@ function formatDate(value) {
         hour: 'numeric',
         minute: '2-digit',
     });
+}
+
+function getSystemHealth(criticalAlertsCount, totalAlerts) {
+    if (criticalAlertsCount > 0) {
+        return {
+            label: 'Critical Security Events Detected',
+            dotClass: 'bg-red-500',
+            textClass: 'text-red-600',
+        };
+    }
+
+    if (totalAlerts > 0) {
+        return {
+            label: 'Monitoring Warnings',
+            dotClass: 'bg-amber-500',
+            textClass: 'text-amber-600',
+        };
+    }
+
+    return {
+        label: 'All Systems Operational',
+        dotClass: 'bg-emerald-500',
+        textClass: 'text-emerald-600',
+    };
+}
+
+function getRecentLogDotClass(result = '') {
+    const normalized = String(result || '').toUpperCase();
+
+    if (normalized === 'SUCCESS') {
+        return 'bg-emerald-500';
+    }
+
+    if (['FAILURE', 'ERROR', 'BLOCKED'].includes(normalized)) {
+        return 'bg-red-500';
+    }
+
+    return 'bg-amber-500';
+}
+
+function computeRoleDistribution(users = []) {
+    let superAdmin = 0;
+    let readOnly = 0;
+    let custom = 0;
+
+    users.forEach((u) => {
+        const roleNames = (u.roles || []).map((role) => (role.name || '').toLowerCase());
+
+        if (roleNames.some((n) => n.includes('superadmin') || n.includes('super admin'))) {
+            superAdmin += 1;
+            return;
+        }
+
+        if (roleNames.some((n) => n.includes('readonly') || n.includes('read only'))) {
+            readOnly += 1;
+            return;
+        }
+
+        custom += 1;
+    });
+
+    const total = superAdmin + readOnly + custom || 1;
+
+    return {
+        superAdmin,
+        readOnly,
+        custom,
+        superAdminPct: Math.round((superAdmin / total) * 100),
+        readOnlyPct: Math.round((readOnly / total) * 100),
+        customPct: Math.round((custom / total) * 100),
+    };
+}
+
+function buildCsv(columns, rows) {
+    return [columns, ...rows]
+        .map((line) => line.map((item) => `"${String(item).replaceAll('"', '""')}"`).join(','))
+        .join('\n');
 }
 
 function getStatusChip(status) {
@@ -318,24 +416,7 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
 
     const criticalAlertsCount = alerts.filter((alert) => ['CRITICAL', 'HIGH'].includes(alert.severity)).length;
 
-    const systemHealth =
-        criticalAlertsCount > 0
-            ? {
-                label: 'Critical Security Events Detected',
-                dotClass: 'bg-red-500',
-                textClass: 'text-red-600',
-            }
-            : totalAlerts > 0
-                ? {
-                    label: 'Monitoring Warnings',
-                    dotClass: 'bg-amber-500',
-                    textClass: 'text-amber-600',
-                }
-                : {
-                    label: 'All Systems Operational',
-                    dotClass: 'bg-emerald-500',
-                    textClass: 'text-emerald-600',
-                };
+    const systemHealth = getSystemHealth(criticalAlertsCount, totalAlerts);
 
     const postureChecks = [
         {
@@ -393,38 +474,7 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
             .slice(0, 5);
     }, [weeklyLogs]);
 
-    const roleDistribution = (() => {
-        let superAdmin = 0;
-        let readOnly = 0;
-        let custom = 0;
-
-        users.forEach((u) => {
-            const roleNames = (u.roles || []).map((role) => (role.name || '').toLowerCase());
-
-            if (roleNames.some((n) => n.includes('superadmin') || n.includes('super admin'))) {
-                superAdmin += 1;
-                return;
-            }
-
-            if (roleNames.some((n) => n.includes('readonly') || n.includes('read only'))) {
-                readOnly += 1;
-                return;
-            }
-
-            custom += 1;
-        });
-
-        const total = superAdmin + readOnly + custom || 1;
-
-        return {
-            superAdmin,
-            readOnly,
-            custom,
-            superAdminPct: Math.round((superAdmin / total) * 100),
-            readOnlyPct: Math.round((readOnly / total) * 100),
-            customPct: Math.round((custom / total) * 100),
-        };
-    })();
+    const roleDistribution = computeRoleDistribution(users);
 
     const handleExportUserReport = () => {
         const columns = ['Name', 'Email', 'Status', 'MFA', 'Email Verified', 'Roles'];
@@ -442,9 +492,7 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
             ];
         });
 
-        const csv = [columns, ...rows]
-            .map((line) => line.map((item) => `"${String(item).replace(/"/g, '""')}"`).join(','))
-            .join('\n');
+        const csv = buildCsv(columns, rows);
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -621,19 +669,17 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
                     </div>
 
                     <div className="space-y-3">
-                        {recentLogsQuery.isLoading ? (
-                            <p className="text-sm text-[#7a87a8]">Loading activity...</p>
-                        ) : recentLogs.length === 0 ? (
-                            <p className="text-sm text-[#7a87a8]">No recent activity found.</p>
-                        ) : (
-                            recentLogs.map((log) => {
-                                const isSuccess = (log.result || '').toUpperCase() === 'SUCCESS';
-                                const isFailure = ['FAILURE', 'ERROR', 'BLOCKED'].includes((log.result || '').toUpperCase());
-                                const dotClass = isSuccess
-                                    ? 'bg-emerald-500'
-                                    : isFailure
-                                        ? 'bg-red-500'
-                                        : 'bg-amber-500';
+                        {(() => {
+                            if (recentLogsQuery.isLoading) {
+                                return <p className="text-sm text-[#7a87a8]">Loading activity...</p>;
+                            }
+
+                            if (recentLogs.length === 0) {
+                                return <p className="text-sm text-[#7a87a8]">No recent activity found.</p>;
+                            }
+
+                            return recentLogs.map((log) => {
+                                const dotClass = getRecentLogDotClass(log.result);
 
                                 return (
                                     <div key={log.id} className="flex items-center justify-between gap-3">
@@ -651,8 +697,8 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
                                         <p className="text-xs text-[#7a87a8] shrink-0">{formatRelativeTime(log.createdAt)}</p>
                                     </div>
                                 );
-                            })
-                        )}
+                            });
+                        })()}
                     </div>
 
                     <button
@@ -789,45 +835,51 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
 
                 <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
                     <h2 className="text-[16px] font-semibold text-[#0f1623] mb-4">Top Active Users (This Week)</h2>
-                    {weeklyLogsQuery.isLoading ? (
-                        <p className="text-sm text-[#7a87a8]">Loading active users...</p>
-                    ) : topActiveUsers.length === 0 ? (
-                        <p className="text-sm text-[#7a87a8]">No user activity in the selected window.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {topActiveUsers.map((activeUser) => {
-                                const initialsText = (activeUser.name || activeUser.email)
-                                    .split(' ')
-                                    .map((chunk) => chunk[0])
-                                    .join('')
-                                    .slice(0, 2)
-                                    .toUpperCase();
+                    {(() => {
+                        if (weeklyLogsQuery.isLoading) {
+                            return <p className="text-sm text-[#7a87a8]">Loading active users...</p>;
+                        }
 
-                                return (
-                                    <div key={activeUser.id} className="flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-8 h-8 rounded-full bg-[#4f46e5]/10 text-[#4f46e5] text-[11px] font-semibold flex items-center justify-center">
-                                                {initialsText}
+                        if (topActiveUsers.length === 0) {
+                            return <p className="text-sm text-[#7a87a8]">No user activity in the selected window.</p>;
+                        }
+
+                        return (
+                            <div className="space-y-3">
+                                {topActiveUsers.map((activeUser) => {
+                                    const initialsText = (activeUser.name || activeUser.email)
+                                        .split(' ')
+                                        .map((chunk) => chunk[0])
+                                        .join('')
+                                        .slice(0, 2)
+                                        .toUpperCase();
+
+                                    return (
+                                        <div key={activeUser.id} className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-8 h-8 rounded-full bg-[#4f46e5]/10 text-[#4f46e5] text-[11px] font-semibold flex items-center justify-center">
+                                                    {initialsText}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-medium text-[#0f1623] truncate">{activeUser.name}</p>
+                                                    <p className="text-xs text-[#7a87a8] truncate">{activeUser.email}</p>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-medium text-[#0f1623] truncate">{activeUser.name}</p>
-                                                <p className="text-xs text-[#7a87a8] truncate">{activeUser.email}</p>
+
+                                            <div className="text-right shrink-0">
+                                                <span className="inline-flex items-center rounded-full bg-[#f4f6fb] border border-[#d0d7e8] px-2 py-0.5 text-xs font-semibold text-[#3a4560]">
+                                                    {activeUser.count} evts
+                                                </span>
+                                                <p className="text-[11px] text-[#7a87a8] mt-1">
+                                                    {formatRelativeTime(activeUser.lastActiveAt)}
+                                                </p>
                                             </div>
                                         </div>
-
-                                        <div className="text-right shrink-0">
-                                            <span className="inline-flex items-center rounded-full bg-[#f4f6fb] border border-[#d0d7e8] px-2 py-0.5 text-xs font-semibold text-[#3a4560]">
-                                                {activeUser.count} evts
-                                            </span>
-                                            <p className="text-[11px] text-[#7a87a8] mt-1">
-                                                {formatRelativeTime(activeUser.lastActiveAt)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
@@ -866,27 +918,37 @@ function SessionsSection({ sessions, sessionsLoading, revokingSession, onRevoke 
                 description="Track devices and revoke active sessions when needed."
             />
 
-            {sessionsLoading ? (
-                <div className="flex justify-center py-12">
-                    <div className="w-8 h-8 border-2 border-aws-orange border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            ) : sessions.length === 0 ? (
-                <div className="card-glass text-center">
-                    <p className="text-aws-text-dim">No active sessions found.</p>
-                </div>
-            ) : (
-                <div className="grid gap-3">
-                    {sessions.map((session, index) => (
-                        <SessionCard
-                            key={session.id}
-                            session={session}
-                            isCurrent={index === 0}
-                            onRevoke={onRevoke}
-                            isRevoking={revokingSession === session.id}
-                        />
-                    ))}
-                </div>
-            )}
+            {(() => {
+                if (sessionsLoading) {
+                    return (
+                        <div className="flex justify-center py-12">
+                            <div className="w-8 h-8 border-2 border-aws-orange border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    );
+                }
+
+                if (sessions.length === 0) {
+                    return (
+                        <div className="card-glass text-center">
+                            <p className="text-aws-text-dim">No active sessions found.</p>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="grid gap-3">
+                        {sessions.map((session, index) => (
+                            <SessionCard
+                                key={session.id}
+                                session={session}
+                                isCurrent={index === 0}
+                                onRevoke={onRevoke}
+                                isRevoking={revokingSession === session.id}
+                            />
+                        ))}
+                    </div>
+                );
+            })()}
         </div>
     );
 }
@@ -997,6 +1059,45 @@ function AnalyticsSection() {
     return null;
 }
 
+const userShape = PropTypes.shape({
+    email: PropTypes.string,
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    emailVerified: PropTypes.bool,
+    mfaEnabled: PropTypes.bool,
+    createdAt: PropTypes.string,
+    passwordChangedAt: PropTypes.string,
+    role: PropTypes.oneOfType([PropTypes.string, PropTypes.shape({ name: PropTypes.string })]),
+    primaryRole: PropTypes.shape({ name: PropTypes.string }),
+    roles: PropTypes.arrayOf(PropTypes.shape({ name: PropTypes.string })),
+});
+
+const sessionShape = PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    createdAt: PropTypes.string,
+});
+
+OverviewSection.propTypes = {
+    user: userShape,
+    roleBadge: PropTypes.string,
+    fullName: PropTypes.string,
+    initials: PropTypes.string,
+    sessions: PropTypes.arrayOf(sessionShape),
+    onSelectSection: PropTypes.func.isRequired,
+};
+
+SessionsSection.propTypes = {
+    sessions: PropTypes.arrayOf(sessionShape),
+    sessionsLoading: PropTypes.bool,
+    revokingSession: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    onRevoke: PropTypes.func.isRequired,
+};
+
+SecuritySection.propTypes = {
+    user: userShape,
+    sessions: PropTypes.arrayOf(sessionShape),
+};
+
 export default function Dashboard() {
     const { user } = useAuth();
 
@@ -1056,51 +1157,40 @@ export default function Dashboard() {
         return 'AegisMesh User';
     }, [user]);
 
-    const renderSectionContent = () => {
-        switch (activeSection) {
-            case 'overview':
-                return (
-                    <OverviewSection
-                        user={user}
-                        roleBadge={roleBadge}
-                        fullName={fullName}
-                        initials={initials}
-                        sessions={sessions}
-                        onSelectSection={setActiveSection}
-                    />
-                );
-            case 'sessions':
-                return (
-                    <SessionsSection
-                        sessions={sessions}
-                        sessionsLoading={sessionsLoading}
-                        revokingSession={revokingSession}
-                        onRevoke={handleRevokeSession}
-                    />
-                );
-            case 'security':
-                return <SecuritySection user={user} sessions={sessions} />;
-            case 'users':
-                return <UsersSection />;
-            case 'roles':
-                return <RolesSection />;
-            case 'policies':
-                return <PoliciesSection />;
-            case 'groups':
-                return <GroupsSection />;
-            default:
-                return (
-                    <OverviewSection
-                        user={user}
-                        roleBadge={roleBadge}
-                        fullName={fullName}
-                        initials={initials}
-                        sessions={sessions}
-                        onSelectSection={setActiveSection}
-                    />
-                );
-        }
-    };
+    const renderSectionContent = () => ({
+        overview: (
+            <OverviewSection
+                user={user}
+                roleBadge={roleBadge}
+                fullName={fullName}
+                initials={initials}
+                sessions={sessions}
+                onSelectSection={setActiveSection}
+            />
+        ),
+        sessions: (
+            <SessionsSection
+                sessions={sessions}
+                sessionsLoading={sessionsLoading}
+                revokingSession={revokingSession}
+                onRevoke={handleRevokeSession}
+            />
+        ),
+        security: <SecuritySection user={user} sessions={sessions} />,
+        users: <UsersSection />,
+        roles: <RolesSection />,
+        policies: <PoliciesSection />,
+        groups: <GroupsSection />,
+    })[activeSection] || (
+        <OverviewSection
+            user={user}
+            roleBadge={roleBadge}
+            fullName={fullName}
+            initials={initials}
+            sessions={sessions}
+            onSelectSection={setActiveSection}
+        />
+    );
 
     return <div>{renderSectionContent()}</div>;
 }

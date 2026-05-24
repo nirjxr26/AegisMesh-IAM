@@ -1,4 +1,6 @@
-export default function AuditStatCard({ title, icon, value, change, color = '#3B82F6' }) {
+import PropTypes from 'prop-types';
+
+function AuditStatCard({ title, icon, value, change, color = '#3B82F6' }) {
     return (
         <div style={{
             background: 'rgba(255,255,255,0.03)',
@@ -22,5 +24,15 @@ export default function AuditStatCard({ title, icon, value, change, color = '#3B
         </div>
     );
 }
+
+AuditStatCard.propTypes = {
+    title: PropTypes.string.isRequired,
+    icon: PropTypes.node,
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    change: PropTypes.number,
+    color: PropTypes.string,
+};
+
+export default AuditStatCard;
 
 
