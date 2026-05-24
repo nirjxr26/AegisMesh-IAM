@@ -12,7 +12,7 @@ async function main() {
     }
 }
 
-main().catch((error) => {
+main().catch((_error) => {
     console.error('API health check failed');
     process.exitCode = 1;
 });
