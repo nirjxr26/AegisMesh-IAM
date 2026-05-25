@@ -1,7 +1,13 @@
+import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { rbacAPI, userAPI } from '../../services/api';
+
+function readTextField(formData, fieldName, fallback = '') {
+    const value = formData.get(fieldName);
+    return typeof value === 'string' ? value.trim() : fallback;
+}
 
 export default function UserCreate() {
     const navigate = useNavigate();
@@ -28,19 +34,42 @@ export default function UserCreate() {
     const handleSubmit = (event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
+        const roleIds = formData.getAll('roleIds').filter((value) => typeof value === 'string');
 
         const payload = {
-            firstName: String(formData.get('firstName') || '').trim(),
-            lastName: String(formData.get('lastName') || '').trim(),
-            email: String(formData.get('email') || '').trim(),
-            password: String(formData.get('password') || ''),
-            status: String(formData.get('status') || 'ACTIVE'),
-            roleIds: formData.getAll('roleIds').map((value) => String(value)),
+            firstName: readTextField(formData, 'firstName'),
+            lastName: readTextField(formData, 'lastName'),
+            email: readTextField(formData, 'email'),
+            password: readTextField(formData, 'password', ''),
+            status: readTextField(formData, 'status', 'ACTIVE'),
+            roleIds,
             sendWelcomeEmail: formData.get('sendWelcomeEmail') === 'on',
         };
 
         createMutation.mutate(payload);
     };
+
+    let rolesContent;
+
+    if (rolesLoading) {
+        rolesContent = <p className="text-sm text-[#7a87a8]">Loading roles...</p>;
+    } else if (roles.length === 0) {
+        rolesContent = <p className="text-sm text-[#7a87a8]">No roles found.</p>;
+    } else {
+        rolesContent = (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {roles.map((role) => (
+                    <label key={role.id} className="flex items-start gap-2 border border-[#e3e8f4] rounded-lg px-3 py-2">
+                        <input type="checkbox" name="roleIds" value={role.id} className="mt-1" />
+                        <span>
+                            <span className="block text-sm font-medium text-[#0f1623]">{role.name}</span>
+                            <span className="block text-xs text-[#7a87a8]">{role.description || 'No description'}</span>
+                        </span>
+                    </label>
+                ))}
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-[calc(100vh-64px)] bg-[#f4f6fb] px-6 py-8">
@@ -57,20 +86,20 @@ export default function UserCreate() {
 
                     <form onSubmit={handleSubmit} className="p-6 space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Field label="First Name">
-                                <input name="firstName" required className={inputClass} />
+                            <Field label="First Name" htmlFor="user-first-name">
+                                <input id="user-first-name" name="firstName" required className={inputClass} />
                             </Field>
-                            <Field label="Last Name">
-                                <input name="lastName" required className={inputClass} />
+                            <Field label="Last Name" htmlFor="user-last-name">
+                                <input id="user-last-name" name="lastName" required className={inputClass} />
                             </Field>
                         </div>
 
-                        <Field label="Email">
-                            <input name="email" type="email" required className={inputClass} />
+                        <Field label="Email" htmlFor="user-email">
+                            <input id="user-email" name="email" type="email" required className={inputClass} />
                         </Field>
 
-                        <Field label="Temporary Password">
-                            <input name="password" type="password" required minLength={8} className={inputClass} />
+                        <Field label="Temporary Password" htmlFor="user-password">
+                            <input id="user-password" name="password" type="password" required minLength={8} className={inputClass} />
                         </Field>
 
                         <Field label="Status">
@@ -83,23 +112,7 @@ export default function UserCreate() {
 
                         <div>
                             <p className="text-sm font-medium text-[#3a4560] mb-2">Assign Roles</p>
-                            {rolesLoading ? (
-                                <p className="text-sm text-[#7a87a8]">Loading roles...</p>
-                            ) : roles.length === 0 ? (
-                                <p className="text-sm text-[#7a87a8]">No roles found.</p>
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {roles.map((role) => (
-                                        <label key={role.id} className="flex items-start gap-2 border border-[#e3e8f4] rounded-lg px-3 py-2">
-                                            <input type="checkbox" name="roleIds" value={role.id} className="mt-1" />
-                                            <span>
-                                                <span className="block text-sm font-medium text-[#0f1623]">{role.name}</span>
-                                                <span className="block text-xs text-[#7a87a8]">{role.description || 'No description'}</span>
-                                            </span>
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
+                            {rolesContent}
                         </div>
 
                         <label className="flex items-center gap-2 text-sm text-[#3a4560]">
@@ -130,11 +143,17 @@ export default function UserCreate() {
     );
 }
 
-function Field({ label, children }) {
+function Field({ label, htmlFor, children }) {
     return (
         <div>
-            <label className="text-sm font-medium text-[#3a4560] mb-1.5 block">{label}</label>
+            <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-[#3a4560]">{label}</label>
             {children}
         </div>
     );
 }
+
+Field.propTypes = {
+    label: PropTypes.string.isRequired,
+    htmlFor: PropTypes.string,
+    children: PropTypes.node,
+};

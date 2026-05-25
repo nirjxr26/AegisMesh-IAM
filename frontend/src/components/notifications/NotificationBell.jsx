@@ -158,7 +158,7 @@ export default function NotificationBell() {
     }, [isOpen]);
 
     useEffect(() => {
-        if (!accessToken || sseDisabled || typeof window === 'undefined' || typeof EventSource === 'undefined') {
+        if (!accessToken || sseDisabled || typeof globalThis === 'undefined' || typeof EventSource === 'undefined') {
             return undefined;
         }
 

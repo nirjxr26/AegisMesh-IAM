@@ -27,3 +27,13 @@ variable "ssh_cidr" {
   type        = string
   default     = "0.0.0.0/0"
 }
+
+variable "allow_cidr" {
+  description = "CIDR range allowed for public ingress (HTTP/HTTPS/NodePort). REQUIRED: set to a secure CIDR (no default to avoid accidental public exposure)."
+  type        = string
+
+  validation {
+    condition     = !(var.allow_cidr == "0.0.0.0/0" || var.allow_cidr == "::/0")
+    error_message = "Refusing a permissive allow_cidr (0.0.0.0/0 or ::/0). Provide a more restrictive CIDR when deploying."
+  }
+}

@@ -1,6 +1,6 @@
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const logger = require('../utils/logger');
 
 /**

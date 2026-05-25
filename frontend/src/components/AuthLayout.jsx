@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 
 export default function AuthLayout({ children, title, subtitle }) {
@@ -75,5 +76,11 @@ export default function AuthLayout({ children, title, subtitle }) {
         </div>
     );
 }
+
+AuthLayout.propTypes = {
+    children: PropTypes.node,
+    title: PropTypes.string,
+    subtitle: PropTypes.string,
+};
 
 

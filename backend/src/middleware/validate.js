@@ -17,7 +17,7 @@ function validate(schema) {
                 errors.push(
                     ...error.details.map((d) => ({
                         field: d.path.join('.'),
-                        message: d.message.replace(/"/g, ''),
+                        message: d.message.replaceAll('"', ''),
                     }))
                 );
             } else {
@@ -34,7 +34,7 @@ function validate(schema) {
                 errors.push(
                     ...error.details.map((d) => ({
                         field: d.path.join('.'),
-                        message: d.message.replace(/"/g, ''),
+                        message: d.message.replaceAll('"', ''),
                     }))
                 );
             } else {
@@ -51,7 +51,7 @@ function validate(schema) {
                 errors.push(
                     ...error.details.map((d) => ({
                         field: d.path.join('.'),
-                        message: d.message.replace(/"/g, ''),
+                        message: d.message.replaceAll('"', ''),
                     }))
                 );
             } else {

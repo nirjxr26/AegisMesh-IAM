@@ -7,7 +7,8 @@ set -euo pipefail
 echo "Installing MetalLB..."
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml
 
-echo "Create MetalLB addresspool - edit range to match your environment"
+METALLB_RANGE=${METALLB_RANGE:-192.168.0.240-192.168.0.250}
+echo "Create MetalLB addresspool - edit range to match your environment (override with METALLB_RANGE env var)"
 cat <<EOF | kubectl apply -f -
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -16,7 +17,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - 192.168.0.240-192.168.0.250
+  - ${METALLB_RANGE}
 EOF
 
 cat <<EOF | kubectl apply -f -

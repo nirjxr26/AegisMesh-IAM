@@ -15,143 +15,194 @@ function derivePrimaryRole(user) {
  * Authentication middleware
  * Extracts and verifies JWT from Authorization header or cookies
  */
+async function extractToken(req) {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader?.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+
+    if (req.cookies?.accessToken) {
+        const rawCookieToken = req.cookies.accessToken;
+
+        return (
+            decryptText(rawCookieToken) ||
+            rawCookieToken
+        );
+    }
+
+    if (req.path === '/stream') {
+        return (
+            req.query?.token ||
+            req.query?.accessToken ||
+            null
+        );
+    }
+
+    return null;
+}
+
+async function authenticateApiRequest(req, token) {
+    const apiUser = await authenticateApiKeyToken(
+        req,
+        token
+    );
+
+    if (apiUser?.scopeError) {
+        return {
+            error: {
+                status: 403,
+                code: 'RBAC_001',
+                message:
+                    'API key scope does not allow this operation',
+            },
+        };
+    }
+
+    if (!apiUser) {
+        throw createError('AUTH_007');
+    }
+
+    if (apiUser.status !== 'ACTIVE') {
+        throw createError('AUTH_008');
+    }
+
+    await enforceOrgPolicyForRequest(req, apiUser);
+
+    return { user: apiUser };
+}
+
+async function authenticateJwtRequest(req, token) {
+    const payload =
+        tokenService.verifyAccessToken(token);
+
+    if (!payload) {
+        throw createError('AUTH_006');
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            status: true,
+            emailVerified: true,
+            mfaEnabled: true,
+            createdAt: true,
+            updatedAt: true,
+            userRoles: {
+                include: {
+                    role: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!user) {
+        throw createError('AUTH_007');
+    }
+
+    if (user.status !== 'ACTIVE') {
+        throw createError('AUTH_008');
+    }
+
+    const sessionId =
+        payload.sessionId || null;
+
+    if (sessionId) {
+        await prisma.session.updateMany({
+            where: {
+                id: sessionId,
+                userId: user.id,
+            },
+            data: {
+                lastActiveAt: new Date(),
+            },
+        });
+    }
+
+    const authUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        status: user.status,
+        emailVerified: user.emailVerified,
+        mfaEnabled: user.mfaEnabled,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        role: derivePrimaryRole(user),
+        sessionId,
+        authType: 'jwt',
+    };
+
+    await enforceOrgPolicyForRequest(
+        req,
+        authUser
+    );
+
+    return { user: authUser };
+}
+
+function handleAuthError(res, error) {
+    if (error.errorCode) {
+        return res.status(error.statusCode).json({
+            success: false,
+            error: {
+                code: error.errorCode,
+                message: error.message,
+            },
+        });
+    }
+
+    return res.status(401).json({
+        success: false,
+        error: {
+            code: 'AUTH_007',
+            message: 'Token invalid',
+        },
+    });
+}
+
 async function authenticate(req, res, next) {
     try {
-        let token = null;
-
-        // Check Authorization header first
-        const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.substring(7);
-        }
-
-        // Fall back to cookies
-        if (!token && req.cookies && req.cookies.accessToken) {
-            const rawCookieToken = req.cookies.accessToken;
-            token = decryptText(rawCookieToken) || rawCookieToken;
-        }
-
-        // EventSource cannot set custom Authorization headers, so allow
-        // the audit stream to pass an access token via query string.
-        if (!token && req.path === '/stream') {
-            token = req.query?.token || req.query?.accessToken || null;
-        }
+        const token = await extractToken(req);
 
         if (!token) {
             throw createError('AUTH_007');
         }
 
-        // API key authentication path.
-        if (token.startsWith('iam_')) {
-            const apiUser = await authenticateApiKeyToken(req, token);
+        const result = token.startsWith('iam_')
+            ? await authenticateApiRequest(
+                  req,
+                  token
+              )
+            : await authenticateJwtRequest(
+                  req,
+                  token
+              );
 
-            if (apiUser?.scopeError) {
-                return res.status(403).json({
-                    success: false,
-                    error: {
-                        code: 'RBAC_001',
-                        message: 'API key scope does not allow this operation',
-                    },
-                });
-            }
-
-            if (!apiUser) {
-                throw createError('AUTH_007');
-            }
-
-            if (apiUser.status !== 'ACTIVE') {
-                throw createError('AUTH_008');
-            }
-
-            await enforceOrgPolicyForRequest(req, apiUser);
-            req.user = apiUser;
-            return next();
-        }
-
-        // Verify token
-        const payload = tokenService.verifyAccessToken(token);
-        if (!payload) {
-            throw createError('AUTH_006');
-        }
-
-        // Get user from database
-        const user = await prisma.user.findUnique({
-            where: { id: payload.sub },
-            select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                status: true,
-                emailVerified: true,
-                mfaEnabled: true,
-                createdAt: true,
-                updatedAt: true,
-                userRoles: {
-                    include: {
-                        role: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        if (!user) {
-            throw createError('AUTH_007');
-        }
-
-        if (user.status !== 'ACTIVE') {
-            throw createError('AUTH_008');
-        }
-
-        const sessionId = payload.sessionId || null;
-        if (sessionId) {
-            await prisma.session.updateMany({
-                where: { id: sessionId, userId: user.id },
-                data: { lastActiveAt: new Date() },
-            });
-        }
-
-        const authUser = {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            status: user.status,
-            emailVerified: user.emailVerified,
-            mfaEnabled: user.mfaEnabled,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-            role: derivePrimaryRole(user),
-            sessionId,
-            authType: 'jwt',
-        };
-
-        await enforceOrgPolicyForRequest(req, authUser);
-
-        req.user = authUser;
-        next();
-    } catch (error) {
-        if (error.errorCode) {
-            return res.status(error.statusCode).json({
+        if (result?.error) {
+            return res.status(result.error.status).json({
                 success: false,
                 error: {
-                    code: error.errorCode,
-                    message: error.message,
+                    code: result.error.code,
+                    message: result.error.message,
                 },
             });
         }
-        return res.status(401).json({
-            success: false,
-            error: {
-                code: 'AUTH_007',
-                message: 'Token invalid',
-            },
-        });
+
+        req.user = result.user;
+
+        return next();
+    } catch (error) {
+        return handleAuthError(res, error);
     }
 }
-
 module.exports = { authenticate };

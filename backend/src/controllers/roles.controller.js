@@ -13,15 +13,15 @@ exports.getRoles = async (req, res, next) => {
         const [roles, total] = await Promise.all([
             prisma.role.findMany({
                 where,
-                skip: parseInt(skip),
-                take: parseInt(limit),
+                skip: Number.parseInt(skip),
+                take: Number.parseInt(limit),
                 include: { _count: { select: { userRoles: true, rolePolicies: true } } },
                 orderBy: { createdAt: 'desc' }
             }),
             prisma.role.count({ where })
         ]);
 
-        res.json({ success: true, data: roles, pagination: { total, page: parseInt(page), limit: parseInt(limit) } });
+        res.json({ success: true, data: roles, pagination: { total, page: Number.parseInt(page), limit: Number.parseInt(limit) } });
     } catch (error) { next(error); }
 };
 

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { authAPI } from '../services/api';
 
@@ -168,8 +169,8 @@ export default function MFASetupWizard({ onComplete, onClose }) {
 
                     <div className="bg-aws-input border border-aws-border rounded-xl p-4">
                         <div className="grid grid-cols-2 gap-2">
-                            {backupCodes.map((code, i) => (
-                                <div key={i} className="font-mono text-sm text-aws-orange bg-aws-navy-light rounded px-3 py-1.5">
+                            {backupCodes.map((code) => (
+                                <div key={code} className="font-mono text-sm text-aws-orange bg-aws-navy-light rounded px-3 py-1.5">
                                     {code}
                                 </div>
                             ))}
@@ -207,5 +208,10 @@ export default function MFASetupWizard({ onComplete, onClose }) {
         </div>
     );
 }
+
+MFASetupWizard.propTypes = {
+    onComplete: PropTypes.func,
+    onClose: PropTypes.func,
+};
 
 

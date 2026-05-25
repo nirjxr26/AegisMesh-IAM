@@ -13,7 +13,11 @@ const InputField = forwardRef(({
 }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
-    const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
+    let inputType = type;
+
+    if (isPassword) {
+        inputType = showPassword ? 'text' : 'password';
+    }
     const inputId = id || name || `field-${(label || 'input').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     const errorId = `${inputId}-error`;
 
@@ -91,6 +95,7 @@ const InputField = forwardRef(({
 });
 
 InputField.displayName = 'InputField';
+
 export default InputField;
 
 

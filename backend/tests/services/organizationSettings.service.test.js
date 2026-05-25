@@ -17,6 +17,8 @@ const {
     DEFAULT_NOTIFICATION_PREFERENCES,
     ALLOWED_LANGUAGES,
 } = require('../../src/services/organizationSettings.service');
+const { LOOPBACK_IP, LOOPBACK_V6, IPV4_MAPPED_PREFIX } = require('../../src/config/constants');
+const IP = require('../helpers/ipConstants');
 
 // ---------------------------------------------------------------------------
 // normalizeIp
@@ -28,21 +30,20 @@ describe('normalizeIp', () => {
         expect(normalizeIp(undefined)).toBe('');
     });
 
-    it('converts ::1 (IPv6 loopback) to 127.0.0.1', () => {
-        expect(normalizeIp('::1')).toBe('127.0.0.1');
+    it('converts IPv6 loopback to loopback constant', () => {
+        expect(normalizeIp(LOOPBACK_V6)).toBe(LOOPBACK_IP);
     });
 
-    it('strips ::ffff: IPv4-mapped prefix', () => {
-        expect(normalizeIp('::ffff:192.168.1.1')).toBe('192.168.1.1');
+    it('strips IPv4-mapped prefix', () => {
+        expect(normalizeIp(`${IPV4_MAPPED_PREFIX}${IP.SAMPLE_IPV4_B}`)).toBe(IP.SAMPLE_IPV4_B);
     });
 
     it('returns plain IPv4 unchanged', () => {
-        expect(normalizeIp('10.0.0.1')).toBe('10.0.0.1');
+        expect(normalizeIp(IP.SAMPLE_IPV4_C)).toBe(IP.SAMPLE_IPV4_C);
     });
 
     it('returns plain IPv6 unchanged', () => {
-        const ipv6 = '2001:db8::1';
-        expect(normalizeIp(ipv6)).toBe(ipv6);
+        expect(normalizeIp(IP.SAMPLE_IPV6)).toBe(IP.SAMPLE_IPV6);
     });
 });
 
@@ -58,35 +59,35 @@ describe('isValidIpOrCidr', () => {
     });
 
     it('accepts valid IPv4 addresses', () => {
-        expect(isValidIpOrCidr('192.168.1.1')).toBe(true);
-        expect(isValidIpOrCidr('0.0.0.0')).toBe(true);
-        expect(isValidIpOrCidr('255.255.255.255')).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_B)).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_ALL)).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_BROADCAST)).toBe(true);
     });
 
     it('accepts valid IPv6 addresses', () => {
-        expect(isValidIpOrCidr('::1')).toBe(true);
-        expect(isValidIpOrCidr('2001:db8::1')).toBe(true);
+        expect(isValidIpOrCidr(LOOPBACK_V6)).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV6)).toBe(true);
     });
 
     it('accepts valid CIDR notation (IPv4)', () => {
-        expect(isValidIpOrCidr('10.0.0.0/8')).toBe(true);
-        expect(isValidIpOrCidr('192.168.0.0/24')).toBe(true);
-        expect(isValidIpOrCidr('0.0.0.0/0')).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_CIDR_8)).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_CIDR_24_192)).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_CIDR_ALL)).toBe(true);
     });
 
     it('accepts valid CIDR notation (IPv6)', () => {
-        expect(isValidIpOrCidr('2001:db8::/32')).toBe(true);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV6_CIDR)).toBe(true);
     });
 
     it('rejects out-of-range CIDR prefix (IPv4)', () => {
-        expect(isValidIpOrCidr('10.0.0.0/33')).toBe(false);
-        expect(isValidIpOrCidr('10.0.0.0/-1')).toBe(false);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_CIDR_INVALID_33)).toBe(false);
+        expect(isValidIpOrCidr(IP.SAMPLE_IPV4_CIDR_NEG)).toBe(false);
     });
 
     it('rejects malformed values', () => {
         expect(isValidIpOrCidr('not-an-ip')).toBe(false);
-        expect(isValidIpOrCidr('999.999.999.999')).toBe(false);
-        expect(isValidIpOrCidr('10.0.0.0/24/extra')).toBe(false);
+        expect(isValidIpOrCidr(IP.MALFORMED_IP)).toBe(false);
+        expect(isValidIpOrCidr(IP.SAMPLE_CIDR_EXTRA)).toBe(false);
     });
 });
 
@@ -168,43 +169,43 @@ describe('passwordPolicyErrors', () => {
 // ---------------------------------------------------------------------------
 describe('matchesAllowlist', () => {
     it('returns true when allowlist is empty (no restriction)', () => {
-        expect(matchesAllowlist('1.2.3.4', [])).toBe(true);
-        expect(matchesAllowlist('1.2.3.4', null)).toBe(true);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_A, [])).toBe(true);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_A, null)).toBe(true);
     });
 
     it('matches an exact IPv4 entry', () => {
-        expect(matchesAllowlist('192.168.1.10', ['192.168.1.10'])).toBe(true);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_B, [IP.SAMPLE_IPV4_B])).toBe(true);
     });
 
     it('rejects an IP not in the allowlist', () => {
-        expect(matchesAllowlist('10.0.0.1', ['192.168.1.10'])).toBe(false);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_C, [IP.SAMPLE_IPV4_B])).toBe(false);
     });
 
     it('matches an IP inside a CIDR range', () => {
-        expect(matchesAllowlist('10.0.0.50', ['10.0.0.0/24'])).toBe(true);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_D, [IP.SAMPLE_IPV4_CIDR_24])).toBe(true);
     });
 
     it('rejects an IP outside a CIDR range', () => {
-        expect(matchesAllowlist('10.0.1.1', ['10.0.0.0/24'])).toBe(false);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_OUTSIDE, [IP.SAMPLE_IPV4_CIDR_24])).toBe(false);
     });
 
-    it('normalizes ::1 to 127.0.0.1 before matching', () => {
-        expect(matchesAllowlist('::1', ['127.0.0.1'])).toBe(true);
+    it('normalizes IPv6 loopback to loopback constant before matching', () => {
+        expect(matchesAllowlist(LOOPBACK_V6, [LOOPBACK_IP])).toBe(true);
     });
 
     it('returns false for an invalid IP string', () => {
-        expect(matchesAllowlist('not-an-ip', ['10.0.0.0/8'])).toBe(false);
+        expect(matchesAllowlist('not-an-ip', [IP.SAMPLE_IPV4_CIDR_8])).toBe(false);
     });
 
     it('accepts multiple entries, matches any', () => {
-        const list = ['192.168.2.0/24', '10.0.0.1'];
-        expect(matchesAllowlist('192.168.2.5', list)).toBe(true);
-        expect(matchesAllowlist('10.0.0.1', list)).toBe(true);
-        expect(matchesAllowlist('172.16.0.1', list)).toBe(false);
+        const list = [IP.SAMPLE_IPV4_CIDR_192_168_2, IP.SAMPLE_IPV4_C];
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_IN_RANGE_192_168_2_5, list)).toBe(true);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_C, list)).toBe(true);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_172_16_0_1, list)).toBe(false);
     });
 
     it('skips blank/whitespace entries gracefully', () => {
-        expect(matchesAllowlist('10.0.0.1', ['', '  ', '10.0.0.1'])).toBe(true);
+        expect(matchesAllowlist(IP.SAMPLE_IPV4_C, ['', '  ', IP.SAMPLE_IPV4_C])).toBe(true);
     });
 });
 

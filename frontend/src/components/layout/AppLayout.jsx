@@ -12,16 +12,22 @@ export default function AppLayout() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
 
-    useEffect(() => {
-        const handleOpenSettings = (event) => {
-            const nextTab = event?.detail?.tab || 'profile';
-            setSettingsInitialTab(nextTab);
-            setIsSettingsOpen(true);
-        };
+    const handleOpenSettings = () => {
+        setSettingsInitialTab('profile');
+        setIsSettingsOpen(true);
+    };
 
-        window.addEventListener('iam:open-settings', handleOpenSettings);
+    useEffect(() => {
+        globalThis.addEventListener(
+            'iam:open-settings',
+            handleOpenSettings
+        );
+
         return () => {
-            window.removeEventListener('iam:open-settings', handleOpenSettings);
+            globalThis.removeEventListener(
+                'iam:open-settings',
+                handleOpenSettings
+            );
         };
     }, []);
 
@@ -36,12 +42,14 @@ export default function AppLayout() {
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-aws-text font-sans">
-            {sidebarOpen ? (
-                <div
+            {sidebarOpen && (
+                <button
+                    type="button"
+                    aria-label="Close sidebar"
                     className="fixed inset-0 z-20 bg-black/50 lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
-            ) : null}
+            )}
 
             <div
                 className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out lg:relative lg:inset-auto lg:translate-x-0 lg:flex lg:flex-shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
@@ -52,10 +60,7 @@ export default function AppLayout() {
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <TopBar
                     onMenuClick={() => setSidebarOpen(true)}
-                    onOpenSettings={() => {
-                        setSettingsInitialTab('profile');
-                        setIsSettingsOpen(true);
-                    }}
+                    onOpenSettings={handleOpenSettings}
                     onSignOut={handleSignOut}
                 />
 

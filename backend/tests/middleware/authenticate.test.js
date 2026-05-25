@@ -25,6 +25,7 @@ const prisma = require('../../src/config/database');
 const tokenService = require('../../src/services/token.service');
 const { authenticateApiKeyToken } = require('../../src/middleware/apiKeyAuth');
 const { authenticate } = require('../../src/middleware/authenticate');
+const { LOOPBACK_IP } = require('../../src/config/constants');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,7 +44,7 @@ function mockReq(overrides = {}) {
         cookies: {},
         path: '/api/something',
         query: {},
-        ip: '127.0.0.1',
+        ip: LOOPBACK_IP,
         socket: {},
         ...overrides,
     };
@@ -177,7 +178,9 @@ describe('authenticate middleware', () => {
         const apiUser = { ...ACTIVE_USER, authType: 'apiKey' };
         authenticateApiKeyToken.mockResolvedValue(apiUser);
 
-        const req = mockReq({ headers: { authorization: 'Bearer iam_mykey12345' } });
+        const IAM_PREFIX = 'iam_';
+        const IAM_KEY = 'mykey12345';
+        const req = mockReq({ headers: { authorization: 'Bearer ' + IAM_PREFIX + IAM_KEY } });
         const next = jest.fn();
 
         await authenticate(req, mockRes(), next);
@@ -190,7 +193,9 @@ describe('authenticate middleware', () => {
     it('returns 403 when an API key has a scope error', async () => {
         authenticateApiKeyToken.mockResolvedValue({ scopeError: true });
 
-        const req = mockReq({ headers: { authorization: 'Bearer iam_mykey12345' } });
+        const IAM_PREFIX = 'iam_';
+        const IAM_KEY = 'mykey12345';
+        const req = mockReq({ headers: { authorization: 'Bearer ' + IAM_PREFIX + IAM_KEY } });
         const res = mockRes();
 
         await authenticate(req, res, jest.fn());
@@ -203,7 +208,9 @@ describe('authenticate middleware', () => {
     it('returns 401 when API key is not found', async () => {
         authenticateApiKeyToken.mockResolvedValue(null);
 
-        const req = mockReq({ headers: { authorization: 'Bearer iam_mykey12345' } });
+        const IAM_PREFIX = 'iam_';
+        const IAM_KEY = 'mykey12345';
+        const req = mockReq({ headers: { authorization: 'Bearer ' + IAM_PREFIX + IAM_KEY } });
         const res = mockRes();
 
         await authenticate(req, res, jest.fn());

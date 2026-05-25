@@ -4,18 +4,7 @@ const prisma = require('../src/config/database');
 
 const now = new Date();
 
-const IP_POOL = [
-    '203.45.112.88',
-    '91.220.101.45',
-    '172.16.254.1',
-    '10.0.0.42',
-    '185.220.101.7',
-    '64.233.160.0',
-    '34.77.102.18',
-    '198.51.100.24',
-    '203.0.113.9',
-    '145.239.88.17',
-];
+const { IP_POOL } = require('./seed.config');
 
 const USER_AGENTS = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0',
@@ -173,11 +162,29 @@ const users = userProfiles.map(([firstName, lastName], idx) => {
             .replace(/[^a-z.]/g, '')
             .replace(/\.{2,}/g, '.');
 
-    const status = idx < 18 ? 'active' : idx < 22 ? 'locked' : 'pending';
+    let status;
+    if (idx < 18) {
+        status = 'active';
+    } else if (idx < 22) {
+        status = 'locked';
+    } else {
+        status = 'pending';
+    }
+
     const emailVerified = idx < 20;
     // Keep one explicit admin account without MFA for easy local bootstrap.
-    const mfaEnabled = idx === 0 ? false : idx < 15;
-    const mfaType = mfaEnabled ? (idx % 4 === 0 ? 'sms' : 'totp') : null;
+    let mfaEnabled;
+    if (idx === 0) {
+        mfaEnabled = false;
+    } else {
+        mfaEnabled = idx < 15;
+    }
+
+    let mfaType = null;
+    if (mfaEnabled) {
+        if (idx % 4 === 0) mfaType = 'sms';
+        else mfaType = 'totp';
+    }
 
     let lastLoginAt = null;
     if (idx < 10) {
@@ -596,7 +603,9 @@ async function seedDatabase() {
 
     // Ensure default OrganizationSettings exists
     const existingOrg = await prisma.organizationSettings.findFirst();
-    if (!existingOrg) {
+    if (existingOrg) {
+        console.log('ℹ️  OrganizationSettings exists, skipping creation');
+    } else {
         await prisma.organizationSettings.create({
             data: {
                 orgName: 'Northbridge IAM',
@@ -616,8 +625,6 @@ async function seedDatabase() {
             },
         });
         console.log('✅ OrganizationSettings created');
-    } else {
-        console.log('ℹ️  OrganizationSettings exists, skipping creation');
     }
 
     const passwordHash = await bcrypt.hash('Northbridge!2026', 12);
@@ -743,7 +750,7 @@ async function seedDatabase() {
             country: log.country,
             city: log.city,
             result: toPrismaAuditResult(log.result),
-            duration: 30 + Math.floor(Math.random() * 300),
+            duration: 30 + (require('node:crypto').randomInt ? require('node:crypto').randomInt(0, 300) : Math.floor(Math.random() * 300)),
             errorCode: log.result === 'failure' ? 'AUTH_INVALID_CREDENTIALS' : null,
             metadata: {
                 ...log.metadata,

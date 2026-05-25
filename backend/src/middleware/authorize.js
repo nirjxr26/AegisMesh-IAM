@@ -5,7 +5,7 @@ const permissionService = require('../services/permission.service');
 function authorize(action, resource) {
     return async (req, res, next) => {
         try {
-            if (!req.user || !req.user.id) {
+            if (!req.user?.id) {
                 return next(createError('AUTH_001'));
             }
 

@@ -1,67 +1,229 @@
+import PropTypes from 'prop-types';
+
 import {
     CheckCircle,
     ShieldCheck,
     X,
 } from 'lucide-react';
-import { COLOR_MAP, ICON_MAP } from './templateMeta';
 
-export default function TemplateCard({ template, onSelect }) {
-    const colors = COLOR_MAP[template.color] || COLOR_MAP.indigo;
-    const IconComponent = ICON_MAP[template.icon] || ShieldCheck;
+import {
+    COLOR_MAP,
+    ICON_MAP,
+} from './templateMeta';
+
+export default function TemplateCard({
+    template,
+    onSelect,
+}) {
+    const colors =
+        COLOR_MAP[
+            template.color
+        ] || COLOR_MAP.indigo;
+
+    const IconComponent =
+        ICON_MAP[
+            template.icon
+        ] || ShieldCheck;
+
+    const hasBadge =
+        Boolean(template.badge);
+
+    const visiblePermissions =
+        template.permissions.slice(
+            0,
+            3
+        );
+
+    const visibleRestrictions =
+        template.restrictions.slice(
+            0,
+            2
+        );
+
+    const extraPermissions =
+        template.permissions.length -
+        3;
 
     return (
         <button
             type="button"
-            onClick={() => onSelect?.(template)}
-            className={`relative bg-white border border-slate-200 rounded-2xl p-5 cursor-pointer transition-all duration-200 group hover:shadow-lg ${colors.border}`}
+            onClick={() =>
+                onSelect?.(
+                    template
+                )
+            }
+            className={`group relative cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:shadow-lg ${colors.border}`}
         >
-            {template.badge ? (
-                <span className={`absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${colors.badge}`}>
-                    {template.badge}
+            {hasBadge && (
+                <span
+                    className={`absolute right-3 top-3 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${colors.badge}`}
+                >
+                    {
+                        template.badge
+                    }
                 </span>
-            ) : null}
+            )}
 
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.bg}`}>
-                <IconComponent size={20} className={colors.icon} />
+            <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${colors.bg}`}
+            >
+                <IconComponent
+                    size={20}
+                    className={
+                        colors.icon
+                    }
+                />
             </div>
 
-            <h3 className="mt-3 font-bold text-slate-900 text-base text-left">{template.name}</h3>
-            <p className="mt-1 text-sm text-slate-500 text-left line-clamp-2">{template.description}</p>
+            <h3 className="mt-3 text-left text-base font-bold text-slate-900">
+                {template.name}
+            </h3>
 
-            <div className="mt-3 bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100 text-xs text-slate-600 leading-relaxed text-left">
-                {template.useCase}
+            <p className="mt-1 line-clamp-2 text-left text-sm text-slate-500">
+                {
+                    template.description
+                }
+            </p>
+
+            <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-left text-xs leading-relaxed text-slate-600">
+                {
+                    template.useCase
+                }
             </div>
 
             <div className="mt-4 text-left">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">What's included:</p>
-                {template.permissions.slice(0, 3).map((permission) => (
-                    <div key={permission} className="flex items-start gap-1.5 mt-1">
-                        <CheckCircle size={11} className="text-emerald-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-slate-600">{permission}</span>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    What's
+                    included:
+                </p>
+
+                {visiblePermissions.map(
+                    (
+                        permission
+                    ) => (
+                        <div
+                            key={
+                                permission
+                            }
+                            className="mt-1 flex items-start gap-1.5"
+                        >
+                            <CheckCircle
+                                size={
+                                    11
+                                }
+                                className="mt-0.5 flex-shrink-0 text-emerald-500"
+                            />
+
+                            <span className="text-xs text-slate-600">
+                                {
+                                    permission
+                                }
+                            </span>
+                        </div>
+                    )
+                )}
+
+                {extraPermissions >
+                    0 && (
+                    <div className="ml-4 mt-1 text-xs text-slate-400">
+                        +
+                        {
+                            extraPermissions
+                        }{' '}
+                        more
                     </div>
-                ))}
-                {template.permissions.length > 3 ? (
-                    <div className="text-xs text-slate-400 mt-1 ml-4">
-                        +{template.permissions.length - 3} more
-                    </div>
-                ) : null}
+                )}
             </div>
 
             <div className="mt-2 text-left">
-                {template.restrictions.slice(0, 2).map((restriction) => (
-                    <div key={restriction} className="flex items-start gap-1.5 mt-1">
-                        <X size={11} className="text-red-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-red-500">{restriction}</span>
-                    </div>
-                ))}
+                {visibleRestrictions.map(
+                    (
+                        restriction
+                    ) => (
+                        <div
+                            key={
+                                restriction
+                            }
+                            className="mt-1 flex items-start gap-1.5"
+                        >
+                            <X
+                                size={
+                                    11
+                                }
+                                className="mt-0.5 flex-shrink-0 text-red-400"
+                            />
+
+                            <span className="text-xs text-red-500">
+                                {
+                                    restriction
+                                }
+                            </span>
+                        </div>
+                    )
+                )}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
-                <span className="text-xs text-slate-400">{template.estimatedPolicies} policies</span>
-                <span className="text-xs font-semibold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    Use template -&gt;
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                <span className="text-xs text-slate-400">
+                    {
+                        template.estimatedPolicies
+                    }{' '}
+                    policies
+                </span>
+
+                <span className="text-xs font-semibold text-indigo-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                    Use
+                    template
+                    -&gt;
                 </span>
             </div>
         </button>
     );
 }
+
+TemplateCard.propTypes = {
+    onSelect:
+        PropTypes.func,
+
+    template:
+        PropTypes.shape({
+            color:
+                PropTypes.string,
+
+            icon:
+                PropTypes.string,
+
+            badge:
+                PropTypes.string,
+
+            name:
+                PropTypes.string
+                    .isRequired,
+
+            description:
+                PropTypes.string
+                    .isRequired,
+
+            useCase:
+                PropTypes.string
+                    .isRequired,
+
+            estimatedPolicies:
+                PropTypes.oneOfType(
+                    [
+                        PropTypes.string,
+                        PropTypes.number,
+                    ]
+                ).isRequired,
+
+            permissions:
+                PropTypes.arrayOf(
+                    PropTypes.string
+                ).isRequired,
+
+            restrictions:
+                PropTypes.arrayOf(
+                    PropTypes.string
+                ).isRequired,
+        }).isRequired,
+};

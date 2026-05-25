@@ -1,7 +1,13 @@
+import PropTypes from 'prop-types';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { rbacAPI, userAPI } from '../../services/api';
+
+function readTextField(formData, fieldName, fallback = '') {
+    const value = formData.get(fieldName);
+    return typeof value === 'string' ? value.trim() : fallback;
+}
 
 export default function UserEdit() {
     const { id } = useParams();
@@ -44,13 +50,14 @@ export default function UserEdit() {
     const handleSubmit = (event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
+        const roleIds = formData.getAll('roleIds').filter((value) => typeof value === 'string');
 
         const payload = {
-            firstName: String(formData.get('firstName') || '').trim(),
-            lastName: String(formData.get('lastName') || '').trim(),
-            email: String(formData.get('email') || '').trim(),
-            status: String(formData.get('status') || userData.status),
-            roleIds: formData.getAll('roleIds').map((value) => String(value)),
+            firstName: readTextField(formData, 'firstName'),
+            lastName: readTextField(formData, 'lastName'),
+            email: readTextField(formData, 'email'),
+            status: readTextField(formData, 'status', userData.status),
+            roleIds,
         };
 
         updateMutation.mutate(payload);
@@ -143,9 +150,14 @@ export default function UserEdit() {
 
 function Field({ label, children }) {
     return (
-        <div>
-            <label className="text-sm font-medium text-[#3a4560] mb-1.5 block">{label}</label>
+        <label className="block text-sm font-medium text-[#3a4560]">
+            <span className="mb-1.5 block">{label}</span>
             {children}
-        </div>
+        </label>
     );
 }
+
+Field.propTypes = {
+    label: PropTypes.string.isRequired,
+    children: PropTypes.node,
+};

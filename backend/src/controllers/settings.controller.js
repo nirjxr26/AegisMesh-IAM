@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { authenticator } = require('otplib');
 const QRCode = require('qrcode');
@@ -21,8 +21,7 @@ const { encryptText } = require('../utils/crypto');
 const { parseDeviceInfo } = require('../services/userSecurity.service');
 
 const AVATAR_DIR = path.join(__dirname, '../../../uploads/avatars');
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
-
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 const mfaSetupState = new Map();
 
 function hasConfiguredBackupCodes(user) {
@@ -328,10 +327,10 @@ exports.deleteAvatar = async (req, res, next) => {
 
 exports.changePassword = async (req, res, next) => {
     try {
-        const { currentPassword, newPassword, confirmPassword } = req.body || {};
+        const { newPassword, confirmPassword } = req.body || {};
 
         const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-        if (!user || !user.passwordHash) {
+        if (!user?.passwordHash) {
             return res.status(404).json({ success: false, error: { code: 'USER_001', message: 'User not found' } });
         }
 
@@ -801,6 +800,90 @@ exports.getOrganization = async (req, res, next) => {
     }
 };
 
+const assignNumberField = (payload, data, errors, key, min, max) => {
+    if (payload[key] === undefined) return;
+
+    const value = Number(payload[key]);
+
+    if (Number.isNaN(value) || value < min || value > max) {
+        errors.push(
+            fieldError(key, `${key} must be between ${min} and ${max}`)
+        );
+
+        return;
+    }
+
+    data[key] = value;
+};
+
+const handlePasswordExpiryDays = (payload, data, errors) => {
+    if (payload.passwordExpiryDays === undefined) return;
+
+    if (
+        payload.passwordExpiryDays === null ||
+        payload.passwordExpiryDays === ''
+    ) {
+        data.passwordExpiryDays = null;
+        return;
+    }
+
+    const value = Number(payload.passwordExpiryDays);
+
+    if (Number.isNaN(value) || value < 1 || value > 365) {
+        errors.push(
+            fieldError(
+                'passwordExpiryDays',
+                'passwordExpiryDays must be null or between 1 and 365'
+            )
+        );
+
+        return;
+    }
+
+    data.passwordExpiryDays = value;
+};
+
+const assignFields = (payload, data, fields, transformer) => {
+    for (const field of fields) {
+        if (payload[field] !== undefined) {
+            data[field] = transformer(payload[field]);
+        }
+    }
+};
+
+const handleIpAllowlist = (payload, data, errors) => {
+    if (payload.ipAllowlist === undefined) return;
+
+    if (!Array.isArray(payload.ipAllowlist)) {
+        errors.push(
+            fieldError('ipAllowlist', 'ipAllowlist must be an array')
+        );
+
+        return;
+    }
+
+    const cleaned = payload.ipAllowlist
+        .map((entry) => String(entry).trim())
+        .filter(Boolean);
+
+    const invalid = cleaned.filter(
+        (entry) => !isValidIpOrCidr(entry)
+    );
+
+    if (invalid.length > 0) {
+        errors.push(
+            fieldError(
+                'ipAllowlist',
+                `Invalid IP/CIDR values: ${invalid.join(', ')}`
+            )
+        );
+
+        return;
+    }
+
+    data.ipAllowlist = cleaned;
+};
+
 exports.updateOrganization = async (req, res, next) => {
     try {
         const payload = req.body || {};
@@ -809,60 +892,56 @@ exports.updateOrganization = async (req, res, next) => {
         const data = {};
         const errors = [];
 
-        const assignNumber = (key, min, max) => {
-            if (payload[key] === undefined) return;
-            const value = Number(payload[key]);
-            if (Number.isNaN(value) || value < min || value > max) {
-                errors.push(fieldError(key, `${key} must be between ${min} and ${max}`));
-                return;
-            }
-            data[key] = value;
-        };
+        assignNumberField(
+            payload,
+            data,
+            errors,
+            'minPasswordLength',
+            6,
+            32
+        );
 
-        assignNumber('minPasswordLength', 6, 32);
-        assignNumber('maxFailedAttempts', 1, 20);
-        assignNumber('sessionTimeoutMinutes', 15, 10080);
+        assignNumberField(
+            payload,
+            data,
+            errors,
+            'maxFailedAttempts',
+            1,
+            20
+        );
 
-        if (payload.passwordExpiryDays !== undefined) {
-            if (payload.passwordExpiryDays === null || payload.passwordExpiryDays === '') {
-                data.passwordExpiryDays = null;
-            } else {
-                const value = Number(payload.passwordExpiryDays);
-                if (Number.isNaN(value) || value < 1 || value > 365) {
-                    errors.push(fieldError('passwordExpiryDays', 'passwordExpiryDays must be null or between 1 and 365'));
-                } else {
-                    data.passwordExpiryDays = value;
-                }
-            }
-        }
+        assignNumberField(
+            payload,
+            data,
+            errors,
+            'sessionTimeoutMinutes',
+            15,
+            10080
+        );
 
-        const boolFields = ['requireUppercase', 'requireNumber', 'requireSymbol', 'requireMfaForAll', 'allowOAuthLogin'];
-        for (const field of boolFields) {
-            if (payload[field] !== undefined) {
-                data[field] = Boolean(payload[field]);
-            }
-        }
+        handlePasswordExpiryDays(payload, data, errors);
 
-        const stringFields = ['orgName', 'plan', 'region'];
-        for (const field of stringFields) {
-            if (payload[field] !== undefined) {
-                data[field] = String(payload[field]);
-            }
-        }
+        assignFields(
+            payload,
+            data,
+            [
+                'requireUppercase',
+                'requireNumber',
+                'requireSymbol',
+                'requireMfaForAll',
+                'allowOAuthLogin',
+            ],
+            Boolean
+        );
 
-        if (payload.ipAllowlist !== undefined) {
-            if (!Array.isArray(payload.ipAllowlist)) {
-                errors.push(fieldError('ipAllowlist', 'ipAllowlist must be an array'));
-            } else {
-                const cleaned = payload.ipAllowlist.map((entry) => String(entry).trim()).filter(Boolean);
-                const invalid = cleaned.filter((entry) => !isValidIpOrCidr(entry));
-                if (invalid.length > 0) {
-                    errors.push(fieldError('ipAllowlist', `Invalid IP/CIDR values: ${invalid.join(', ')}`));
-                } else {
-                    data.ipAllowlist = cleaned;
-                }
-            }
-        }
+        assignFields(
+            payload,
+            data,
+            ['orgName', 'plan', 'region'],
+            String
+        );
+
+        handleIpAllowlist(payload, data, errors);
 
         if (errors.length > 0) {
             return res.status(400).json({
@@ -881,8 +960,12 @@ exports.updateOrganization = async (req, res, next) => {
         });
 
         const diff = {};
+
         Object.keys(data).forEach((key) => {
-            diff[key] = { from: current[key], to: updated[key] };
+            diff[key] = {
+                from: current[key],
+                to: updated[key],
+            };
         });
 
         await createAuditLog({
@@ -896,7 +979,10 @@ exports.updateOrganization = async (req, res, next) => {
             metadata: { diff },
         });
 
-        res.json({ success: true, data: updated });
+        res.json({
+            success: true,
+            data: updated,
+        });
     } catch (error) {
         next(error);
     }

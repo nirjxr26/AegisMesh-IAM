@@ -1,6 +1,7 @@
 'use strict';
 
 const { errorHandler, notFoundHandler } = require('../../src/middleware/errorHandler');
+const { LOOPBACK_IP } = require('../../src/config/constants');
 const { AppError } = require('../../src/utils/errors');
 
 // Silence logger during tests
@@ -12,7 +13,7 @@ jest.mock('../../src/utils/logger', () => ({
 }));
 
 function mockReq(overrides = {}) {
-    return { method: 'GET', path: '/test', ip: '127.0.0.1', ...overrides };
+    return { method: 'GET', path: '/test', ip: LOOPBACK_IP, ...overrides };
 }
 
 function mockRes() {
