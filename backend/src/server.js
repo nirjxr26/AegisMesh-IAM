@@ -43,7 +43,9 @@ function getServiceUrls(port) {
 // ═══════════════════════════════════════
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const { BIND_ADDR } = require('./config/constants');
+
+const server = app.listen(PORT, BIND_ADDR, () => {
     const urls = getServiceUrls(PORT);
 
     logger.info(`🚀 IAM Auth Server running on port ${PORT}`);

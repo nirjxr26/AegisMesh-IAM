@@ -5,7 +5,6 @@ import {
     AppWindow,
     Bell,
     Building2,
-    Clock,
     Eye,
     EyeOff,
     Info,
@@ -22,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { settingsAPI } from '../../services/api';
 import ConnectedApps from '../../components/security/ConnectedApps';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
 const TAB_DEFS = [
     { id: 'profile', label: 'Profile', icon: User },
@@ -130,6 +130,8 @@ const API_SCOPE_OPTIONS = [
     { value: 'write:groups', description: 'Manage groups and memberships' },
 ];
 
+const OTP_INPUT_IDS = ['otp-0', 'otp-1', 'otp-2', 'otp-3', 'otp-4', 'otp-5'];
+
 function classNames(...values) {
     return values.filter(Boolean).join(' ');
 }
@@ -197,7 +199,7 @@ function getPasswordStrength(password) {
     if (password.length >= 8) score += 1;
     if (/[A-Z]/.test(password)) score += 1;
     if (/[a-z]/.test(password)) score += 1;
-    if (/[0-9]/.test(password)) score += 1;
+    if (/\d/.test(password)) score += 1;
     if (/[^A-Za-z\d\s]/.test(password)) score += 1;
 
     if (score <= 2) return { label: 'Weak', color: 'bg-[#dc2626]', textColor: 'text-[#dc2626]', pct: 25 };
@@ -221,6 +223,7 @@ function Toggle({ checked, onChange }) {
                 type="checkbox"
                 checked={checked}
                 onChange={onChange}
+                aria-label="Toggle setting"
                 style={{
                     opacity: 0,
                     width: 0,
@@ -301,6 +304,22 @@ function TabButton({ tab, active, onClick }) {
         </button>
     );
 }
+
+Toggle.propTypes = {
+    checked: PropTypes.bool.isRequired,
+    onChange: PropTypes.func.isRequired,
+};
+
+TabButton.propTypes = {
+    tab: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
+        icon: PropTypes.elementType.isRequired,
+        badge: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    }).isRequired,
+    active: PropTypes.bool.isRequired,
+    onClick: PropTypes.func.isRequired,
+};
 
 function ProfileTab({ user, onProfileUpdated }) {
     const queryClient = useQueryClient();
@@ -432,9 +451,10 @@ function ProfileTab({ user, onProfileUpdated }) {
                     </Field>
 
                     <div className="col-span-2">
-                        <label className="text-xs text-[#7a87a8] font-medium mb-1 block">Email</label>
+                        <label htmlFor="profile-email" className="text-xs text-[#7a87a8] font-medium mb-1 block">Email</label>
                         <div className="relative">
                             <input
+                                id="profile-email"
                                 value={user?.email || ''}
                                 readOnly
                                 className="w-full border border-[#d0d7e8] rounded-xl px-3 py-2.5 text-sm bg-[#f4f6fb] cursor-not-allowed pr-20"
@@ -516,6 +536,20 @@ function ProfileTab({ user, onProfileUpdated }) {
     );
 }
 
+ProfileTab.propTypes = {
+    user: PropTypes.shape({
+        firstName: PropTypes.string,
+        lastName: PropTypes.string,
+        jobTitle: PropTypes.string,
+        department: PropTypes.string,
+        timezone: PropTypes.string,
+        language: PropTypes.string,
+        avatarUrl: PropTypes.string,
+        email: PropTypes.string,
+    }),
+    onProfileUpdated: PropTypes.func,
+};
+
 function SecurityTab({ user }) {
     const queryClient = useQueryClient();
 
@@ -539,11 +573,6 @@ function SecurityTab({ user }) {
 
     const [disablePassword, setDisablePassword] = useState('');
     const [showDisablePrompt, setShowDisablePrompt] = useState(false);
-
-    const { data: loginHistoryData } = useQuery({
-        queryKey: ['settings-login-history'],
-        queryFn: () => settingsAPI.getLoginHistory().then((res) => res.data?.data || []),
-    });
 
     const { data: trustedDevicesData } = useQuery({
         queryKey: ['settings-trusted-devices'],
@@ -641,13 +670,12 @@ function SecurityTab({ user }) {
 
     const passwordStrength = getPasswordStrength(passwordData.newPassword || '');
 
-    const loginHistory = loginHistoryData || [];
     const trustedDevices = trustedDevicesData || [];
 
     const otpValue = otpDigits.join('');
 
     const downloadBackupCodes = () => {
-        if (!revealedBackupCodes.length) return;
+        if (revealedBackupCodes.length === 0) return;
         const blob = new Blob([revealedBackupCodes.join('\n')], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -729,23 +757,7 @@ function SecurityTab({ user }) {
                     )}
                 />
 
-                {!user?.mfaEnabled ? (
-                    <div className="px-6 py-5">
-                        <div className="bg-[#dc2626]/5 border border-[#dc2626]/15 rounded-xl px-4 py-3 flex items-start gap-3">
-                            <AlertTriangle size={16} className="text-[#dc2626] mt-0.5" />
-                            <div className="flex-1">
-                                <p className="text-[13px] text-[#7a1b1b]">Your account is not protected by two-factor authentication.</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => mfaSetupMutation.mutate()}
-                                className="px-3 py-1.5 rounded-lg text-sm bg-[#4f46e5] text-white hover:bg-[#3730a3]"
-                            >
-                                Enable MFA
-                            </button>
-                        </div>
-                    </div>
-                ) : (
+                {user?.mfaEnabled ? (
                     <div className="px-6 py-5 space-y-4">
                         <div className="bg-[#16a34a]/5 border border-[#16a34a]/15 rounded-xl px-4 py-3">
                             <p className="text-[13px] text-[#1f5e34]">Configured with Authenticator App</p>
@@ -755,7 +767,7 @@ function SecurityTab({ user }) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    const password = window.prompt('Confirm your password to regenerate backup codes');
+                                    const password = globalThis.prompt('Confirm your password to regenerate backup codes');
                                     if (password) {
                                         regenCodesMutation.mutate({ password });
                                     }
@@ -775,9 +787,10 @@ function SecurityTab({ user }) {
 
                         {showDisablePrompt ? (
                             <div className="border border-[#d0d7e8] rounded-xl p-3 bg-[#f8f9fd]">
-                                <label className="text-xs text-[#7a87a8] block mb-1">Confirm password</label>
+                                <label htmlFor="disable-mfa-password" className="text-xs text-[#7a87a8] block mb-1">Confirm password</label>
                                 <div className="flex gap-2">
                                     <input
+                                        id="disable-mfa-password"
                                         type="password"
                                         value={disablePassword}
                                         onChange={(e) => setDisablePassword(e.target.value)}
@@ -794,33 +807,23 @@ function SecurityTab({ user }) {
                             </div>
                         ) : null}
                     </div>
-                )}
-            </CardShell>
-
-            <CardShell>
-                <CardHeader icon={Clock} title="Recent Login Activity" />
-                <div>
-                    {(loginHistory.slice(0, 5) || []).map((log) => {
-                        const success = log.result === 'SUCCESS';
-                        const device = parseDeviceLabel(log.userAgent);
-
-                        return (
-                            <div key={log.id} className="px-6 py-3.5 border-b border-[#f0f2f8] last:border-0 flex items-center justify-between">
-                                <div>
-                                    <div className="flex items-center gap-2 text-sm text-[#0f1623]">
-                                        <span className={classNames('w-2 h-2 rounded-full', success ? 'bg-[#16a34a]' : 'bg-[#dc2626]')} />
-                                        {device}
-                                    </div>
-                                    <p className="text-xs text-[#7a87a8] mt-0.5">{log.ip || 'Unknown IP'}</p>
-                                </div>
-                                <span className="text-xs text-[#7a87a8]">{formatRelative(log.timestamp)}</span>
+                ) : (
+                    <div className="px-6 py-5">
+                        <div className="bg-[#dc2626]/5 border border-[#dc2626]/15 rounded-xl px-4 py-3 flex items-start gap-3">
+                            <AlertTriangle size={16} className="text-[#dc2626] mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-[13px] text-[#7a1b1b]">Your account is not protected by two-factor authentication.</p>
                             </div>
-                        );
-                    })}
-                    {loginHistory.length === 0 ? (
-                        <div className="px-6 py-4 text-sm text-[#7a87a8]">No login activity found.</div>
-                    ) : null}
-                </div>
+                            <button
+                                type="button"
+                                onClick={() => mfaSetupMutation.mutate()}
+                                className="px-3 py-1.5 rounded-lg text-sm bg-[#4f46e5] text-white hover:bg-[#3730a3]"
+                            >
+                                Enable MFA
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <div className="px-6 py-3 border-t border-[#f0f2f8]">
                     <a href="/dashboard/audit-logs" className="text-sm text-[#4f46e5] hover:underline">View Full Audit Log →</a>
                 </div>
@@ -903,7 +906,7 @@ function SecurityTab({ user }) {
                             <div className="flex gap-2 justify-center">
                                 {otpDigits.map((digit, index) => (
                                     <input
-                                        key={index}
+                                        key={OTP_INPUT_IDS[index]}
                                         value={digit}
                                         onChange={(e) => {
                                             const clean = e.target.value.replace(/\D/g, '').slice(-1);
@@ -913,11 +916,11 @@ function SecurityTab({ user }) {
                                                 return next;
                                             });
                                             if (clean && index < 5) {
-                                                const nextInput = document.getElementById(`otp-${index + 1}`);
+                                                const nextInput = document.getElementById(OTP_INPUT_IDS[index + 1]);
                                                 nextInput?.focus();
                                             }
                                         }}
-                                        id={`otp-${index}`}
+                                        id={OTP_INPUT_IDS[index]}
                                         maxLength={1}
                                         className="w-10 h-12 text-center text-lg font-mono border border-[#d0d7e8] rounded-xl focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/25"
                                     />
@@ -973,6 +976,14 @@ function SecurityTab({ user }) {
         </div>
     );
 }
+
+SecurityTab.propTypes = {
+    user: PropTypes.shape({
+        mfaEnabled: PropTypes.bool,
+        passwordChangedAt: PropTypes.string,
+        hasPassword: PropTypes.bool,
+    }),
+};
 
 function SessionsTab() {
     const queryClient = useQueryClient();
@@ -1089,25 +1100,7 @@ function NotificationsTab() {
 
             <div>
                 {rows.map((row) => (
-                    <div key={row.keyEmail} className="px-6 py-[14px] border-b border-[#f8fafc] last:border-0 flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0 pr-3">
-                            <p className="text-[13px] font-medium text-[#0f172a]">{row.label}</p>
-                            <p className="text-[11px] text-[#94a3b8] mt-0.5">{row.description}</p>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.05em]">EMAIL</span>
-                            <Toggle
-                                checked={Boolean(mergedPrefs[row.keyEmail])}
-                                onChange={() => setLocalPrefs((prev) => ({ ...prev, [row.keyEmail]: !mergedPrefs[row.keyEmail] }))}
-                            />
-
-                            <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.05em]">IN-APP</span>
-                            <Toggle
-                                checked={Boolean(mergedPrefs[row.keyInApp])}
-                                onChange={() => setLocalPrefs((prev) => ({ ...prev, [row.keyInApp]: !mergedPrefs[row.keyInApp] }))}
-                            />
-                        </div>
-                    </div>
+                    <NotificationPrefRow key={row.keyEmail} row={row} mergedPrefs={mergedPrefs} setLocalPrefs={setLocalPrefs} />
                 ))}
             </div>
         </div>
@@ -1495,6 +1488,16 @@ function ApiKeysTab() {
         onError: (err) => toast.error(err.response?.data?.error?.message || 'Failed to revoke API key'),
     });
 
+    const toggleScope = (scopeValue) => {
+        setTokenForm((prev) => {
+            const exists = prev.scopes.includes(scopeValue);
+            const nextScopes = exists
+                ? prev.scopes.filter((item) => item !== scopeValue)
+                : [...prev.scopes, scopeValue];
+            return { ...prev, scopes: nextScopes };
+        });
+    };
+
     return (
         <div className="w-full">
             <div className="flex items-center justify-between mb-5">
@@ -1573,7 +1576,39 @@ function ApiKeysTab() {
 
             {showModal ? (
                 <Modal title="Create API Key" icon={Key} onClose={() => setShowModal(false)}>
-                    {!createdToken ? (
+                    {createdToken ? (
+                        <div className="space-y-4">
+                            <div className="bg-[#f4f6fb] border border-[#d0d7e8] rounded-xl p-4 font-mono text-sm break-all relative">
+                                {createdToken}
+                                <button
+                                    type="button"
+                                    onClick={() => navigator.clipboard.writeText(createdToken)}
+                                    className="absolute top-2 right-2 text-xs px-2 py-1 border border-[#d0d7e8] rounded bg-white"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+
+                            <div className="bg-[#d97706]/10 border border-[#d97706]/20 rounded-xl px-4 py-3 flex gap-2 text-sm text-[#92400e]">
+                                <AlertTriangle size={16} />
+                                <span>This token will not be shown again. Copy it now and store it securely.</span>
+                            </div>
+
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setCreatedToken(null);
+                                        setTokenForm({ name: '', expiresIn: 30, scopes: ['read:users'] });
+                                    }}
+                                    className="px-4 py-2 rounded-lg text-sm bg-[#4f46e5] text-white hover:bg-[#3730a3]"
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
                         <div className="space-y-4">
                             <Field label="Token Name">
                                 <input
@@ -1598,7 +1633,7 @@ function ApiKeysTab() {
                             </Field>
 
                             <div>
-                                <label className="text-xs text-[#7a87a8] font-medium block mb-2">Scopes</label>
+                                <p className="text-xs text-[#7a87a8] font-medium block mb-2">Scopes</p>
                                 <div className="grid grid-cols-2 gap-2">
                                     {API_SCOPE_OPTIONS.map((scope) => {
                                         const checked = tokenForm.scopes.includes(scope.value);
@@ -1606,15 +1641,7 @@ function ApiKeysTab() {
                                             <button
                                                 key={scope.value}
                                                 type="button"
-                                                onClick={() => {
-                                                    setTokenForm((prev) => {
-                                                        const exists = prev.scopes.includes(scope.value);
-                                                        const nextScopes = exists
-                                                            ? prev.scopes.filter((item) => item !== scope.value)
-                                                            : [...prev.scopes, scope.value];
-                                                        return { ...prev, scopes: nextScopes };
-                                                    });
-                                                }}
+                                                onClick={() => toggleScope(scope.value)}
                                                 className={classNames(
                                                     'border border-[#d0d7e8] rounded-xl px-4 py-3 text-left hover:bg-[#f8f9fd]',
                                                     checked ? 'border-[#4f46e5] bg-[#4f46e5]/5' : ''
@@ -1639,34 +1666,6 @@ function ApiKeysTab() {
                                     disabled={!tokenForm.name || !tokenForm.scopes.length || createMutation.isPending}
                                 >
                                     Create API Key
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="bg-[#f4f6fb] border border-[#d0d7e8] rounded-xl p-4 font-mono text-sm break-all relative">
-                                {createdToken}
-                                <button
-                                    type="button"
-                                    onClick={() => navigator.clipboard.writeText(createdToken)}
-                                    className="absolute top-2 right-2 text-xs px-2 py-1 border border-[#d0d7e8] rounded bg-white"
-                                >
-                                    Copy
-                                </button>
-                            </div>
-
-                            <div className="bg-[#d97706]/10 border border-[#d97706]/20 rounded-xl px-4 py-3 flex gap-2 text-sm text-[#92400e]">
-                                <AlertTriangle size={16} />
-                                <span>This token will not be shown again. Copy it now and store it securely.</span>
-                            </div>
-
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 rounded-lg text-sm bg-[#4f46e5] text-white"
-                                >
-                                    Done
                                 </button>
                             </div>
                         </div>
@@ -1734,6 +1733,12 @@ function PolicyToggleRow({ label, value, onChange }) {
     );
 }
 
+PolicyToggleRow.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.bool.isRequired,
+    onChange: PropTypes.func.isRequired,
+};
+
 function DangerRow({ title, description, actionLabel, onAction }) {
     return (
         <div className="px-6 py-4 border-b border-[#f0f2f8] last:border-0 flex items-center justify-between">
@@ -1752,32 +1757,51 @@ function DangerRow({ title, description, actionLabel, onAction }) {
     );
 }
 
-function parseDeviceLabel(userAgent) {
-    const ua = String(userAgent || '').toLowerCase();
-    const browser = ua.includes('chrome') && !ua.includes('edg')
-        ? 'Chrome'
-        : ua.includes('firefox')
-            ? 'Firefox'
-            : ua.includes('safari') && !ua.includes('chrome')
-                ? 'Safari'
-                : ua.includes('edg')
-                    ? 'Edge'
-                    : 'Browser';
+DangerRow.propTypes = {
+    title: PropTypes.string.isRequired,
+    description: PropTypes.string.isRequired,
+    actionLabel: PropTypes.string.isRequired,
+    onAction: PropTypes.func.isRequired,
+};
 
-    const os = ua.includes('windows')
-        ? 'Windows'
-        : ua.includes('mac os')
-            ? 'macOS'
-            : ua.includes('linux')
-                ? 'Linux'
-                : ua.includes('android')
-                    ? 'Android'
-                    : ua.includes('iphone') || ua.includes('ipad')
-                        ? 'iOS'
-                        : 'OS';
+function NotificationPrefRow({ row, mergedPrefs, setLocalPrefs }) {
+    const emailEnabled = Boolean(mergedPrefs[row.keyEmail]);
+    const inAppEnabled = Boolean(mergedPrefs[row.keyInApp]);
 
-    return `${browser} on ${os}`;
+    const handleToggleEmail = () => {
+        setLocalPrefs((prev) => ({ ...prev, [row.keyEmail]: !emailEnabled }));
+    };
+
+    const handleToggleInApp = () => {
+        setLocalPrefs((prev) => ({ ...prev, [row.keyInApp]: !inAppEnabled }));
+    };
+
+    return (
+        <div className="px-6 py-[14px] border-b border-[#f8fafc] last:border-0 flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0 pr-3">
+                <p className="text-[13px] font-medium text-[#0f172a]">{row.label}</p>
+                <p className="text-[11px] text-[#94a3b8] mt-0.5">{row.description}</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+                <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.05em]">EMAIL</span>
+                <Toggle checked={emailEnabled} onChange={handleToggleEmail} />
+                <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-[0.05em]">IN-APP</span>
+                <Toggle checked={inAppEnabled} onChange={handleToggleInApp} />
+            </div>
+        </div>
+    );
 }
+
+NotificationPrefRow.propTypes = {
+    row: PropTypes.shape({
+        keyEmail: PropTypes.string.isRequired,
+        keyInApp: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
+        description: PropTypes.string.isRequired,
+    }).isRequired,
+    mergedPrefs: PropTypes.object.isRequired,
+    setLocalPrefs: PropTypes.func.isRequired,
+};
 
 export default function SettingsPage() {
     const { user, updateUser } = useAuth();
@@ -1808,12 +1832,29 @@ export default function SettingsPage() {
         || effectiveUser?.primaryRole?.name
         || 'Member';
 
-    const tabs = TAB_DEFS.filter((tab) => {
-        if (tab.id === 'organization') {
-            return user?.role === 'SuperAdmin';
-        }
-        return true;
-    });
+    const tabs = TAB_DEFS.filter((tab) => tab.id !== 'organization' || user?.role === 'SuperAdmin');
+
+    let activeContent = null;
+
+    if (activeTab === 'profile') {
+        activeContent = <ProfileTab user={effectiveUser} onProfileUpdated={(nextProfile) => updateUser(nextProfile)} />;
+    } else if (activeTab === 'notifications') {
+        activeContent = <NotificationsTab />;
+    } else if (activeTab === 'organization' && user?.role === 'SuperAdmin') {
+        activeContent = <OrganizationTab />;
+    } else if (activeTab === 'api-keys') {
+        activeContent = <ApiKeysTab />;
+    } else if (activeTab === 'connected-apps') {
+        activeContent = (
+            <div className="w-full">
+                <div className="mb-5">
+                    <h3 className="text-[18px] font-bold text-[#0f172a]">Connected Apps</h3>
+                    <p className="mt-1 text-[13px] text-[#64748b]">Apps and API tokens with access to your account</p>
+                </div>
+                <ConnectedApps />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-[calc(100vh-64px)] bg-[#f4f6fb]">
@@ -1857,29 +1898,42 @@ export default function SettingsPage() {
                             </p>
                         </div>
 
-                        <div className="w-full">
-                            {activeTab === 'profile' ? (
-                                <ProfileTab
-                                    user={effectiveUser}
-                                    onProfileUpdated={(nextProfile) => updateUser(nextProfile)}
-                                />
-                            ) : null}
-                            {activeTab === 'notifications' ? <NotificationsTab /> : null}
-                            {activeTab === 'organization' && user?.role === 'SuperAdmin' ? <OrganizationTab /> : null}
-                            {activeTab === 'api-keys' ? <ApiKeysTab /> : null}
-                            {activeTab === 'connected-apps' ? (
-                                <div className="w-full">
-                                    <div className="mb-5">
-                                        <h3 className="text-[18px] font-bold text-[#0f172a]">Connected Apps</h3>
-                                        <p className="mt-1 text-[13px] text-[#64748b]">Apps and API tokens with access to your account</p>
-                                    </div>
-                                    <ConnectedApps />
-                                </div>
-                            ) : null}
-                        </div>
+                        <div className="w-full">{activeContent}</div>
                     </div>
                 </div>
             </div>
         </div>
     );
 }
+
+Field.propTypes = {
+    label: PropTypes.string.isRequired,
+    error: PropTypes.string,
+    children: PropTypes.node,
+};
+
+CardShell.propTypes = {
+    children: PropTypes.node,
+};
+
+CardHeader.propTypes = {
+    icon: PropTypes.elementType.isRequired,
+    title: PropTypes.string.isRequired,
+    right: PropTypes.node,
+};
+
+PasswordField.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    onChange: PropTypes.func.isRequired,
+    visible: PropTypes.bool.isRequired,
+    onToggle: PropTypes.func.isRequired,
+    error: PropTypes.string,
+};
+
+Modal.propTypes = {
+    title: PropTypes.string,
+    icon: PropTypes.elementType,
+    children: PropTypes.node,
+    onClose: PropTypes.func,
+};

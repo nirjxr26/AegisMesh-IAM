@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const prisma = require('../config/database');
 const tokenService = require('./token.service');
 const emailService = require('./email.service');
@@ -11,10 +11,10 @@ const { getOrganizationSettings } = require('./organizationSettings.service');
 const { decryptText } = require('../utils/crypto');
 const { upsertTrustedDevice } = require('./userSecurity.service');
 
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
-const MAX_FAILED_ATTEMPTS = parseInt(process.env.MAX_FAILED_LOGIN_ATTEMPTS, 10) || 5;
-const LOCK_DURATION_MINUTES = parseInt(process.env.ACCOUNT_LOCK_DURATION_MINUTES, 10) || 30;
-const RESET_EXPIRY_HOURS = parseInt(process.env.PASSWORD_RESET_EXPIRY_HOURS, 10) || 1;
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
+const MAX_FAILED_ATTEMPTS = Number.parseInt(process.env.MAX_FAILED_LOGIN_ATTEMPTS, 10) || 5;
+const LOCK_DURATION_MINUTES = Number.parseInt(process.env.ACCOUNT_LOCK_DURATION_MINUTES, 10) || 30;
+const RESET_EXPIRY_HOURS = Number.parseInt(process.env.PASSWORD_RESET_EXPIRY_HOURS, 10) || 1;
 
 function hasConfiguredBackupCodes(user) {
     if (Array.isArray(user?.backupCodes) && user.backupCodes.length > 0) {
@@ -66,9 +66,42 @@ async function register({ email, password, firstName, lastName, req }) {
  */
 async function login({ email, password, totpCode, req }) {
     const orgSettings = await getOrganizationSettings();
-    const maxFailedAttempts = orgSettings?.maxFailedAttempts || MAX_FAILED_ATTEMPTS;
+    const maxFailedAttempts =
+        orgSettings?.maxFailedAttempts || MAX_FAILED_ATTEMPTS;
 
-    const user = await prisma.user.findUnique({
+    const user = await findUserByEmail(email);
+
+    await validateUserAccess(user, req, email);
+
+    const isPasswordValid = await bcrypt.compare(
+        password,
+        user.passwordHash
+    );
+
+    if (!isPasswordValid) {
+        await handleFailedPassword({
+            user,
+            req,
+            email,
+            maxFailedAttempts,
+        });
+    }
+
+    if (user.mfaEnabled) {
+        await validateMFA({ user, totpCode, req });
+    }
+
+    await resetUserLockState(user.id);
+
+    return createLoginResponse({ user, req });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Helpers */
+/* -------------------------------------------------------------------------- */
+
+async function findUserByEmail(email) {
+    return prisma.user.findUnique({
         where: { email },
         include: {
             userRoles: {
@@ -80,8 +113,17 @@ async function login({ email, password, totpCode, req }) {
             },
         },
     });
+}
+
+async function validateUserAccess(user, req, email) {
     if (!user) {
-        await auditAuth.loginFailed(req, email, 'User not found', 'AUTH_001');
+        await auditAuth.loginFailed(
+            req,
+            email,
+            'User not found',
+            'AUTH_001'
+        );
+
         throw createError('AUTH_001');
     }
 
@@ -89,16 +131,29 @@ async function login({ email, password, totpCode, req }) {
         throw createError('AUTH_008');
     }
 
-    if (user.status === 'LOCKED' || (user.lockedUntil && new Date(user.lockedUntil) > new Date())) {
-        await auditAuth.loginFailed(req, email, 'Account locked', 'AUTH_002');
-        throw createError('AUTH_002', { unlockTime: user.lockedUntil });
+    const isLocked =
+        user.status === 'LOCKED' ||
+        (user.lockedUntil && new Date(user.lockedUntil) > new Date());
+
+    if (isLocked) {
+        await auditAuth.loginFailed(
+            req,
+            email,
+            'Account locked',
+            'AUTH_002'
+        );
+
+        throw createError('AUTH_002', {
+            unlockTime: user.lockedUntil,
+        });
     }
 
-    if (user.lockedUntil && new Date(user.lockedUntil) <= new Date()) {
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { status: 'ACTIVE', failedLoginCount: 0, lockedUntil: null },
-        });
+    const lockExpired =
+        user.lockedUntil &&
+        new Date(user.lockedUntil) <= new Date();
+
+    if (lockExpired) {
+        await resetUserLockState(user.id);
     }
 
     if (!user.emailVerified) {
@@ -108,107 +163,247 @@ async function login({ email, password, totpCode, req }) {
     if (!user.passwordHash) {
         throw createError('AUTH_001');
     }
+}
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-        const newFailedCount = user.failedLoginCount + 1;
-        const updateData = { failedLoginCount: newFailedCount };
+async function handleFailedPassword({
+    user,
+    req,
+    email,
+    maxFailedAttempts,
+}) {
+    const newFailedCount = user.failedLoginCount + 1;
 
-        if (newFailedCount >= maxFailedAttempts) {
-            const lockUntil = new Date();
-            lockUntil.setMinutes(lockUntil.getMinutes() + LOCK_DURATION_MINUTES);
-            updateData.lockedUntil = lockUntil;
-            updateData.status = 'LOCKED';
-            logger.warn(`Account locked for user ${user.email}. Unlock at ${lockUntil}`);
-        }
+    const updateData = {
+        failedLoginCount: newFailedCount,
+    };
 
-        await prisma.user.update({ where: { id: user.id }, data: updateData });
+    const shouldLock =
+        newFailedCount >= maxFailedAttempts;
 
-        await auditAuth.loginFailed(req, email, 'Invalid password', 'AUTH_001');
+    if (shouldLock) {
+        const lockUntil = new Date();
 
-        if (newFailedCount >= maxFailedAttempts) {
-            await auditSecurity.accountLocked(req, user.id, email);
-            throw createError('AUTH_002', { unlockTime: updateData.lockedUntil });
-        }
+        lockUntil.setMinutes(
+            lockUntil.getMinutes() + LOCK_DURATION_MINUTES
+        );
 
-        throw createError('AUTH_001');
-    }
+        updateData.lockedUntil = lockUntil;
+        updateData.status = 'LOCKED';
 
-    // Check MFA
-    if (user.mfaEnabled) {
-        if (!totpCode) {
-            throw createError('AUTH_004');
-        }
-
-        let mfaValid = false;
-        const normalizedCode = String(totpCode).toUpperCase();
-
-        if (Array.isArray(user.backupCodes) && user.backupCodes.length > 0) {
-            const remainingHashes = [];
-            let consumed = false;
-
-            for (const hash of user.backupCodes) {
-                const matched = !consumed && await bcrypt.compare(normalizedCode, hash);
-                if (matched) {
-                    consumed = true;
-                    mfaValid = true;
-                    continue;
-                }
-
-                remainingHashes.push(hash);
-            }
-
-            if (consumed) {
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: { backupCodes: remainingHashes },
-                });
-                await auditMFA.backupCodeUsed(req, user.id);
-            }
-        }
-
-        // Legacy fallback for older records that still store plaintext backup codes.
-        if (!mfaValid && user.mfaBackupCodes) {
-            const legacyCodes = JSON.parse(user.mfaBackupCodes);
-            const codeIndex = legacyCodes.indexOf(normalizedCode);
-            if (codeIndex !== -1) {
-                legacyCodes.splice(codeIndex, 1);
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: { mfaBackupCodes: JSON.stringify(legacyCodes) },
-                });
-                mfaValid = true;
-                await auditMFA.backupCodeUsed(req, user.id);
-            }
-        }
-
-        if (!mfaValid) {
-            const decryptedSecret = decryptText(user.mfaSecret) || user.mfaSecret;
-            mfaValid = mfaService.verifyTOTP(totpCode, decryptedSecret);
-        }
-
-        if (!mfaValid) {
-            await auditAuth.loginMFAFailed(req, user.id);
-            throw createError('AUTH_005');
-        }
+        logger.warn(
+            `Account locked for user ${user.email}. Unlock at ${lockUntil}`
+        );
     }
 
     await prisma.user.update({
         where: { id: user.id },
-        data: { failedLoginCount: 0, lockedUntil: null, status: 'ACTIVE' },
+        data: updateData,
     });
 
-    const refreshToken = tokenService.generateRefreshToken(user);
-    const deviceInfo = req?.headers?.['user-agent'];
-    const ipAddress = req?.ip || req?.socket?.remoteAddress;
+    await auditAuth.loginFailed(
+        req,
+        email,
+        'Invalid password',
+        'AUTH_001'
+    );
 
-    const session = await tokenService.createSession(user.id, refreshToken, deviceInfo, ipAddress);
-    await upsertTrustedDevice(user.id, deviceInfo, ipAddress);
-    const accessToken = tokenService.generateAccessToken(user, session.id);
-    await auditAuth.loginSuccess(req, user.id, session.id);
+    if (shouldLock) {
+        await auditSecurity.accountLocked(
+            req,
+            user.id,
+            email
+        );
 
-    const roleNames = (user.userRoles || []).map((ur) => ur.role?.name).filter(Boolean);
-    const role = roleNames.includes('SuperAdmin') ? 'SuperAdmin' : (roleNames[0] || null);
+        throw createError('AUTH_002', {
+            unlockTime: updateData.lockedUntil,
+        });
+    }
+
+    throw createError('AUTH_001');
+}
+
+async function validateMFA({ user, totpCode, req }) {
+    if (!totpCode) {
+        throw createError('AUTH_004');
+    }
+
+    const normalizedCode = String(totpCode).toUpperCase();
+
+    const backupCodeValid = await validateBackupCode({
+        user,
+        normalizedCode,
+        req,
+    });
+
+    if (backupCodeValid) {
+        return;
+    }
+
+    const decryptedSecret =
+        decryptText(user.mfaSecret) || user.mfaSecret;
+
+    const isValid = mfaService.verifyTOTP(
+        totpCode,
+        decryptedSecret
+    );
+
+    if (!isValid) {
+        await auditAuth.loginMFAFailed(req, user.id);
+
+        throw createError('AUTH_005');
+    }
+}
+
+async function validateBackupCode({
+    user,
+    normalizedCode,
+    req,
+}) {
+    const hashedCodeValid =
+        await validateHashedBackupCode({
+            user,
+            normalizedCode,
+            req,
+        });
+
+    if (hashedCodeValid) {
+        return true;
+    }
+
+    return validateLegacyBackupCode({
+        user,
+        normalizedCode,
+        req,
+    });
+}
+
+async function validateHashedBackupCode({
+    user,
+    normalizedCode,
+    req,
+}) {
+    if (
+        !Array.isArray(user.backupCodes) ||
+        user.backupCodes.length === 0
+    ) {
+        return false;
+    }
+
+    const remainingHashes = [];
+    let matched = false;
+
+    for (const hash of user.backupCodes) {
+        const isMatch =
+            !matched &&
+            await bcrypt.compare(normalizedCode, hash);
+
+        if (isMatch) {
+            matched = true;
+            continue;
+        }
+
+        remainingHashes.push(hash);
+    }
+
+    if (!matched) {
+        return false;
+    }
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { backupCodes: remainingHashes },
+    });
+
+    await auditMFA.backupCodeUsed(req, user.id);
+
+    return true;
+}
+
+async function validateLegacyBackupCode({
+    user,
+    normalizedCode,
+    req,
+}) {
+    if (!user.mfaBackupCodes) {
+        return false;
+    }
+
+    const legacyCodes = JSON.parse(user.mfaBackupCodes);
+
+    const codeIndex =
+        legacyCodes.indexOf(normalizedCode);
+
+    if (codeIndex === -1) {
+        return false;
+    }
+
+    legacyCodes.splice(codeIndex, 1);
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            mfaBackupCodes: JSON.stringify(legacyCodes),
+        },
+    });
+
+    await auditMFA.backupCodeUsed(req, user.id);
+
+    return true;
+}
+
+async function resetUserLockState(userId) {
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+            failedLoginCount: 0,
+            lockedUntil: null,
+            status: 'ACTIVE',
+        },
+    });
+}
+
+async function createLoginResponse({ user, req }) {
+    const refreshToken =
+        tokenService.generateRefreshToken(user);
+
+    const deviceInfo =
+        req?.headers?.['user-agent'];
+
+    const ipAddress =
+        req?.ip || req?.socket?.remoteAddress;
+
+    const session = await tokenService.createSession(
+        user.id,
+        refreshToken,
+        deviceInfo,
+        ipAddress
+    );
+
+    await upsertTrustedDevice(
+        user.id,
+        deviceInfo,
+        ipAddress
+    );
+
+    const accessToken =
+        tokenService.generateAccessToken(
+            user,
+            session.id
+        );
+
+    await auditAuth.loginSuccess(
+        req,
+        user.id,
+        session.id
+    );
+
+    const roleNames = (user.userRoles || [])
+        .map((ur) => ur.role?.name)
+        .filter(Boolean);
+
+    const role = roleNames.includes('SuperAdmin')
+        ? 'SuperAdmin'
+        : (roleNames[0] || null);
 
     const {
         passwordHash,
@@ -228,12 +423,15 @@ async function login({ email, password, totpCode, req }) {
         user: {
             ...safeUser,
             role,
-            hasBackupCodes: hasConfiguredBackupCodes({ backupCodes, mfaBackupCodes }),
+            hasBackupCodes:
+                hasConfiguredBackupCodes({
+                    backupCodes,
+                    mfaBackupCodes,
+                }),
             hasPassword: Boolean(passwordHash),
         },
     };
 }
-
 /**
  * Logout
  */

@@ -1,241 +1,384 @@
 const prisma = require('../config/database');
 
-// Helper for wildcard matching
-function matchPattern(pattern, value) {
-    if (pattern === '*') return true;
+const REGEX_ESCAPE_PATTERN =
+    /[.+?^${}()|[\]\\]/g;
 
-    // Convert wildcard pattern to regex
-    // Escape regex characters except '*' which becomes '.*'
-    const regexStr = '^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$';
-    const regex = new RegExp(regexStr);
+const REGEX_ESCAPE_REPLACEMENT =
+    String.raw`\$&`;
+
+/* -------------------------------------------------------------------------- */
+/* Helpers */
+/* -------------------------------------------------------------------------- */
+
+function matchPattern(pattern, value) {
+    if (pattern === '*') {
+        return true;
+    }
+
+    const escapedPattern = pattern
+        .replaceAll(
+            REGEX_ESCAPE_PATTERN,
+            REGEX_ESCAPE_REPLACEMENT
+        )
+        .replaceAll('*', '.*');
+
+    const regex = new RegExp(
+        `^${escapedPattern}$`
+    );
+
     return regex.test(value);
 }
 
-/**
- * 1. Get all roles directly assigned to user (UserRole)
- * 2. Get all groups user belongs to (UserGroup)
- * 3. Get all roles assigned to those groups (GroupRole)
- * 4. Merge all roles (deduplicate)
- * 5. Get all policies attached to all roles (RolePolicy)
- * 6. Return flat list of { effect, actions, resources }
- */
-async function getUserPermissions(userId) {
-    // 1. Direct roles
-    const userRoles = await prisma.userRole.findMany({
-        where: { userId },
-        include: {
-            role: {
-                include: {
-                    rolePolicies: {
-                        include: { policy: true }
-                    }
-                }
-            }
-        }
-    });
+function matchesPolicy(
+    policy,
+    action,
+    resource
+) {
+    const actionMatch = policy.actions.some(
+        (policyAction) =>
+            matchPattern(policyAction, action)
+    );
 
-    // 2 & 3. Group roles
-    const userGroups = await prisma.userGroup.findMany({
-        where: { userId },
-        include: {
-            group: {
-                include: {
-                    groupRoles: {
-                        include: {
-                            role: {
-                                include: {
-                                    rolePolicies: {
-                                        include: { policy: true }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
+    const resourceMatch =
+        policy.resources.some((policyResource) =>
+            matchPattern(
+                policyResource,
+                resource
+            )
+        );
 
-    // Extract all unique roles
+    return actionMatch && resourceMatch;
+}
+
+function splitPoliciesByEffect(policies) {
+    return policies.reduce(
+        (accumulator, policy) => {
+            if (policy.effect === 'ALLOW') {
+                accumulator.allowPolicies.push(
+                    policy
+                );
+            }
+
+            if (policy.effect === 'DENY') {
+                accumulator.denyPolicies.push(
+                    policy
+                );
+            }
+
+            return accumulator;
+        },
+        {
+            allowPolicies: [],
+            denyPolicies: [],
+        }
+    );
+}
+
+function extractUniqueRoles(
+    userRoles,
+    userGroups
+) {
     const roleMap = new Map();
 
-    userRoles.forEach(ur => {
-        if (ur.role) roleMap.set(ur.role.id, ur.role);
-    });
+    userRoles.forEach((userRole) => {
+        const role = userRole.role;
 
-    userGroups.forEach(ug => {
-        if (ug.group && ug.group.groupRoles) {
-            ug.group.groupRoles.forEach(gr => {
-                if (gr.role) roleMap.set(gr.role.id, gr.role);
-            });
+        if (role) {
+            roleMap.set(role.id, role);
         }
     });
 
-    // 4 & 5. Get all policies attached to all roles
-    const policyMap = new Map();
-    roleMap.forEach(role => {
-        if (role.rolePolicies) {
-            role.rolePolicies.forEach(rp => {
-                if (rp.policy) {
-                    policyMap.set(rp.policy.id, rp.policy);
+    userGroups.forEach((userGroup) => {
+        userGroup.group?.groupRoles?.forEach(
+            (groupRole) => {
+                const role = groupRole.role;
+
+                if (role) {
+                    roleMap.set(role.id, role);
                 }
-            });
-        }
+            }
+        );
     });
 
-    // 6. Return flat list
-    return Array.from(policyMap.values()).map(p => ({
-        id: p.id,
-        name: p.name,
-        effect: p.effect,
-        actions: p.actions,
-        resources: p.resources
+    return roleMap;
+}
+
+function extractPolicies(roleMap) {
+    const policyMap = new Map();
+
+    roleMap.forEach((role) => {
+        role.rolePolicies?.forEach(
+            (rolePolicy) => {
+                const policy = rolePolicy.policy;
+
+                if (policy) {
+                    policyMap.set(
+                        policy.id,
+                        policy
+                    );
+                }
+            }
+        );
+    });
+
+    return Array.from(policyMap.values());
+}
+
+function hasSuperAdminRole(
+    userRoles,
+    userGroups
+) {
+    const directSuperAdmin =
+        userRoles.some(
+            (userRole) =>
+                userRole.role?.name ===
+                'SuperAdmin'
+        );
+
+    if (directSuperAdmin) {
+        return true;
+    }
+
+    return userGroups.some((userGroup) =>
+        userGroup.group?.groupRoles?.some(
+            (groupRole) =>
+                groupRole.role?.name ===
+                'SuperAdmin'
+        )
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Permissions */
+/* -------------------------------------------------------------------------- */
+
+async function getUserPermissions(userId) {
+    const userRoles =
+        await prisma.userRole.findMany({
+            where: { userId },
+            include: {
+                role: {
+                    include: {
+                        rolePolicies: {
+                            include: {
+                                policy: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+    const userGroups =
+        await prisma.userGroup.findMany({
+            where: { userId },
+            include: {
+                group: {
+                    include: {
+                        groupRoles: {
+                            include: {
+                                role: {
+                                    include: {
+                                        rolePolicies:
+                                            {
+                                                include:
+                                                    {
+                                                        policy: true,
+                                                    },
+                                            },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+    const roleMap = extractUniqueRoles(
+        userRoles,
+        userGroups
+    );
+
+    const policies = extractPolicies(roleMap);
+
+    return policies.map((policy) => ({
+        id: policy.id,
+        name: policy.name,
+        effect: policy.effect,
+        actions: policy.actions,
+        resources: policy.resources,
     }));
 }
 
-/**
- * 1. Get all user permissions
- * 2. Separate into ALLOW and DENY policies
- * 3. Check if action matches any policy actions
- * 4. Check if resource matches any policy resources
- * 5. DENY always wins over ALLOW
- * 6. Return: { allowed: boolean, reason: string }
- */
-async function checkPermission(userId, action, resource) {
-    // SuperAdmin Bypass Check
-    const userRoles = await prisma.userRole.findMany({
-        where: { userId },
-        include: { role: true }
-    });
-    const userGroups = await prisma.userGroup.findMany({
-        where: { userId },
-        include: { group: { include: { groupRoles: { include: { role: true } } } } }
-    });
+async function checkPermission(
+    userId,
+    action,
+    resource
+) {
+    const userRoles =
+        await prisma.userRole.findMany({
+            where: { userId },
+            include: {
+                role: true,
+            },
+        });
 
-    let isSuperAdmin = userRoles.some(ur => ur.role.name === 'SuperAdmin');
-    if (!isSuperAdmin) {
-        isSuperAdmin = userGroups.some(ug =>
-            ug.group.groupRoles.some(gr => gr.role.name === 'SuperAdmin')
+    const userGroups =
+        await prisma.userGroup.findMany({
+            where: { userId },
+            include: {
+                group: {
+                    include: {
+                        groupRoles: {
+                            include: {
+                                role: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+    const isSuperAdmin =
+        hasSuperAdminRole(
+            userRoles,
+            userGroups
         );
-    }
 
     if (isSuperAdmin) {
         return {
             allowed: true,
             reason: 'SuperAdmin',
             matchedPolicies: [],
-            deniedBy: null
+            deniedBy: null,
         };
     }
 
-    const policies = await getUserPermissions(userId);
+    const policies =
+        await getUserPermissions(userId);
 
-    const allowPolicies = [];
-    const denyPolicies = [];
+    const {
+        allowPolicies,
+        denyPolicies,
+    } = splitPoliciesByEffect(policies);
 
-    policies.forEach(p => {
-        if (p.effect === 'ALLOW') allowPolicies.push(p);
-        else if (p.effect === 'DENY') denyPolicies.push(p);
-    });
-
-    const matchesPolicy = (policy) => {
-        const actionMatch = policy.actions.some(pAction => matchPattern(pAction, action));
-        const resourceMatch = policy.resources.some(pResource => matchPattern(pResource, resource));
-        return actionMatch && resourceMatch;
-    };
-
-    // Evaluate DENY policies first (DENY always wins over ALLOW)
     for (const policy of denyPolicies) {
-        if (matchesPolicy(policy)) {
+        if (
+            matchesPolicy(
+                policy,
+                action,
+                resource
+            )
+        ) {
             return {
                 allowed: false,
                 reason: `Explicitly denied by policy: ${policy.name}`,
                 matchedPolicies: [policy],
-                deniedBy: policy
+                deniedBy: policy,
             };
         }
     }
 
-    // Evaluate ALLOW policies
-    const matchedAllowPolicies = [];
-    for (const policy of allowPolicies) {
-        if (matchesPolicy(policy)) {
-            matchedAllowPolicies.push(policy);
-        }
-    }
+    const matchedAllowPolicies =
+        allowPolicies.filter((policy) =>
+            matchesPolicy(
+                policy,
+                action,
+                resource
+            )
+        );
 
-    if (matchedAllowPolicies.length > 0) {
+    if (matchedAllowPolicies.length) {
         return {
             allowed: true,
             reason: 'Allowed by policy',
-            matchedPolicies: matchedAllowPolicies,
-            deniedBy: null
+            matchedPolicies:
+                matchedAllowPolicies,
+            deniedBy: null,
         };
     }
 
-    // Implicit deny
     return {
         allowed: false,
         reason: 'No matching policy',
         matchedPolicies: [],
-        deniedBy: null
+        deniedBy: null,
     };
 }
 
-/**
- * Returns a summary of all actions a user can perform
- */
-async function getUserEffectivePermissions(userId) {
-    const userRoles = await prisma.userRole.findMany({
-        where: { userId },
-        include: { role: true }
-    });
+async function getUserEffectivePermissions(
+    userId
+) {
+    const userRoles =
+        await prisma.userRole.findMany({
+            where: { userId },
+            include: {
+                role: true,
+            },
+        });
 
-    const userGroups = await prisma.userGroup.findMany({
-        where: { userId },
-        include: {
-            group: {
-                include: {
-                    groupRoles: {
-                        include: { role: true }
-                    }
-                }
-            }
-        }
-    });
+    const userGroups =
+        await prisma.userGroup.findMany({
+            where: { userId },
+            include: {
+                group: {
+                    include: {
+                        groupRoles: {
+                            include: {
+                                role: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
 
-    const directRoles = userRoles.map(ur => ur.role);
-    const groups = userGroups.map(ug => ({
-        ...ug.group,
-        roles: ug.group.groupRoles.map(gr => gr.role)
-    }));
+    const directRoles = userRoles.map(
+        (userRole) => userRole.role
+    );
 
-    const policies = await getUserPermissions(userId);
+    const groups = userGroups.map(
+        (userGroup) => ({
+            ...userGroup.group,
+            roles:
+                userGroup.group?.groupRoles?.map(
+                    (groupRole) =>
+                        groupRole.role
+                ) || [],
+        })
+    );
+
+    const policies =
+        await getUserPermissions(userId);
 
     const allowed = new Set();
     const denied = new Set();
 
-    policies.forEach(p => {
-        if (p.effect === 'DENY') {
-            p.actions.forEach(a => denied.add(a));
-        } else {
-            p.actions.forEach(a => allowed.add(a));
-        }
+    policies.forEach((policy) => {
+        const targetSet =
+            policy.effect === 'DENY'
+                ? denied
+                : allowed;
+
+        policy.actions.forEach((action) =>
+            targetSet.add(action)
+        );
     });
 
     return {
         roles: directRoles,
-        groups: groups,
-        policies: policies,
+        groups,
+        policies,
         effectivePermissions: {
             allowed: Array.from(allowed),
-            denied: Array.from(denied)
-        }
+            denied: Array.from(denied),
+        },
     };
 }
 
 module.exports = {
     getUserPermissions,
     checkPermission,
-    getUserEffectivePermissions
+    getUserEffectivePermissions,
 };

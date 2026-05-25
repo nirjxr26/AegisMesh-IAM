@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const settingsDir = 'src/pages/settings';
 
@@ -11,9 +11,17 @@ files.forEach((file) => {
 
     let content = fs.readFileSync(full, 'utf8');
 
-    content = content.replace(/from '\.\.\//g, "from '../../");
-    content = content.replace(/from \"\.\.\//g, 'from "../../');
+    const replacements = [
+        [/from '\.\.\//g, "from '../../"],
+        [/from "\.\.\//g, 'from "../../'],
+    ];
 
+    replacements.forEach(([pattern, replacement]) => {
+        content = content.replaceAll(
+            pattern,
+            replacement
+        );
+    });
     fs.writeFileSync(full, content);
     console.log('Fixed imports in: ' + full);
 });

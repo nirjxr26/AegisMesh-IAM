@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Menu, MoreVertical, Search, Settings } from 'lucide-react';
 import NotificationBell from '../notifications/NotificationBell';
+import PropTypes from 'prop-types';
 
 export default function TopBar({ onMenuClick, onOpenSettings, onSignOut }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -136,3 +137,8 @@ export default function TopBar({ onMenuClick, onOpenSettings, onSignOut }) {
         </header>
     );
 }
+TopBar.propTypes = {
+    onMenuClick: PropTypes.func,
+    onOpenSettings: PropTypes.func,
+    onSignOut: PropTypes.func,
+};

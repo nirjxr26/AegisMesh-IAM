@@ -13,7 +13,7 @@ exports.getAuditLogs = async (req, res, next) => {
             startDate, endDate, search, ipAddress
         } = req.query;
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit);
         const where = {};
 
         if (userId) where.userId = userId;
@@ -38,14 +38,14 @@ exports.getAuditLogs = async (req, res, next) => {
             prisma.auditLog.findMany({
                 where,
                 skip,
-                take: parseInt(limit),
+                take: Number.parseInt(limit),
                 orderBy: { createdAt: 'desc' },
                 include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } }
             }),
             prisma.auditLog.count({ where })
         ]);
 
-        const totalPages = Math.ceil(total / parseInt(limit));
+        const totalPages = Math.ceil(total / Number.parseInt(limit));
 
         // Summary
         const [failureCount, uniqueUsers, topActionsRaw] = await Promise.all([
@@ -65,11 +65,11 @@ exports.getAuditLogs = async (req, res, next) => {
             data: logs,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page: Number.parseInt(page),
+                limit: Number.parseInt(limit),
                 totalPages,
-                hasNext: parseInt(page) < totalPages,
-                hasPrev: parseInt(page) > 1
+                hasNext: Number.parseInt(page) < totalPages,
+                hasPrev: Number.parseInt(page) > 1
             },
             summary: {
                 totalEvents: total,
@@ -299,7 +299,7 @@ exports.getAuditLog = async (req, res, next) => {
 exports.getUserAuditLogs = async (req, res, next) => {
     try {
         const { page = 1, limit = 50, action, category, result, startDate, endDate } = req.query;
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit);
         const where = { userId: req.params.userId };
 
         if (action) where.action = action;
@@ -313,18 +313,18 @@ exports.getUserAuditLogs = async (req, res, next) => {
 
         const [logs, total] = await Promise.all([
             prisma.auditLog.findMany({
-                where, skip, take: parseInt(limit),
+                where, skip, take: Number.parseInt(limit),
                 orderBy: { createdAt: 'desc' },
                 include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } }
             }),
             prisma.auditLog.count({ where })
         ]);
 
-        const totalPages = Math.ceil(total / parseInt(limit));
+        const totalPages = Math.ceil(total / Number.parseInt(limit));
         res.json({
             success: true,
             data: logs,
-            pagination: { total, page: parseInt(page), limit: parseInt(limit), totalPages, hasNext: parseInt(page) < totalPages, hasPrev: parseInt(page) > 1 }
+            pagination: { total, page: Number.parseInt(page), limit: Number.parseInt(limit), totalPages, hasNext: Number.parseInt(page) < totalPages, hasPrev: Number.parseInt(page) > 1 }
         });
     } catch (error) { next(error); }
 };
@@ -358,7 +358,7 @@ exports.exportLogs = async (req, res, next) => {
             if (val == null) return '';
             const str = String(val);
             if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                return `"${str.replace(/"/g, '""')}"`;
+                return `"${str.replaceAll('"', '""')}"`;
             }
             return str;
         };
@@ -386,7 +386,7 @@ exports.cleanupLogs = async (req, res, next) => {
     try {
         const { olderThanDays = 90, category: cat } = req.body || {};
         const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - parseInt(olderThanDays));
+        cutoff.setDate(cutoff.getDate() - Number.parseInt(olderThanDays));
 
         const where = { createdAt: { lt: cutoff } };
         if (cat) where.category = cat;

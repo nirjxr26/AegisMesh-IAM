@@ -1,5 +1,5 @@
 const prisma = require('../config/database');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 function parseDeviceInfo(userAgent = '') {
     const ua = String(userAgent || '').toLowerCase();

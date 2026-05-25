@@ -3,8 +3,8 @@ const prisma = require('../config/database');
 const logger = require('./logger');
 const { audit } = require('./auditLog');
 
-const RETENTION_DAYS = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS, 10) || 90;
-const SECURITY_RETENTION_DAYS = parseInt(process.env.AUDIT_SECURITY_LOG_RETENTION_DAYS, 10) || 365;
+const RETENTION_DAYS = Number.parseInt(process.env.AUDIT_LOG_RETENTION_DAYS, 10) || 90;
+const SECURITY_RETENTION_DAYS = Number.parseInt(process.env.AUDIT_SECURITY_LOG_RETENTION_DAYS, 10) || 365;
 
 async function runCleanup() {
     try {

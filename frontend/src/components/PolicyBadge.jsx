@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
 export default function PolicyBadge({ effect }) {
     if (effect === 'ALLOW') {
@@ -14,5 +14,9 @@ export default function PolicyBadge({ effect }) {
         </span>
     );
 }
+
+PolicyBadge.propTypes = {
+    effect: PropTypes.oneOf(['ALLOW', 'DENY']),
+};
 
 

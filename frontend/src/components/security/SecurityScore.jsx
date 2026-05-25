@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowRight, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -94,6 +95,16 @@ function IncompleteChecklistItem({ check, onAction }) {
     );
 }
 
+IncompleteChecklistItem.propTypes = {
+    check: PropTypes.shape({
+        label: PropTypes.string.isRequired,
+        description: PropTypes.string,
+        actionPath: PropTypes.string,
+        actionTab: PropTypes.string,
+    }).isRequired,
+    onAction: PropTypes.func,
+};
+
 function CompletedChecklistItem({ check }) {
     return (
         <div className="flex items-center gap-2 opacity-60 text-[12px] text-[#0f172a] py-1">
@@ -117,13 +128,13 @@ export default function SecurityScore({ user, sessions, apiKeys, connectedApps, 
     const completedChecks = useMemo(() => result.checks.filter((check) => check.passed), [result.checks]);
 
     useEffect(() => {
-        const frame = window.requestAnimationFrame(() => {
-            window.setTimeout(() => {
+        const frame = globalThis.requestAnimationFrame(() => {
+            globalThis.setTimeout(() => {
                 setAnimatedScore(result.score);
             }, 60);
         });
 
-        return () => window.cancelAnimationFrame(frame);
+        return () => globalThis.cancelAnimationFrame(frame);
     }, [result.score]);
 
     const handleAction = (check) => {
@@ -241,3 +252,17 @@ export default function SecurityScore({ user, sessions, apiKeys, connectedApps, 
         </div>
     );
 }
+
+CompletedChecklistItem.propTypes = {
+    check: PropTypes.shape({
+        label: PropTypes.string.isRequired,
+    }).isRequired,
+};
+
+SecurityScore.propTypes = {
+    user: PropTypes.object,
+    sessions: PropTypes.array,
+    apiKeys: PropTypes.array,
+    connectedApps: PropTypes.array,
+    onAction: PropTypes.func,
+};

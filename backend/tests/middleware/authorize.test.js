@@ -17,6 +17,7 @@ jest.mock('../../src/utils/auditLog', () => ({
 
 const permissionService = require('../../src/services/permission.service');
 const authorize = require('../../src/middleware/authorize');
+const { LOOPBACK_IP } = require('../../src/config/constants');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -30,7 +31,7 @@ function mockRes() {
 }
 
 function mockReq(userId = 'user-1') {
-    return { user: { id: userId }, method: 'GET', path: '/test', ip: '127.0.0.1' };
+    return { user: { id: userId }, method: 'GET', path: '/test', ip: LOOPBACK_IP };
 }
 
 afterEach(() => jest.clearAllMocks());
@@ -68,7 +69,7 @@ describe('authorize middleware', () => {
     });
 
     it('calls next(error) when req.user is missing', async () => {
-        const req = { user: null, method: 'GET', path: '/test', ip: '127.0.0.1' };
+        const req = { user: null, method: 'GET', path: '/test', ip: LOOPBACK_IP };
         const next = jest.fn();
 
         await authorize('read', 'users')(req, mockRes(), next);
@@ -77,7 +78,7 @@ describe('authorize middleware', () => {
     });
 
     it('calls next(error) when req.user has no id', async () => {
-        const req = { user: {}, method: 'GET', path: '/test', ip: '127.0.0.1' };
+        const req = { user: {}, method: 'GET', path: '/test', ip: LOOPBACK_IP };
         const next = jest.fn();
 
         await authorize('read', 'users')(req, mockRes(), next);

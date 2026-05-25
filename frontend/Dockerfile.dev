@@ -5,10 +5,14 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --no-audit --no-fund
+RUN npm install --no-audit --no-fund --ignore-scripts
 
 COPY . .
 
 EXPOSE 5173
+ENV BIND_ADDR=0.0.0.0
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Run as non-root user for improved security
+USER node
+
+CMD ["sh", "-c", "npm run dev -- --host ${BIND_ADDR}"]

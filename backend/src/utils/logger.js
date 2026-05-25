@@ -1,15 +1,38 @@
 const winston = require('winston');
-const path = require('path');
+const path = require('node:path');
 
 const logFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  winston.format.timestamp({
+    format: 'YYYY-MM-DD HH:mm:ss',
+  }),
+
   winston.format.errors({ stack: true }),
-  winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
-    let log = `${timestamp} [${level.toUpperCase()}]: ${message}`;
-    if (stack) log += `\n${stack}`;
+
+  winston.format.printf((info) => {
+    const {
+      timestamp,
+      level,
+      message,
+      stack,
+      ...meta
+    } = info;
+
+    let log = `${String(timestamp)} [${String(level).toUpperCase()}]: ${typeof message === 'object'
+      ? JSON.stringify(message)
+      : String(message)
+    }`;
+
+    if (stack) {
+      log += `\n${typeof stack === 'object'
+        ? JSON.stringify(stack, null, 2)
+        : String(stack)
+      }`;
+    }
+
     if (Object.keys(meta).length > 0) {
       log += ` ${JSON.stringify(meta)}`;
     }
+
     return log;
   })
 );

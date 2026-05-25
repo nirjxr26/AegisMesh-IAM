@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -14,6 +15,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useReauth } from '../../hooks/useReauth';
 import { settingsAPI } from '../../services/api';
 import { daysSince as getDaysSince } from '../../utils/securityScore';
+
+const OTP_INPUT_IDS = ['security-otp-0', 'security-otp-1', 'security-otp-2', 'security-otp-3', 'security-otp-4', 'security-otp-5'];
 
 function classNames(...values) {
     return values.filter(Boolean).join(' ');
@@ -35,7 +38,7 @@ function getPasswordStrength(password) {
     if (password.length >= 8) score += 1;
     if (/[A-Z]/.test(password)) score += 1;
     if (/[a-z]/.test(password)) score += 1;
-    if (/[0-9]/.test(password)) score += 1;
+    if (/\d/.test(password)) score += 1;
     if (/[^A-Za-z\d\s]/.test(password)) score += 1;
 
     if (score <= 2) return { label: 'Weak', color: 'bg-[#dc2626]', textColor: 'text-[#dc2626]', pct: 25 };
@@ -49,10 +52,21 @@ function isReauthCancelled(error) {
 }
 
 function Modal({ title, icon: Icon, children, onClose }) {
+    const handleBackdropKeyDown = (event) => {
+        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onClose();
+        }
+    };
+
     return (
         <div
             className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-[4px] p-0 sm:items-center sm:p-4"
             onClick={onClose}
+            onKeyDown={handleBackdropKeyDown}
+            role="button"
+            tabIndex={0}
+            aria-label="Close modal backdrop"
         >
             <div
                 className="relative mx-4 max-h-[90vh] w-full overflow-y-auto rounded-t-[20px] bg-white shadow-[0_25px_60px_rgba(0,0,0,0.15)] sm:mx-0 sm:max-w-[520px] sm:rounded-2xl"
@@ -78,6 +92,13 @@ function Modal({ title, icon: Icon, children, onClose }) {
     );
 }
 
+Modal.propTypes = {
+    title: PropTypes.string,
+    icon: PropTypes.elementType,
+    children: PropTypes.node,
+    onClose: PropTypes.func.isRequired,
+};
+
 function Field({ label, error, children, className = '' }) {
     return (
         <div className={className}>
@@ -87,6 +108,13 @@ function Field({ label, error, children, className = '' }) {
         </div>
     );
 }
+
+Field.propTypes = {
+    label: PropTypes.string.isRequired,
+    error: PropTypes.string,
+    children: PropTypes.node,
+    className: PropTypes.string,
+};
 
 function PasswordField({ label, value, onChange, visible, onToggle, error }) {
     return (
@@ -109,6 +137,15 @@ function PasswordField({ label, value, onChange, visible, onToggle, error }) {
         </Field>
     );
 }
+
+PasswordField.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    onChange: PropTypes.func.isRequired,
+    visible: PropTypes.bool.isRequired,
+    onToggle: PropTypes.func.isRequired,
+    error: PropTypes.string,
+};
 
 function SummaryCard({ icon, title, value, valueClassName, sublabel, buttonLabel, onClick }) {
     const Icon = icon;
@@ -136,6 +173,16 @@ function SummaryCard({ icon, title, value, valueClassName, sublabel, buttonLabel
         </button>
     );
 }
+
+SummaryCard.propTypes = {
+    icon: PropTypes.elementType.isRequired,
+    title: PropTypes.string.isRequired,
+    value: PropTypes.node.isRequired,
+    valueClassName: PropTypes.string,
+    sublabel: PropTypes.string,
+    buttonLabel: PropTypes.string.isRequired,
+    onClick: PropTypes.func,
+};
 
 function PasswordChangeForm({
     passwordData,
@@ -199,6 +246,37 @@ function PasswordChangeForm({
     );
 }
 
+PasswordChangeForm.propTypes = {
+    passwordData: PropTypes.shape({
+        currentPassword: PropTypes.string.isRequired,
+        newPassword: PropTypes.string.isRequired,
+        confirmPassword: PropTypes.string.isRequired,
+    }).isRequired,
+    setPasswordData: PropTypes.func.isRequired,
+    passwordVisibility: PropTypes.shape({
+        currentPassword: PropTypes.bool.isRequired,
+        newPassword: PropTypes.bool.isRequired,
+        confirmPassword: PropTypes.bool.isRequired,
+    }).isRequired,
+    setPasswordVisibility: PropTypes.func.isRequired,
+    passwordErrors: PropTypes.shape({
+        currentPassword: PropTypes.string,
+        newPassword: PropTypes.string,
+        confirmPassword: PropTypes.string,
+    }).isRequired,
+    passwordStrength: PropTypes.shape({
+        color: PropTypes.string.isRequired,
+        textColor: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
+        pct: PropTypes.number.isRequired,
+    }).isRequired,
+    changePasswordMutation: PropTypes.shape({
+        mutate: PropTypes.func.isRequired,
+        isPending: PropTypes.bool.isRequired,
+    }).isRequired,
+    onSuccess: PropTypes.func,
+};
+
 function MFAManageForm({
     effectiveUser,
     mfaSetupMutation,
@@ -251,6 +329,25 @@ function MFAManageForm({
         </div>
     );
 }
+
+MFAManageForm.propTypes = {
+    effectiveUser: PropTypes.shape({
+        mfaEnabled: PropTypes.bool,
+    }),
+    mfaSetupMutation: PropTypes.shape({
+        mutate: PropTypes.func.isRequired,
+        isPending: PropTypes.bool.isRequired,
+    }).isRequired,
+    regenCodesMutation: PropTypes.shape({
+        mutate: PropTypes.func.isRequired,
+        isPending: PropTypes.bool.isRequired,
+    }).isRequired,
+    disableMfaMutation: PropTypes.shape({
+        mutate: PropTypes.func.isRequired,
+        isPending: PropTypes.bool.isRequired,
+    }).isRequired,
+    onSuccess: PropTypes.func,
+};
 
 export default function SecurityPage() {
     const { user } = useAuth();
@@ -383,7 +480,7 @@ export default function SecurityPage() {
         : passwordAgeDays <= 90;
 
     const downloadBackupCodes = () => {
-        if (!revealedBackupCodes.length) return;
+        if (revealedBackupCodes.length === 0) return;
         const blob = new Blob([revealedBackupCodes.join('\n')], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -512,7 +609,7 @@ export default function SecurityPage() {
                             <div className="flex gap-2 justify-center">
                                 {otpDigits.map((digit, index) => (
                                     <input
-                                        key={index}
+                                        key={OTP_INPUT_IDS[index]}
                                         value={digit}
                                         onChange={(event) => {
                                             const clean = event.target.value.replace(/\D/g, '').slice(-1);
@@ -522,11 +619,11 @@ export default function SecurityPage() {
                                                 return next;
                                             });
                                             if (clean && index < 5) {
-                                                const nextInput = document.getElementById(`security-otp-${index + 1}`);
+                                                const nextInput = document.getElementById(OTP_INPUT_IDS[index + 1]);
                                                 nextInput?.focus();
                                             }
                                         }}
-                                        id={`security-otp-${index}`}
+                                        id={OTP_INPUT_IDS[index]}
                                         maxLength={1}
                                         className="w-10 h-12 text-center text-lg font-mono border border-[#d0d7e8] rounded-xl focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/25"
                                     />

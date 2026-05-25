@@ -7,9 +7,15 @@ const { createAuditLog } = require('../utils/auditLog');
 
 const REAUTH_HEADER = 'x-reauth-token';
 const REAUTH_WINDOW_SECONDS = 10 * 60;
-const REAUTH_TOKEN_SECRET = process.env.JWT_REAUTH_SECRET || process.env.JWT_ACCESS_SECRET || 'dev-access-secret';
+const REAUTH_TOKEN_SECRET = process.env.JWT_REAUTH_SECRET || process.env.JWT_ACCESS_SECRET;
 
-const SENSITIVE_ACTIONS = {
+if (!REAUTH_TOKEN_SECRET) {
+    throw new Error(
+        'Missing required authentication secret configuration'
+    );
+}
+
+const SENSITIVE_ACTIONS = Object.freeze({
     CHANGE_PASSWORD: 'change_password',
     CHANGE_EMAIL: 'change_email',
     EXPORT_DATA: 'export_data',
@@ -20,7 +26,7 @@ const SENSITIVE_ACTIONS = {
     RESET_POLICIES: 'reset_policies',
     VIEW_BACKUP_CODES: 'view_backup_codes',
     REVOKE_ALL_SESSIONS: 'revoke_all_sessions',
-};
+});
 
 function buildReauthError(action, requiresMfa) {
     const message = 'Please verify your identity to continue';

@@ -1,59 +1,97 @@
 const prisma = require('../config/database');
 const logger = require('./logger');
-const { mergeNotificationPreferences } = require('../services/organizationSettings.service');
+const {
+    mergeNotificationPreferences,
+} = require('../services/organizationSettings.service');
 
 function asObject(value) {
-    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    return value &&
+        typeof value === 'object' &&
+        !Array.isArray(value)
+        ? value
+        : {};
 }
 
 function formatActorName(actor) {
     const firstName = String(actor?.firstName || '').trim();
     const lastName = String(actor?.lastName || '').trim();
     const fullName = `${firstName} ${lastName}`.trim();
+
     return fullName || actor?.email || 'An administrator';
+}
+
+function detectBrowser(ua) {
+    if (ua.includes('edg')) {
+        return 'Edge';
+    }
+
+    if (ua.includes('firefox')) {
+        return 'Firefox';
+    }
+
+    if (ua.includes('safari') && !ua.includes('chrome')) {
+        return 'Safari';
+    }
+
+    if (ua.includes('chrome')) {
+        return 'Chrome';
+    }
+
+    return 'a browser';
+}
+
+function detectOS(ua) {
+    if (ua.includes('windows')) {
+        return 'Windows';
+    }
+
+    if (ua.includes('mac os')) {
+        return 'macOS';
+    }
+
+    if (ua.includes('linux')) {
+        return 'Linux';
+    }
+
+    if (ua.includes('android')) {
+        return 'Android';
+    }
+
+    if (ua.includes('iphone') || ua.includes('ipad')) {
+        return 'iOS';
+    }
+
+    return null;
 }
 
 function parseDeviceLabel(userAgent) {
     const ua = String(userAgent || '').toLowerCase();
+
     if (!ua) {
         return 'a new device';
     }
 
-    const browser = ua.includes('chrome') && !ua.includes('edg')
-        ? 'Chrome'
-        : ua.includes('firefox')
-            ? 'Firefox'
-            : ua.includes('safari') && !ua.includes('chrome')
-                ? 'Safari'
-                : ua.includes('edg')
-                    ? 'Edge'
-                    : 'a browser';
+    const browser = detectBrowser(ua);
+    const os = detectOS(ua);
 
-    const os = ua.includes('windows')
-        ? 'Windows'
-        : ua.includes('mac os')
-            ? 'macOS'
-            : ua.includes('linux')
-                ? 'Linux'
-                : ua.includes('android')
-                    ? 'Android'
-                    : ua.includes('iphone') || ua.includes('ipad')
-                        ? 'iOS'
-                        : null;
-
-    if (!os || browser === 'a browser') {
-        return os ? `${browser} on ${os}` : 'a new device';
+    if (!os) {
+        return 'a new device';
     }
 
     return `${browser} on ${os}`;
 }
 
 function normalizeMessage(message) {
-    return String(message || '').trim().replace(/\s+/g, ' ').slice(0, 220);
+    return String(message || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .slice(0, 220);
 }
 
 async function resolveRoleName(roleId) {
-    if (!roleId) return null;
+    if (!roleId) {
+        return null;
+    }
 
     const role = await prisma.role.findUnique({
         where: { id: roleId },
@@ -64,7 +102,9 @@ async function resolveRoleName(roleId) {
 }
 
 async function resolvePolicyName(policyId) {
-    if (!policyId) return null;
+    if (!policyId) {
+        return null;
+    }
 
     const policy = await prisma.policy.findUnique({
         where: { id: policyId },
@@ -75,7 +115,9 @@ async function resolvePolicyName(policyId) {
 }
 
 async function resolveApiTokenName(tokenId) {
-    if (!tokenId) return null;
+    if (!tokenId) {
+        return null;
+    }
 
     const token = await prisma.apiToken.findUnique({
         where: { id: tokenId },
@@ -93,8 +135,12 @@ async function buildNewLoginNotification(entry) {
     const priorLoginWhere = {
         userId: entry.userId,
         action: 'LOGIN',
-        createdAt: { lte: entry.createdAt },
-        NOT: { id: entry.id },
+        createdAt: {
+            lte: entry.createdAt,
+        },
+        NOT: {
+            id: entry.id,
+        },
     };
 
     if (entry.userAgent) {
@@ -114,7 +160,9 @@ async function buildNewLoginNotification(entry) {
         return null;
     }
 
-    const location = entry.ipAddress ? ` from ${entry.ipAddress}` : '';
+    const location = entry.ipAddress
+        ? ` from ${entry.ipAddress}`
+        : '';
 
     return {
         targetUserId: entry.userId,
@@ -122,9 +170,24 @@ async function buildNewLoginNotification(entry) {
         type: 'security',
         severity: 'warning',
         title: 'New device sign-in',
-        message: `We noticed a sign-in on ${parseDeviceLabel(entry.userAgent)}${location}.`,
+        message: `We noticed a sign-in on ${parseDeviceLabel(
+            entry.userAgent
+        )}${location}.`,
         link: '/dashboard/security?tab=history',
     };
+}
+
+function buildPasswordChangedMessage(otherSessionsRevoked) {
+    if (otherSessionsRevoked <= 0) {
+        return 'Your password was updated successfully.';
+    }
+
+    const sessionLabel =
+        otherSessionsRevoked === 1
+            ? 'session'
+            : 'sessions';
+
+    return `Your password was updated and ${otherSessionsRevoked} other ${sessionLabel} were signed out.`;
 }
 
 function buildPasswordChangedNotification(entry) {
@@ -133,10 +196,10 @@ function buildPasswordChangedNotification(entry) {
     }
 
     const metadata = asObject(entry.metadata);
-    const otherSessionsRevoked = Number(metadata.otherSessionsRevoked || 0);
-    const message = otherSessionsRevoked > 0
-        ? `Your password was updated and ${otherSessionsRevoked} other session${otherSessionsRevoked === 1 ? '' : 's'} were signed out.`
-        : 'Your password was updated successfully.';
+
+    const otherSessionsRevoked = Number(
+        metadata.otherSessionsRevoked || 0
+    );
 
     return {
         targetUserId: entry.userId,
@@ -144,7 +207,9 @@ function buildPasswordChangedNotification(entry) {
         type: 'security',
         severity: 'info',
         title: 'Password changed',
-        message,
+        message: buildPasswordChangedMessage(
+            otherSessionsRevoked
+        ),
         link: '/dashboard/security?tab=password',
     };
 }
@@ -160,7 +225,8 @@ function buildMfaDisabledNotification(entry) {
         type: 'security',
         severity: 'critical',
         title: 'Two-factor authentication disabled',
-        message: 'Multi-factor authentication was disabled for your account.',
+        message:
+            'Multi-factor authentication was disabled for your account.',
         link: '/dashboard/security?tab=mfa',
     };
 }
@@ -176,14 +242,18 @@ function buildAccountLockedNotification(entry) {
         type: 'security',
         severity: 'critical',
         title: 'Account locked',
-        message: 'Your account was locked after repeated failed sign-in attempts.',
+        message:
+            'Your account was locked after repeated failed sign-in attempts.',
         link: '/dashboard/security?tab=history',
     };
 }
 
 function buildUserStatusChangedNotification(entry) {
     const metadata = asObject(entry.metadata);
-    const newStatus = metadata.newStatus || metadata.to || null;
+
+    const newStatus =
+        metadata.newStatus || metadata.to || null;
+
     const targetUserId = entry.resourceId || null;
 
     if (!targetUserId || newStatus !== 'LOCKED') {
@@ -196,13 +266,16 @@ function buildUserStatusChangedNotification(entry) {
         type: 'security',
         severity: 'critical',
         title: 'Account locked',
-        message: `${formatActorName(entry.user)} locked your account.`,
+        message: `${formatActorName(
+            entry.user
+        )} locked your account.`,
         link: '/dashboard/security?tab=history',
     };
 }
 
 function buildUserCreatedNotification(entry) {
     const targetUserId = entry.resourceId || null;
+
     if (!targetUserId) {
         return null;
     }
@@ -213,19 +286,38 @@ function buildUserCreatedNotification(entry) {
         type: 'account',
         severity: 'info',
         title: 'Account created',
-        message: `${formatActorName(entry.user)} created your IAM account.`,
+        message: `${formatActorName(
+            entry.user
+        )} created your IAM account.`,
         link: '/settings/profile',
     };
 }
 
+function buildRoleAssignedMessage(roleName, actorName) {
+    if (!roleName) {
+        return `${actorName} assigned a new role to your account.`;
+    }
+
+    return `${actorName} assigned you the ${roleName} role.`;
+}
+
 async function buildRoleAssignedNotification(entry) {
     const metadata = asObject(entry.metadata);
-    const targetUserId = metadata.assignedTo || entry.resourceId || null;
+
+    const targetUserId =
+        metadata.assignedTo ||
+        entry.resourceId ||
+        null;
+
     if (!targetUserId) {
         return null;
     }
 
-    const roleName = await resolveRoleName(metadata.roleId);
+    const roleName = await resolveRoleName(
+        metadata.roleId
+    );
+
+    const actorName = formatActorName(entry.user);
 
     return {
         targetUserId,
@@ -233,9 +325,10 @@ async function buildRoleAssignedNotification(entry) {
         type: 'role',
         severity: 'info',
         title: 'Role assigned',
-        message: roleName
-            ? `${formatActorName(entry.user)} assigned you the ${roleName} role.`
-            : `${formatActorName(entry.user)} assigned a new role to your account.`,
+        message: buildRoleAssignedMessage(
+            roleName,
+            actorName
+        ),
         link: '/dashboard',
         metadata: {
             roleId: metadata.roleId || null,
@@ -244,24 +337,41 @@ async function buildRoleAssignedNotification(entry) {
     };
 }
 
+const POLICY_ACTION_VERBS = {
+    POLICY_CREATED: 'created',
+    POLICY_UPDATED: 'updated',
+    POLICY_DELETED: 'deleted',
+    POLICY_ATTACHED: 'attached to a role',
+    POLICY_DETACHED: 'detached from a role',
+};
+
+function buildPolicyMessage(policyName, verb) {
+    if (!policyName) {
+        return `A policy was ${verb}.`;
+    }
+
+    return `Policy ${policyName} was ${verb}.`;
+}
+
 async function buildPolicyChangedNotification(entry) {
     if (!entry.userId) {
         return null;
     }
 
     const metadata = asObject(entry.metadata);
-    const policyId = metadata.policyId || entry.resourceId || null;
-    const policyName = metadata.policyName || await resolvePolicyName(policyId);
 
-    const verb = entry.action === 'POLICY_CREATED'
-        ? 'created'
-        : entry.action === 'POLICY_UPDATED'
-            ? 'updated'
-            : entry.action === 'POLICY_DELETED'
-                ? 'deleted'
-                : entry.action === 'POLICY_ATTACHED'
-                    ? 'attached to a role'
-                    : 'detached from a role';
+    const policyId =
+        metadata.policyId ||
+        entry.resourceId ||
+        null;
+
+    const policyName =
+        metadata.policyName ||
+        await resolvePolicyName(policyId);
+
+    const verb =
+        POLICY_ACTION_VERBS[entry.action] ||
+        'updated';
 
     return {
         targetUserId: entry.userId,
@@ -269,9 +379,10 @@ async function buildPolicyChangedNotification(entry) {
         type: 'system',
         severity: 'info',
         title: 'Policy updated',
-        message: policyName
-            ? `Policy ${policyName} was ${verb}.`
-            : `A policy was ${verb}.`,
+        message: buildPolicyMessage(
+            policyName,
+            verb
+        ),
         link: '/dashboard/policies',
         metadata: {
             policyId,
@@ -291,9 +402,23 @@ function buildSessionRevokedNotification(entry) {
         type: 'security',
         severity: 'warning',
         title: 'Session revoked',
-        message: 'An active session was revoked from your account.',
+        message:
+            'An active session was revoked from your account.',
         link: '/settings/sessions',
     };
+}
+
+function buildOtherSessionsMessage(revokedCount) {
+    if (revokedCount <= 0) {
+        return 'Other active sessions were signed out from your account.';
+    }
+
+    const sessionLabel =
+        revokedCount === 1
+            ? 'session'
+            : 'sessions';
+
+    return `${revokedCount} other ${sessionLabel} were signed out from your account.`;
 }
 
 function buildAllOtherSessionsRevokedNotification(entry) {
@@ -302,7 +427,10 @@ function buildAllOtherSessionsRevokedNotification(entry) {
     }
 
     const metadata = asObject(entry.metadata);
-    const revokedCount = Number(metadata.revokedCount || 0);
+
+    const revokedCount = Number(
+        metadata.revokedCount || 0
+    );
 
     return {
         targetUserId: entry.userId,
@@ -310,22 +438,38 @@ function buildAllOtherSessionsRevokedNotification(entry) {
         type: 'security',
         severity: 'warning',
         title: 'Other sessions signed out',
-        message: revokedCount > 0
-            ? `${revokedCount} other session${revokedCount === 1 ? '' : 's'} were signed out from your account.`
-            : 'Other active sessions were signed out from your account.',
+        message: buildOtherSessionsMessage(
+            revokedCount
+        ),
         link: '/settings/sessions',
     };
 }
 
+function buildAllSessionsMessage(
+    isAdminAction,
+    actorName
+) {
+    if (!isAdminAction) {
+        return 'All of your active sessions were signed out.';
+    }
+
+    return `${actorName} signed out all of your active sessions.`;
+}
+
 function buildAllSessionsRevokedNotification(entry) {
     const metadata = asObject(entry.metadata);
-    const targetUserId = metadata.revokedBy ? (entry.resourceId || null) : entry.userId;
+
+    const targetUserId = metadata.revokedBy
+        ? entry.resourceId || null
+        : entry.userId;
 
     if (!targetUserId) {
         return null;
     }
 
-    const isAdminAction = Boolean(metadata.revokedBy) && targetUserId !== entry.userId;
+    const isAdminAction =
+        Boolean(metadata.revokedBy) &&
+        targetUserId !== entry.userId;
 
     return {
         targetUserId,
@@ -333,11 +477,20 @@ function buildAllSessionsRevokedNotification(entry) {
         type: 'security',
         severity: 'warning',
         title: 'All sessions signed out',
-        message: isAdminAction
-            ? `${formatActorName(entry.user)} signed out all of your active sessions.`
-            : 'All of your active sessions were signed out.',
+        message: buildAllSessionsMessage(
+            isAdminAction,
+            formatActorName(entry.user)
+        ),
         link: '/settings/sessions',
     };
+}
+
+function buildDataExportMessage(auditLogs) {
+    if (auditLogs <= 0) {
+        return 'A data export was generated for your organization.';
+    }
+
+    return `A data export was generated with ${auditLogs} audit log entries.`;
 }
 
 function buildDataExportedNotification(entry) {
@@ -346,7 +499,10 @@ function buildDataExportedNotification(entry) {
     }
 
     const metadata = asObject(entry.metadata);
-    const auditLogs = Number(metadata.auditLogs || 0);
+
+    const auditLogs = Number(
+        metadata.auditLogs || 0
+    );
 
     return {
         targetUserId: entry.userId,
@@ -354,11 +510,17 @@ function buildDataExportedNotification(entry) {
         type: 'system',
         severity: 'warning',
         title: 'Audit export completed',
-        message: auditLogs > 0
-            ? `A data export was generated with ${auditLogs} audit log entries.`
-            : 'A data export was generated for your organization.',
+        message: buildDataExportMessage(auditLogs),
         link: '/settings/organization',
     };
+}
+
+function buildApiTokenCreatedMessage(tokenName) {
+    if (!tokenName) {
+        return 'A new API token was created for your account.';
+    }
+
+    return `A new API token named ${tokenName} was created.`;
 }
 
 async function buildApiKeyCreatedNotification(entry) {
@@ -366,7 +528,9 @@ async function buildApiKeyCreatedNotification(entry) {
         return null;
     }
 
-    const tokenName = await resolveApiTokenName(entry.resourceId || null);
+    const tokenName = await resolveApiTokenName(
+        entry.resourceId || null
+    );
 
     return {
         targetUserId: entry.userId,
@@ -374,12 +538,22 @@ async function buildApiKeyCreatedNotification(entry) {
         type: 'access',
         severity: 'warning',
         title: 'API token created',
-        message: tokenName
-            ? `A new API token named ${tokenName} was created.`
-            : 'A new API token was created for your account.',
+        message: buildApiTokenCreatedMessage(
+            tokenName
+        ),
         link: '/settings/api-keys',
-        metadata: { tokenName },
+        metadata: {
+            tokenName,
+        },
     };
+}
+
+function buildApiTokenRevokedMessage(tokenName) {
+    if (!tokenName) {
+        return 'An API token was revoked from your account.';
+    }
+
+    return `API token ${tokenName} was revoked.`;
 }
 
 async function buildApiKeyRevokedNotification(entry) {
@@ -387,7 +561,9 @@ async function buildApiKeyRevokedNotification(entry) {
         return null;
     }
 
-    const tokenName = await resolveApiTokenName(entry.resourceId || null);
+    const tokenName = await resolveApiTokenName(
+        entry.resourceId || null
+    );
 
     return {
         targetUserId: entry.userId,
@@ -395,11 +571,13 @@ async function buildApiKeyRevokedNotification(entry) {
         type: 'access',
         severity: 'info',
         title: 'API token revoked',
-        message: tokenName
-            ? `API token ${tokenName} was revoked.`
-            : 'An API token was revoked from your account.',
+        message: buildApiTokenRevokedMessage(
+            tokenName
+        ),
         link: '/settings/api-keys',
-        metadata: { tokenName },
+        metadata: {
+            tokenName,
+        },
     };
 }
 
@@ -409,7 +587,10 @@ function buildConnectedAppRevokedNotification(entry) {
     }
 
     const metadata = asObject(entry.metadata);
-    const appName = metadata.appName || 'a connected app';
+
+    const appName =
+        metadata.appName ||
+        'a connected app';
 
     return {
         targetUserId: entry.userId,
@@ -419,7 +600,9 @@ function buildConnectedAppRevokedNotification(entry) {
         title: 'Connected app access revoked',
         message: `Access for ${appName} was revoked.`,
         link: '/dashboard/security?tab=connected-apps',
-        metadata: { appName },
+        metadata: {
+            appName,
+        },
     };
 }
 
@@ -434,12 +617,15 @@ function buildTrustedDeviceRevokedNotification(entry) {
         type: 'access',
         severity: 'warning',
         title: 'Trusted device removed',
-        message: 'A trusted device was removed from your account.',
+        message:
+            'A trusted device was removed from your account.',
         link: '/dashboard/security?tab=devices',
     };
 }
 
-function buildAllTrustedDevicesRevokedNotification(entry) {
+function buildAllTrustedDevicesRevokedNotification(
+    entry
+) {
     if (!entry.userId) {
         return null;
     }
@@ -450,7 +636,8 @@ function buildAllTrustedDevicesRevokedNotification(entry) {
         type: 'access',
         severity: 'warning',
         title: 'Trusted devices cleared',
-        message: 'All trusted devices were removed from your account.',
+        message:
+            'All trusted devices were removed from your account.',
         link: '/dashboard/security?tab=devices',
     };
 }
@@ -460,7 +647,8 @@ const NOTIFICATION_BUILDERS = {
     PASSWORD_CHANGED: buildPasswordChangedNotification,
     MFA_DISABLED: buildMfaDisabledNotification,
     ACCOUNT_LOCKED: buildAccountLockedNotification,
-    USER_STATUS_CHANGED: buildUserStatusChangedNotification,
+    USER_STATUS_CHANGED:
+        buildUserStatusChangedNotification,
     USER_CREATED: buildUserCreatedNotification,
     ROLE_ASSIGNED: buildRoleAssignedNotification,
     POLICY_CREATED: buildPolicyChangedNotification,
@@ -469,14 +657,19 @@ const NOTIFICATION_BUILDERS = {
     POLICY_ATTACHED: buildPolicyChangedNotification,
     POLICY_DETACHED: buildPolicyChangedNotification,
     SESSION_REVOKED: buildSessionRevokedNotification,
-    ALL_OTHER_SESSIONS_REVOKED: buildAllOtherSessionsRevokedNotification,
-    ALL_SESSIONS_REVOKED: buildAllSessionsRevokedNotification,
+    ALL_OTHER_SESSIONS_REVOKED:
+        buildAllOtherSessionsRevokedNotification,
+    ALL_SESSIONS_REVOKED:
+        buildAllSessionsRevokedNotification,
     DATA_EXPORTED: buildDataExportedNotification,
     API_KEY_CREATED: buildApiKeyCreatedNotification,
     API_KEY_REVOKED: buildApiKeyRevokedNotification,
-    CONNECTED_APP_REVOKED: buildConnectedAppRevokedNotification,
-    TRUSTED_DEVICE_REVOKED: buildTrustedDeviceRevokedNotification,
-    ALL_TRUSTED_DEVICES_REVOKED: buildAllTrustedDevicesRevokedNotification,
+    CONNECTED_APP_REVOKED:
+        buildConnectedAppRevokedNotification,
+    TRUSTED_DEVICE_REVOKED:
+        buildTrustedDeviceRevokedNotification,
+    ALL_TRUSTED_DEVICES_REVOKED:
+        buildAllTrustedDevicesRevokedNotification,
 };
 
 async function createNotificationFromAudit(entry) {
@@ -484,52 +677,99 @@ async function createNotificationFromAudit(entry) {
         return null;
     }
 
-    const builder = NOTIFICATION_BUILDERS[entry.action];
+    const builder =
+        NOTIFICATION_BUILDERS[entry.action];
+
     if (!builder) {
         return null;
     }
 
     try {
         const notification = await builder(entry);
-        if (!notification?.targetUserId || !notification.preferenceKey) {
+
+        if (
+            !notification?.targetUserId ||
+            !notification.preferenceKey
+        ) {
             return null;
         }
 
-        const targetUser = await prisma.user.findUnique({
-            where: { id: notification.targetUserId },
-            select: { notificationPreferences: true },
-        });
+        const targetUser =
+            await prisma.user.findUnique({
+                where: {
+                    id: notification.targetUserId,
+                },
+                select: {
+                    notificationPreferences: true,
+                },
+            });
 
         if (!targetUser) {
             return null;
         }
 
-        const preferences = mergeNotificationPreferences(targetUser.notificationPreferences);
-        if (!preferences[notification.preferenceKey]) {
+        const preferences =
+            mergeNotificationPreferences(
+                targetUser.notificationPreferences
+            );
+
+        if (
+            !preferences[
+                notification.preferenceKey
+            ]
+        ) {
             return null;
         }
 
         return prisma.notificationLog.create({
             data: {
-                userId: notification.targetUserId,
-                type: notification.type || 'system',
-                title: String(notification.title || 'Activity update').trim().slice(0, 120),
-                message: normalizeMessage(notification.message || 'An important account event occurred.'),
-                link: notification.link || null,
+                userId:
+                    notification.targetUserId,
+
+                type:
+                    notification.type ||
+                    'system',
+
+                title: String(
+                    notification.title ||
+                    'Activity update'
+                )
+                    .trim()
+                    .slice(0, 120),
+
+                message: normalizeMessage(
+                    notification.message ||
+                        'An important account event occurred.'
+                ),
+
+                link:
+                    notification.link || null,
+
                 metadata: {
-                    ...(asObject(notification.metadata)),
+                    ...asObject(
+                        notification.metadata
+                    ),
+
                     auditId: entry.id,
+
                     action: entry.action,
-                    severity: notification.severity || 'info',
+
+                    severity:
+                        notification.severity ||
+                        'info',
                 },
             },
         });
     } catch (error) {
-        logger.warn('Notification creation skipped', {
-            action: entry.action,
-            auditId: entry.id,
-            error: error.message,
-        });
+        logger.warn(
+            'Notification creation skipped',
+            {
+                action: entry.action,
+                auditId: entry.id,
+                error: error.message,
+            }
+        );
+
         return null;
     }
 }
