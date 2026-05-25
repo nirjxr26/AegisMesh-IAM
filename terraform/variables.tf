@@ -37,3 +37,11 @@ variable "allow_cidr" {
     error_message = "Refusing a permissive allow_cidr (0.0.0.0/0 or ::/0). Provide a more restrictive CIDR when deploying."
   }
 }
+
+variable "associate_public_ip" {
+  description = "Whether to assign a public IP to the EC2 instance. Set to true only for bastion hosts or when public access is explicitly required."
+  type        = bool
+  default     = false
+}
+
+# Optional: override in terraform.tfvars or with -var 'associate_public_ip=true'

@@ -19,3 +19,18 @@ README.md
 .editorconfig
 .eslintrc
 .prettierrc
+
+# Additional sensitive patterns
+.secrets
+.npmrc
+*.pem
+*.key
+*.crt
+
+# If build is run from repo root, exclude repo-level sensitive folders
+../credentials-velero
+../terraform
+../.aws
+
+# Keep package-lock.json in context for reproducible installs
+!package-lock.json
