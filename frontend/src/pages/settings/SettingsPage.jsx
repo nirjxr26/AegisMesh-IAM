@@ -1,4 +1,4 @@
-import { createElement, useMemo, useRef, useState, cloneElement, isValidElement, Children } from 'react';
+import { createElement, useId, useMemo, useRef, useState, cloneElement, isValidElement, Children } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     AlertTriangle,
@@ -1677,11 +1677,12 @@ function ApiKeysTab() {
 }
 
 function Field({ label, error, children }) {
+    const generatedId = useId();
+
     const childArray = Children.toArray(children);
     if (childArray.length === 1 && isValidElement(childArray[0])) {
         const child = childArray[0];
         const existingId = child.props?.id;
-        const generatedId = useMemo(() => `field-${Math.random().toString(36).slice(2,8)}`, []);
         const idToUse = existingId || generatedId;
         const renderedChild = existingId ? child : cloneElement(child, { id: idToUse });
 

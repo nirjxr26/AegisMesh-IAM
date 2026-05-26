@@ -1,8 +1,4 @@
 const prisma = require('../config/database');
-const { audit, auditUser } = require('../utils/auditLog');
-const crypto = require('node:crypto');
-const logger = require('../utils/logger');
-const bcrypt = require('bcryptjs');
 
 function parsePagination(page, limit) {
     const parsedPage = Number.parseInt(page, 10);
@@ -27,100 +23,6 @@ function sanitizeUser(user) {
     } = user;
 
     return safeUser;
-}
-
-async function validateSuperAdminAction(user, action) {
-    const isTargetSuperAdmin = user.userRoles.some(
-        (ur) => ur.role.name === 'SuperAdmin'
-    );
-
-    if (!isTargetSuperAdmin) {
-        return null;
-    }
-
-    const superAdmins = await prisma.user.count({
-        where: {
-            userRoles: {
-                some: {
-                    role: { name: 'SuperAdmin' },
-                },
-            },
-            ...(action === 'lock' ? { status: 'ACTIVE' } : {}),
-        },
-    });
-
-    if (superAdmins <= 1) {
-        return action === 'lock'
-            ? 'Cannot lock the last SuperAdmin'
-            : 'Cannot delete the last SuperAdmin';
-    }
-
-    return null;
-}
-
-function uniqueIds(ids = []) {
-    return [
-        ...new Set(
-            (ids || [])
-                .map((id) => String(id).trim())
-                .filter(Boolean)
-        ),
-    ];
-}
-
-function toCsvCell(value) {
-    return `"${String(value ?? '').replaceAll('"', '""')}"`;
-}
-
-function parseUserAgent(ua) {
-    if (!ua) {
-        return {
-            browser: 'Unknown',
-            os: 'Unknown',
-            device: 'desktop',
-        };
-    }
-
-    let browser = 'Unknown';
-    let os = 'Unknown';
-    let device = 'desktop';
-
-    if (ua.includes('Chrome') && !ua.includes('Edg')) {
-        browser = 'Chrome';
-    } else if (ua.includes('Firefox')) {
-        browser = 'Firefox';
-    } else if (ua.includes('Safari') && !ua.includes('Chrome')) {
-        browser = 'Safari';
-    } else if (ua.includes('Edg')) {
-        browser = 'Edge';
-    }
-
-    if (ua.includes('Windows')) {
-        os = 'Windows';
-    } else if (ua.includes('Mac')) {
-        os = 'macOS';
-    } else if (ua.includes('Linux')) {
-        os = 'Linux';
-    } else if (ua.includes('iPhone') || ua.includes('iPad')) {
-        os = 'iOS';
-    } else if (ua.includes('Android')) {
-        os = 'Android';
-    }
-
-    if (
-        ua.includes('Mobile') ||
-        ua.includes('iPhone') ||
-        ua.includes('Android')
-    ) {
-        device = 'mobile';
-    } else if (
-        ua.includes('iPad') ||
-        ua.includes('Tablet')
-    ) {
-        device = 'tablet';
-    }
-
-    return { browser, os, device };
 }
 
 exports.getUsers = async (req, res, next) => {

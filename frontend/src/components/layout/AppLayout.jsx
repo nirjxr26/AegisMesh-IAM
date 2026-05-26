@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
@@ -9,9 +9,9 @@ export default function AppLayout() {
     const { logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const handleOpenSettings = () => {
+    const handleOpenSettings = useCallback(() => {
         navigate('/settings?tab=profile');
-    };
+    }, [navigate]);
 
     useEffect(() => {
         globalThis.addEventListener(
@@ -25,7 +25,7 @@ export default function AppLayout() {
                 handleOpenSettings
             );
         };
-    }, []);
+    }, [handleOpenSettings]);
 
     const handleSignOut = async () => {
         try {

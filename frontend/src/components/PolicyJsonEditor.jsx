@@ -27,9 +27,7 @@ export default function PolicyJsonEditor({
     const textareaId =
         useMemo(
             () =>
-                `policy-json-${Math.random()
-                    .toString(36)
-                    .slice(2, 8)}`,
+                `policy-json-${globalThis.crypto.randomUUID()}`,
             []
         );
 

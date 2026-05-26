@@ -35,12 +35,14 @@ function selectedFromIds(ids, users) {
 }
 
 function ActionButton({
-    icon: Icon,
+    icon,
     label,
     onClick,
     disabled,
     className,
 }) {
+    const Icon = icon;
+
     return (
         <button
             type="button"

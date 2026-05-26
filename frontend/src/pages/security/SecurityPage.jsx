@@ -4,7 +4,7 @@ import {
     Children,
     cloneElement,
     isValidElement,
-    useMemo,
+    useId,
     useState,
 } from 'react';
 
@@ -28,9 +28,7 @@ function Modal({
     children,
     onClose,
 }) {
-    function handleBackdropClick(
-        event
-    ) {
+    function handleBackdropClick(event) {
         if (
             event.target ===
             event.currentTarget
@@ -40,22 +38,16 @@ function Modal({
     }
 
     return (
+        <button
+            type="button"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-[4px] sm:items-center sm:p-4"
+            onClick={handleBackdropClick}
+        >
             <button
                 type="button"
-                className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-[4px] sm:items-center sm:p-4"
-                onClick={
-                    handleBackdropClick
-                }
+                className="relative mx-4 max-h-[90vh] w-full overflow-y-auto rounded-t-[20px] bg-white shadow-[0_25px_60px_rgba(0,0,0,0.15)] sm:mx-0 sm:max-w-[520px] sm:rounded-2xl"
+                onClick={(event) => event.stopPropagation()}
             >
-                <button
-                    type="button"
-                    className="relative mx-4 max-h-[90vh] w-full overflow-y-auto rounded-t-[20px] bg-white shadow-[0_25px_60px_rgba(0,0,0,0.15)] sm:mx-0 sm:max-w-[520px] sm:rounded-2xl"
-                    onClick={(
-                        event
-                    ) =>
-                        event.stopPropagation()
-                    }
-                >
                 <div className="flex items-center justify-between border-b border-[#f1f5f9] px-6 pb-4 pt-5">
                     <h3 className="text-base font-bold text-[#0f172a]">
                         {title}
@@ -72,11 +64,8 @@ function Modal({
                         ×
                     </button>
                 </div>
-
                 <div className="px-6 pb-6 pt-5">
-                    {
-                        children
-                    }
+                    {children}
                 </div>
             </button>   
         </button>
@@ -102,14 +91,7 @@ function Field({
     children,
     className = '',
 }) {
-    const generatedId =
-        useMemo(
-            () =>
-                `field-${Math.random()
-                    .toString(36)
-                    .slice(2, 8)}`,
-            []
-        );
+    const generatedId = useId();
 
     const childArray =
         Children.toArray(

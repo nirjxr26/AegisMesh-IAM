@@ -30,58 +30,6 @@ import { rbacAPI } from '../../services/api';
 
 const EMPTY_POLICIES = [];
 
-function parseJsonArray(
-    value,
-    fieldLabel
-) {
-    try {
-        const parsed =
-            JSON.parse(
-                value
-            );
-
-        if (
-            !Array.isArray(
-                parsed
-            ) ||
-            parsed.length ===
-                0
-        ) {
-            return {
-                error: `${fieldLabel} must be a non-empty JSON array`,
-                value: [],
-            };
-        }
-
-        const hasInvalid =
-            parsed.some(
-                (
-                    item
-                ) =>
-                    typeof item !==
-                        'string' ||
-                    !item.trim()
-            );
-
-        if (hasInvalid) {
-            return {
-                error: `${fieldLabel} entries must be non-empty strings`,
-                value: [],
-            };
-        }
-
-        return {
-            error: null,
-            value: parsed,
-        };
-    } catch {
-        return {
-            error: `${fieldLabel} must be valid JSON`,
-            value: [],
-        };
-    }
-}
-
 export default function PoliciesList() {
     const navigate =
         useNavigate();

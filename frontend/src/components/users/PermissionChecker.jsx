@@ -1,4 +1,5 @@
 import React, {
+    useId,
     useMemo,
     useState,
 } from 'react';
@@ -160,23 +161,9 @@ export default function PermissionChecker({
         }
     }
 
-    const actionId =
-        useMemo(
-            () =>
-                `perm-action-${Math.random()
-                    .toString(36)
-                    .slice(2, 8)}`,
-            []
-        );
+    const actionId = useId();
 
-    const resourceId =
-        useMemo(
-            () =>
-                `perm-resource-${Math.random()
-                    .toString(36)
-                    .slice(2, 8)}`,
-            []
-        );
+    const resourceId = useId();
 
     return (
         <div className="rounded-xl border border-slate-200 bg-white p-5">
