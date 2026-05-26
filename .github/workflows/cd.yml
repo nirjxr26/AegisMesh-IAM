@@ -18,7 +18,7 @@ jobs:
   update-overlays:
     name: Update k8s overlays with latest ECR images
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: write
     env:
@@ -74,36 +74,37 @@ jobs:
 
   # NOTE: Removed `argocd-sync` job to enforce GitOps: CI will only update overlays and NOT apply manifests directly.
 
-  smoke-test:
-    name: Run smoke tests and rollback on failure (only if KUBECONFIG present)
-    runs-on: ubuntu-latest
+  smoke-test-local:
+    name: Run smoke tests on local cluster
+    runs-on: [self-hosted, local-cluster]
     needs: [update-overlays]
     if: ${{ github.event_name == 'workflow_run' || github.ref == 'refs/heads/main' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      KUBE_NAMESPACE: aegismesh
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify KUBECONFIG
-        env:
-          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+      - name: Verify local cluster access
         run: |
-          if [ -z "$KUBECONFIG_CONTENT" ]; then
-            echo "KUBECONFIG secret is not set, skipping smoke tests"
-            exit 78
-          fi
+          set -eux
+          kubectl config current-context
+          kubectl cluster-info
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@901a10e89ea615cf61f57ac05cecdf23e7de06d8
 
-      - name: Write kubeconfig
-        env:
-          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+      - name: Verify target namespace exists
         run: |
-          printf '%s\n' "$KUBECONFIG_CONTENT" > kubeconfig
-          export KUBECONFIG=$PWD/kubeconfig
-          kubectl version --client
+          set -eux
+          kubectl get namespace "$KUBE_NAMESPACE"
+
+      - name: Wait for rollouts
+        run: |
+          set -eux
+          kubectl rollout status deployment/backend -n "$KUBE_NAMESPACE" --timeout=180s
+          kubectl rollout status deployment/frontend -n "$KUBE_NAMESPACE" --timeout=180s
 
       - name: Run smoke tests
         id: smoke

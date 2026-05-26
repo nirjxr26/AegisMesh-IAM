@@ -26,7 +26,7 @@ spec:
       initContainers:
         - name: wait-for-db
           image: postgres:17-alpine
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           command:
             - sh
@@ -38,12 +38,14 @@ spec:
               done
 
           envFrom:
+            - configMapRef:
+                name: aegismesh-config
             - secretRef:
                 name: aegismesh-secrets
 
         - name: prisma-migrate
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           command:
             - sh
@@ -53,6 +55,8 @@ spec:
               exit 0
 
           envFrom:
+            - configMapRef:
+                name: aegismesh-config
             - secretRef:
                 name: aegismesh-secrets
 
@@ -70,12 +74,14 @@ spec:
       containers:
         - name: backend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           ports:
-            - containerPort: 8080
+            - containerPort: 5000
 
           envFrom:
+            - configMapRef:
+                name: aegismesh-config
             - secretRef:
                 name: aegismesh-secrets
 
@@ -92,16 +98,16 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /health
-              port: 8080
+              path: /api/health
+              port: 5000
 
             initialDelaySeconds: 10
             periodSeconds: 5
 
           livenessProbe:
             httpGet:
-              path: /health
-              port: 8080
+              path: /api/health
+              port: 5000
 
             initialDelaySeconds: 20
             periodSeconds: 10

@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import SettingsModal from '../settings/SettingsModal';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 
@@ -9,13 +8,10 @@ export default function AppLayout() {
     const navigate = useNavigate();
     const { logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [settingsInitialTab, setSettingsInitialTab] = useState('profile');
 
-    const handleOpenSettings = () => {
-        setSettingsInitialTab('profile');
-        setIsSettingsOpen(true);
-    };
+    const handleOpenSettings = useCallback(() => {
+        navigate('/settings?tab=profile');
+    }, [navigate]);
 
     useEffect(() => {
         globalThis.addEventListener(
@@ -29,7 +25,7 @@ export default function AppLayout() {
                 handleOpenSettings
             );
         };
-    }, []);
+    }, [handleOpenSettings]);
 
     const handleSignOut = async () => {
         try {
@@ -68,17 +64,6 @@ export default function AppLayout() {
                     <Outlet />
                 </main>
             </div>
-
-            {isSettingsOpen ? (
-                <SettingsModal
-                    isOpen
-                    initialTab={settingsInitialTab}
-                    onClose={() => {
-                        setIsSettingsOpen(false);
-                        setSettingsInitialTab('profile');
-                    }}
-                />
-            ) : null}
         </div>
     );
 }

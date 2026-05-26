@@ -46,7 +46,7 @@ export default function Login() {
 
         if (!formData.email.trim()) {
             nextErrors.email = 'Email is required';
-        } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             nextErrors.email = 'Please enter a valid email';
         }
 
@@ -62,36 +62,53 @@ export default function Login() {
         return Object.keys(nextErrors).length === 0;
     };
 
-    const onSubmit = async (event) => {
-        event.preventDefault();
-        if (!validate()) {
+const onSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!validate()) {
+        return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+        await login({
+            email: formData.email.trim(),
+            password: formData.password,
+            totpCode: formData.totpCode?.trim() || undefined,
+        });
+
+        navigate(from, { replace: true });
+    } catch (err) {
+        const errorData = err.response?.data?.error;
+        const errorCode = errorData?.code;
+
+        if (errorCode === 'AUTH_004') {
+            setMfaRequired(true);
+            setError('');
             return;
         }
 
-        setError('');
-        setLoading(true);
-        try {
-            await login({
-                email: formData.email.trim(),
-                password: formData.password,
-                totpCode: formData.totpCode?.trim() || undefined,
-            });
-            navigate(from, { replace: true });
-        } catch (err) {
-            const errorData = err.response?.data?.error;
-            if (errorData?.code === 'AUTH_004') {
-                setMfaRequired(true);
-                setError('');
-            } else if (errorData?.code === 'AUTH_002') {
-                const unlockTime = errorData.details?.unlockTime;
-                setError(`Account locked. Try again ${unlockTime ? `after ${new Date(unlockTime).toLocaleTimeString()}` : 'later'}.`);
-            } else {
-                setError(errorData?.message || 'Login failed. Please check your credentials.');
-            }
-        } finally {
-            setLoading(false);
+        if (errorCode === 'AUTH_002') {
+            const unlockTime = errorData.details?.unlockTime;
+
+            const unlockMessage = unlockTime
+                ? `after ${new Date(unlockTime).toLocaleTimeString()}`
+                : 'later';
+
+            setError(`Account locked. Try again ${unlockMessage}.`);
+            return;
         }
-    };
+
+        setError(
+            errorData?.message ||
+            'Login failed. Please check your credentials.',
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <AuthLayout title="Welcome Back" subtitle="Sign in to your AegisMesh account">

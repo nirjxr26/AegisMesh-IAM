@@ -1,4 +1,4 @@
-import { createElement, useMemo, useRef, useState } from 'react';
+import { createElement, useId, useMemo, useRef, useState, cloneElement, isValidElement, Children } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     AlertTriangle,
@@ -1677,9 +1677,27 @@ function ApiKeysTab() {
 }
 
 function Field({ label, error, children }) {
+    const generatedId = useId();
+
+    const childArray = Children.toArray(children);
+    if (childArray.length === 1 && isValidElement(childArray[0])) {
+        const child = childArray[0];
+        const existingId = child.props?.id;
+        const idToUse = existingId || generatedId;
+        const renderedChild = existingId ? child : cloneElement(child, { id: idToUse });
+
+        return (
+            <div>
+                <label htmlFor={idToUse} className="text-xs text-[#7a87a8] font-medium mb-1 block">{label}</label>
+                {renderedChild}
+                {error ? <p className="text-xs text-[#dc2626] mt-1">{error}</p> : null}
+            </div>
+        );
+    }
+
     return (
         <div>
-            <label className="text-xs text-[#7a87a8] font-medium mb-1 block">{label}</label>
+            <div className="text-xs text-[#7a87a8] font-medium mb-1 block">{label}</div>
             {children}
             {error ? <p className="text-xs text-[#dc2626] mt-1">{error}</p> : null}
         </div>

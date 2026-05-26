@@ -736,6 +736,8 @@ async function seedDatabase() {
         })),
     });
 
+    const { randomInt } = require('node:crypto');
+
     await prisma.auditLog.createMany({
         data: auditLogs.map((log) => ({
             id: log.id,
@@ -750,8 +752,10 @@ async function seedDatabase() {
             country: log.country,
             city: log.city,
             result: toPrismaAuditResult(log.result),
-            duration: 30 + (require('node:crypto').randomInt ? require('node:crypto').randomInt(0, 300) : Math.floor(Math.random() * 300)),
-            errorCode: log.result === 'failure' ? 'AUTH_INVALID_CREDENTIALS' : null,
+            duration: 30 + randomInt(0, 300),
+            errorCode: log.result === 'failure'
+                ? 'AUTH_INVALID_CREDENTIALS'
+                : null,
             metadata: {
                 ...log.metadata,
                 actorEmail: log.actorEmail,

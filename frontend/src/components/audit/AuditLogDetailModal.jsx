@@ -88,7 +88,7 @@ export default function AuditLogDetailModal({ log, onClose }) {
 function Field({ label, value, mono, bold }) {
     return (
         <div>
-            <label style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, display: 'block', marginBottom: '2px' }}>{label}</label>
+            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, display: 'block', marginBottom: '2px' }}>{label}</div>
             <div style={{ color: bold ? '#F1F5F9' : '#CBD5E1', fontWeight: bold ? 600 : 400, fontFamily: mono ? 'monospace' : 'inherit', fontSize: mono ? '11px' : '13px' }}>{value}</div>
         </div>
     );
