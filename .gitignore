@@ -16,6 +16,7 @@
 *.p12
 *.pfx
 .DS_Store
+backups/
 
 # Dependencies
 node_modules/

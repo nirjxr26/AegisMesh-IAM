@@ -26,7 +26,7 @@ The current implementation focuses on a few IAM rules that matter in production:
 - **Database:** PostgreSQL 15, Prisma
 - **Security & Auth:** JWT, Passport, TOTP MFA, OAuth 2.0
 - **DevOps:** Docker, Kubernetes, Kustomize, Helm, Argo CD, GitHub Actions
-- **Infra:** Terraform (EC2, ECR), AWS ECR, SealedSecrets, Falco
+- **Infra:** Terraform (ECR), AWS ECR, SealedSecrets, Falco
 - **Observability:** Prometheus, Grafana
 
 ---
@@ -196,7 +196,7 @@ For CI/CD secrets, see [`ci-cd/README.md`](./ci-cd/README.md).
 ├── backend/          # Node.js API, Prisma schema, auth, RBAC engine
 ├── frontend/         # React 19 app, Tailwind CSS
 ├── k8s/              # Kubernetes manifests, Kustomize overlays, SealedSecrets
-├── terraform/        # AWS infra (EC2, ECR, IAM)
+├── terraform/        # AWS infra (ECR repositories)
 ├── monitoring/       # Prometheus config, Grafana dashboards
 ├── install/          # Cluster component install scripts
 └── diagrams/         # Architecture diagrams

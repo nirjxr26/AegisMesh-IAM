@@ -12,7 +12,7 @@ spec:
       containers:
         - name: frontend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: "50m"
