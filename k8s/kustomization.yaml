@@ -5,7 +5,6 @@ namespace: aegismesh
 
 resources:
   - manifests/namespace.yaml
-  - manifests/secret.yaml
   - manifests/configmap.yaml
   - manifests/postgres.yaml
   - manifests/backend.yaml

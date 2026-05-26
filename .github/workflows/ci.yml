@@ -13,11 +13,14 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - '.github/workflows/ci.yml'
   push:
     branches: [ main ]
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
 
 jobs:
   backend:
@@ -68,10 +71,24 @@ jobs:
         working-directory: frontend
         run: npm run build --if-present
 
+  docker-validate:
+    name: "Docker: validate images build"
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Build backend image
+        run: docker build -t aegismesh-backend:ci -f backend/Dockerfile ./backend
+
+      - name: Build frontend image
+        run: docker build -t aegismesh-frontend:ci -f frontend/Dockerfile ./frontend
+
   build-and-push:
     name: Build and push Docker images (main only)
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, frontend, docker-validate]
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 30
     env:
