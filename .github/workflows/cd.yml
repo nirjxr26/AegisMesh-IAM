@@ -79,9 +79,13 @@ jobs:
       - name: Open pull request for overlay updates
         if: steps.commit-overlays.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.CD_PR_TOKEN }}
         run: |
           set -euxo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::Missing CD_PR_TOKEN secret. Add a PAT with pull request permissions so the workflow can open and auto-merge PRs."
+            exit 1
+          fi
           BRANCH="${{ steps.commit-overlays.outputs.branch }}"
           PR_URL=$(gh pr create \
             --base main \
