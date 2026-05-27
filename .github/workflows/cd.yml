@@ -18,36 +18,27 @@ jobs:
   update-overlays:
     name: Update k8s overlays with latest ECR images
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     permissions:
       contents: write
       pull-requests: write
     env:
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@5fd3084fc36e372ff1fff382a39b10d03659f355
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Login to ECR
-        run: |
-          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-
-      - name: Resolve latest image tags from ECR
+      - name: Resolve image tag from triggering commit
         id: resolve-tags
         run: |
           set -eux
-          BACKEND_TAG=$(aws ecr describe-images --region "$AWS_REGION" --repository-name aegismesh-backend --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text || echo "latest")
-          FRONTEND_TAG=$(aws ecr describe-images --region "$AWS_REGION" --repository-name aegismesh-frontend --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text || echo "latest")
-          echo "backend=$BACKEND_TAG" >> $GITHUB_OUTPUT
-          echo "frontend=$FRONTEND_TAG" >> $GITHUB_OUTPUT
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+            IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
+          else
+            IMAGE_TAG="$GITHUB_SHA"
+          fi
+          echo "backend=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "frontend=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update k8s/overlays/prod image patches
         run: |
