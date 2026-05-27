@@ -22,24 +22,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    env:
-      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@5fd3084fc36e372ff1fff382a39b10d03659f355
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Refresh ECR pull secret
-        run: |
-          set -eux
-          bash scripts/install/install-ecr-regcred.sh aegismesh "$ECR_REGISTRY" "$AWS_REGION"
 
       - name: Resolve image tag from triggering commit
         id: resolve-tags
@@ -58,7 +43,7 @@ jobs:
           set -eux
           BE_TAG=${{ steps.resolve-tags.outputs.backend }}
           FE_TAG=${{ steps.resolve-tags.outputs.frontend }}
-          REG=${ECR_REGISTRY}
+          REG='${{ secrets.ECR_REGISTRY }}'
           bash .github/scripts/update-k8s-images.sh "${REG}/aegismesh-backend:${BE_TAG}" "${REG}/aegismesh-frontend:${FE_TAG}"
 
       - name: Commit overlay updates to a branch
