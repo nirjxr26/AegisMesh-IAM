@@ -16,7 +16,7 @@ on:
 
 jobs:
   update-overlays:
-    name: Update k8s overlays with latest ECR images
+    name: Update k8s overlays with SHA-tagged ECR images
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     permissions:
@@ -24,9 +24,22 @@ jobs:
       pull-requests: write
     env:
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@5fd3084fc36e372ff1fff382a39b10d03659f355
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Refresh ECR pull secret
+        run: |
+          set -eux
+          bash scripts/install/install-ecr-regcred.sh aegismesh "$ECR_REGISTRY" "$AWS_REGION"
 
       - name: Resolve image tag from triggering commit
         id: resolve-tags
