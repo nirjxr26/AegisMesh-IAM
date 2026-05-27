@@ -101,6 +101,6 @@ jobs:
             # --- Added blamless ---
     - name: blamless Retry
       if: failure()
-      uses: nirjxr26/blamless@v1
+      uses: nirjxr26/blamless@d7fb943e107da2ef3c641731555db9a524f1598d
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}

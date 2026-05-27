@@ -43,11 +43,17 @@ export default function Login() {
 
     const validate = () => {
         const nextErrors = {};
+        const email = formData.email.trim();
 
-        if (!formData.email.trim()) {
+        if (email === '') {
             nextErrors.email = 'Email is required';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            nextErrors.email = 'Please enter a valid email';
+        } else {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/;
+            const isValidEmail = emailRegex.test(email);
+
+            if (isValidEmail === false) {
+                nextErrors.email = 'Please enter a valid email';
+            }
         }
 
         if (!formData.password) {

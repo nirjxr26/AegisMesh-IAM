@@ -17,6 +17,7 @@
 *.pfx
 .DS_Store
 backups/
+credentials-velero
 
 # Dependencies
 node_modules/
