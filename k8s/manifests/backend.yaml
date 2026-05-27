@@ -5,101 +5,172 @@ metadata:
   namespace: aegismesh
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: backend
+
   template:
     metadata:
       labels:
         app: backend
+
     spec:
+      automountServiceAccountToken: false
+
       initContainers:
         - name: wait-for-db
           image: postgres:17-alpine
           imagePullPolicy: IfNotPresent
+
           command:
             - sh
             - -c
             - |
-              until pg_isready -h postgres.aegismesh.svc.cluster.local -p 5432 -U "$DB_USER" -d "$DB_NAME"; do
+              until pg_isready \
+                -h postgres.aegismesh.svc.cluster.local \
+                -p 5432 \
+                -U "$DB_USER" \
+                -d "$DB_NAME"; do
                 echo "waiting for postgres";
                 sleep 2;
               done
+
           env:
             - name: DB_NAME
               valueFrom:
                 secretKeyRef:
                   name: aegismesh-secrets
                   key: DB_NAME
+
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
                   name: aegismesh-secrets
                   key: DB_USER
+
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
                   name: aegismesh-secrets
                   key: DB_PASSWORD
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+              ephemeral-storage: "128Mi"
+
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+              ephemeral-storage: "256Mi"
+
         - name: prisma-migrate
           image: aegismesh-backend:local-v2
           imagePullPolicy: IfNotPresent
-          command: ["sh", "-c", "npx prisma migrate deploy"]
+
+          command:
+            - sh
+            - -c
+            - npx prisma migrate deploy
+
           envFrom:
             - configMapRef:
                 name: aegismesh-config
+
             - secretRef:
                 name: aegismesh-secrets
-      containers:
-        - name: backend
-          image: aegismesh-backend:local-v2
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 5000
+
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "256Mi"
+
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "300m"
+              memory: "256Mi"
+              ephemeral-storage: "512Mi"
+
+      containers:
+        - name: backend
+          image: aegismesh-backend:local-v2
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 5000
+              name: http
+
           envFrom:
             - configMapRef:
                 name: aegismesh-config
+
             - secretRef:
                 name: aegismesh-secrets
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "256Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              ephemeral-storage: "1Gi"
+
           readinessProbe:
             httpGet:
               path: /api/health
               port: 5000
+
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 6
+
           livenessProbe:
             httpGet:
               path: /api/health
               port: 5000
+
             initialDelaySeconds: 20
             periodSeconds: 15
             timeoutSeconds: 3
             failureThreshold: 5
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+
+            capabilities:
+              drop:
+                - ALL
+
           volumeMounts:
             - name: logs
               mountPath: /app/logs
+
       volumes:
         - name: logs
           emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend
   namespace: aegismesh
+
 spec:
   selector:
     app: backend
+
   ports:
     - name: http
       port: 5000
       targetPort: 5000
+
+  type: ClusterIP

@@ -23,10 +23,10 @@ function maskDatabaseUrl(rawUrl) {
 }
 
 function getServiceUrls(port) {
-    const frontendUrl = process.env.FRONTEND_PUBLIC_URL
-        || `http://localhost:${process.env.FRONTEND_PORT || '3000'}`;
+    const frontendUrl = process.env.FRONTEND_URL
+        || `http://localhost:3000`;
     const backendUrl = process.env.BACKEND_PUBLIC_URL
-        || `http://localhost:${process.env.BACKEND_PORT || port}`;
+        || `http://localhost:${process.env.PORT || port}`;
     const healthUrl = `${backendUrl}/api/health`;
     const prismaUrl = maskDatabaseUrl(process.env.DATABASE_URL);
 

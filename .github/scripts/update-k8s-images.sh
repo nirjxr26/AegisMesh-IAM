@@ -61,7 +61,3 @@ spec:
               cpu: "250m"
               memory: "256Mi"
 EOF
-
-git add k8s/overlays/prod/patch-backend-image.yaml k8s/overlays/prod/patch-frontend-image.yaml
-git commit -m "chore(ci): update k8s image tags" || true
-git push origin HEAD:main || true

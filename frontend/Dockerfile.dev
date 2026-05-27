@@ -7,7 +7,10 @@ COPY package*.json ./
 
 RUN npm install --no-audit --no-fund --ignore-scripts
 
-COPY . .
+COPY index.html vite.config.js tailwind.config.js eslint.config.js ./
+COPY public ./public
+COPY src ./src
+COPY scripts ./scripts
 
 EXPOSE 5173
 ENV BIND_ADDR=0.0.0.0
