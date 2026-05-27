@@ -39,11 +39,13 @@ jobs:
           echo "frontend=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Update k8s/overlays/prod image patches
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
           set -eux
           BE_TAG=${{ steps.resolve-tags.outputs.backend }}
           FE_TAG=${{ steps.resolve-tags.outputs.frontend }}
-          REG='${{ secrets.ECR_REGISTRY }}'
+          REG="$ECR_REGISTRY"
           bash .github/scripts/update-k8s-images.sh "${REG}/aegismesh-backend:${BE_TAG}" "${REG}/aegismesh-frontend:${FE_TAG}"
 
       - name: Commit overlay updates to a branch
