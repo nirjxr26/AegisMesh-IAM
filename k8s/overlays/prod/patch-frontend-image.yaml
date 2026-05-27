@@ -11,7 +11,7 @@ spec:
         - name: ecr-regcred
       containers:
         - name: frontend
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:latest
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:7d6fd99c484e7e5e9b78785c7b96111e5c90fc10
           imagePullPolicy: Always
           resources:
             requests:

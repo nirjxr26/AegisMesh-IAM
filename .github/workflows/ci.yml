@@ -114,9 +114,8 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
-            docker build -t $ECR_REGISTRY/aegismesh-backend:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-backend:latest -f Dockerfile .
+            docker build -t $ECR_REGISTRY/aegismesh-backend:$IMAGE_TAG -f Dockerfile .
             docker push $ECR_REGISTRY/aegismesh-backend:$IMAGE_TAG
-            docker push $ECR_REGISTRY/aegismesh-backend:latest
 
       - name: Build and push frontend image
         working-directory: frontend
@@ -124,6 +123,5 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
-            docker build -t $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-frontend:latest -f Dockerfile .
+            docker build -t $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG -f Dockerfile .
             docker push $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG
-            docker push $ECR_REGISTRY/aegismesh-frontend:latest
