@@ -72,14 +72,14 @@ The current implementation focuses on a few IAM rules that matter in production:
 ### Pipeline Overview
 
 - Push or PR triggers GitHub Actions CI, which runs lint, tests, and builds for both backend and frontend. On merge to main, CI builds multi-stage Docker images and pushes them to AWS ECR tagged by commit SHA.
-- On CI success, the CD workflow resolves the latest ECR image tags, patches the Kustomize overlay files under `k8s/overlays/prod`, and opens a pull request from a bot branch back to `main`.
+- On CI success, the CD workflow uses the triggering commit SHA as the image tag, patches the Kustomize overlay files under `k8s/overlays/prod`, and opens a pull request from a bot branch back to `main`.
 - Argo CD watches the deploy path after merge and applies the manifests to the cluster automatically. The SealedSecrets controller decrypts encrypted credentials into live Kubernetes Secrets.
 - On rollout, init containers run in order — `wait-for-db` first, then `prisma-migrate` — before the app starts. Smoke tests run post-deploy; failure triggers an automatic revert of the overlay commit.
 
 ### Key Design Decisions
 
 - CI does not run `kubectl apply`. CD writes overlay commits. Argo CD is the only thing that touches the cluster.
-- Every deploy is a Git commit — fully auditable and revertable.
+- Every deploy is a Git commit tied to an immutable image tag — fully auditable and revertable.
 - SealedSecrets keep credentials encrypted in the repo. The in-cluster controller handles decryption.
 - Smoke test failure triggers an automatic `git revert` of the overlay commit, rolling back the image update without manual intervention.
 
