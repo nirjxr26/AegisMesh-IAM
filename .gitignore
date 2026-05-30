@@ -10,13 +10,15 @@
 !.env.example
 !backend/.env.example
 !frontend/.env.example
+
 *.pem
 *.key
 *.crt
 *.p12
 *.pfx
-.DS_Store
-backups/
+*.cred
+
+credentials-*
 credentials-velero
 
 # Dependencies
@@ -30,10 +32,20 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Build outputs
+# Build Outputs
 dist/
 build/
 *.tsbuildinfo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+.kpatch/
 
 # IDE & Editor
 .vscode/
@@ -42,7 +54,7 @@ build/
 *.swo
 *~
 
-# OS
+# OS Files
 .DS_Store
 .DS_Store?
 ._*
@@ -50,26 +62,18 @@ build/
 .Trashes
 ehthumbs.db
 
-# Project specific
+# Docker Volumes & Local Data
+db_data/
+backups/
+
+# Documentation / Internal Files
+docs/
 AegisMesh-IAM-Fix-Logic-Guide.md
-
-# Test coverage
-coverage/
-.nyc_output/
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-.kpatch/
+CI_CD_RUNBOOK.md
 
 # Jenkins
 .jenkins/
 .archive/
-
-# Docker volumes (local development)
-db_data/
-docs/
 
 # Terraform
 **/.terraform/
@@ -79,4 +83,22 @@ terraform.tfvars
 terraform/*.tfvars
 terraform/*.tfvars.json
 terraform/crash.log
-CI_CD_RUNBOOK.md
+terraform/**/*.tfstate
+
+# Kubernetes & Cluster Configs
+kubeconfig*
+**/kubeconfig*
+.kube/
+
+# Database Dumps
+*.sql
+*.sql.gz
+pg_dump*
+pg_dumpall*
+
+# Secret Manifests
+*secrets*.yaml
+*secrets*.yml
+
+# Local Cloud Credentials
+*.aws/credentials
