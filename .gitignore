@@ -1,4 +1,3 @@
-```gitignore
 # ═══════════════════════════════════════════════════════════════
 # AegisMesh IAM - Global Git Ignore
 # ═══════════════════════════════════════════════════════════════
@@ -103,4 +102,3 @@ pg_dumpall*
 
 # Local Cloud Credentials
 *.aws/credentials
-```
