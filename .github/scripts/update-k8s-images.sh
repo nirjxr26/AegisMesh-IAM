@@ -16,8 +16,6 @@ metadata:
 spec:
   template:
     spec:
-      imagePullSecrets:
-        - name: ecr-regcred
       initContainers:
         - name: wait-for-db
           image: postgres:17-alpine
@@ -47,8 +45,6 @@ metadata:
 spec:
   template:
     spec:
-      imagePullSecrets:
-        - name: ecr-regcred
       containers:
         - name: frontend
           image: ${IMAGE_FRONTEND}

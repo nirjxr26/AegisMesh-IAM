@@ -20,9 +20,6 @@ spec:
     spec:
       automountServiceAccountToken: false
 
-      imagePullSecrets:
-        - name: ecr-regcred
-
       initContainers:
         - name: wait-for-db
           image: postgres:17-alpine
@@ -44,7 +41,7 @@ spec:
                 name: aegismesh-secrets
 
         - name: prisma-migrate
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:7d6fd99c484e7e5e9b78785c7b96111e5c90fc10
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
           imagePullPolicy: Always
 
           command:
@@ -73,7 +70,7 @@ spec:
 
       containers:
         - name: backend
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:7d6fd99c484e7e5e9b78785c7b96111e5c90fc10
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
           imagePullPolicy: Always
 
           ports:
