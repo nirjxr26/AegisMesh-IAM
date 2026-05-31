@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Create or refresh the ECR imagePullSecret used by the aegismesh app workloads.
+# Legacy fallback only: create or refresh the ECR imagePullSecret used by the aegismesh app workloads.
 # Usage:
 #   bash scripts/install/install-ecr-regcred.sh [namespace] [registry] [region]
 # Defaults:
