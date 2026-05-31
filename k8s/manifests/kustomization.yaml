@@ -7,3 +7,4 @@ resources:
   - postgres.yaml
   - backend.yaml
   - frontend.yaml
+  - backend-hpa.yaml
