@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-engine
+  namespace: aegismesh
+spec:
+  selector:
+    app: security-engine
+  ports:
+  - name: metrics
+    protocol: TCP
+    port: 8000
+    targetPort: 8000
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: aegismesh-app-monitor
+  namespace: aegismesh
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  endpoints:
+  - port: http
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: security-engine-monitor
+  namespace: aegismesh
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: security-engine
+  endpoints:
+  - port: metrics
+    path: /metrics

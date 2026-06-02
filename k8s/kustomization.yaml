@@ -9,6 +9,11 @@ resources:
   - manifests/postgres.yaml
   - manifests/backend.yaml
   - manifests/frontend.yaml
+  - manifests/security-engine.yaml
   - hpa/backend-hpa.yaml
   - networkpolicies/default-deny.yaml
   - networkpolicies/allow-backend-to-postgres.yaml
+  - networkpolicies/allow-dns.yaml
+  - networkpolicies/security-engine-policies.yaml
+
+

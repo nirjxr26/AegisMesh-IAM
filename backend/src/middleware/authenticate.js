@@ -4,6 +4,7 @@ const { createError } = require('../utils/errors');
 const { authenticateApiKeyToken } = require('./apiKeyAuth');
 const { enforceOrgPolicyForRequest } = require('./orgPolicy');
 const { decryptText } = require('../utils/crypto');
+const { getRiskScore } = require('../utils/riskEngine');
 
 function derivePrimaryRole(user) {
     const roleNames = (user.userRoles || []).map((ur) => ur.role?.name).filter(Boolean);
@@ -142,6 +143,21 @@ async function authenticateJwtRequest(req, token) {
         authType: 'jwt',
     };
 
+    // ML-Powered Risk Assessment
+    const riskAssessment = await getRiskScore({
+        userId: authUser.id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        action: 'AUTHENTICATION_VERIFY',
+        path: req.path
+    });
+
+    if (riskAssessment.is_anomaly) {
+        authUser.isAnomalous = true;
+        authUser.riskScore = riskAssessment.risk_score;
+        // In a real scenario, we might force re-auth here or set a flag for downstream middleware
+    }
+
     await enforceOrgPolicyForRequest(
         req,
         authUser
@@ -200,9 +216,22 @@ async function authenticate(req, res, next) {
 
         req.user = result.user;
 
+        // If high risk anomaly detected, require step-up authentication for ANY subsequent action
+        if (req.user.isAnomalous && !req.path.includes('/reauth')) {
+            return res.status(403).json({
+                success: false,
+                error: {
+                    code: 'AUTH_012',
+                    message: 'Security anomaly detected. Re-authentication required.',
+                    riskScore: req.user.riskScore
+                }
+            });
+        }
+
         return next();
     } catch (error) {
         return handleAuthError(res, error);
     }
 }
 module.exports = { authenticate };
+

@@ -8,6 +8,8 @@ This setup is designed for **Docker Desktop Kubernetes** (single-node local clus
 - `kubectl` configured to use `docker-desktop` context
 - Local Docker images built from this repository
 
+For k3s or ECR-backed production clusters, install the kubelet ECR credential-provider on the node. Do not rely on `imagePullSecrets` for this stack.
+
 Check context:
 
 ```powershell
@@ -78,7 +80,17 @@ Re-apply after edits:
 kubectl apply -k ./k8s
 ```
 
-## 5. Cleanup
+## 5. Long-lived ECR auth for k3s
+
+If your cluster pulls private ECR images, install the kubelet credential-provider on each node:
+
+```powershell
+bash scripts/infra/bootstrap-ecr-credential-provider.sh
+```
+
+That is the long-term fix. The script restarts k3s or kubelet where possible so the new auth path is active immediately. Avoid docker-registry pull secrets for this repository because they expire and reintroduce the same rollout failure.
+
+## 6. Cleanup
 
 ```powershell
 kubectl delete -k ./k8s

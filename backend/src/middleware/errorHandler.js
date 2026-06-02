@@ -68,6 +68,17 @@ function errorHandler(err, req, res, _next) {
         });
     }
 
+    // CSRF errors
+    if (err.code === 'EBADCSRFTOKEN') {
+        return res.status(403).json({
+            success: false,
+            error: {
+                code: 'CSRF_ERROR',
+                message: 'Invalid or missing CSRF token',
+            },
+        });
+    }
+
     // Default 500 error
     const statusCode = err.statusCode || 500;
     res.status(statusCode).json({

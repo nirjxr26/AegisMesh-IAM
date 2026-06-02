@@ -27,4 +27,4 @@ run "Install Velero / MinIO" bash "$ROOT_DIR/scripts/install/install-velero-mini
 run "Install Falco" bash "$ROOT_DIR/scripts/install/install-falco.sh"
 
 echo
-echo "For private ECR pulls on k3s nodes, use scripts/infra/setup-ec2-k3s-argocd.sh so kubelet gets the ECR credential-provider instead of a rotating pull secret."
+echo "For private ECR pulls on k3s nodes, use scripts/infra/setup-ec2-k3s-argocd.sh for new nodes or scripts/infra/bootstrap-ecr-credential-provider.sh for existing nodes so kubelet gets the ECR credential-provider instead of a rotating pull secret."
