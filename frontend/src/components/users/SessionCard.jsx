@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Loader2, Monitor, Smartphone, Tablet } from 'lucide-react';
 
 function parseDevice(userAgent) {
@@ -112,5 +113,20 @@ export default function SessionCard({ session, isCurrent, onRevoke, isRevoking }
         </div>
     );
 }
+
+SessionCard.propTypes = {
+    session: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        deviceInfo: PropTypes.string,
+        ipAddress: PropTypes.string,
+        createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+        lastUsedAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+        lastActiveAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+        isCurrent: PropTypes.bool,
+    }).isRequired,
+    isCurrent: PropTypes.bool,
+    onRevoke: PropTypes.func.isRequired,
+    isRevoking: PropTypes.bool,
+};
 
 

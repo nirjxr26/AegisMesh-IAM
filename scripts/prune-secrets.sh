@@ -9,6 +9,7 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     -h|--help) echo "Usage: $0 [--dry-run]"; exit 0 ;;
+    *) echo "Unknown argument: $arg"; exit 1 ;;
   esac
 done
 
@@ -19,7 +20,7 @@ regex=$(IFS='|'; echo "${patterns[*]}")
 
 tracked=$(git ls-files | grep -E "$regex" | grep -Ev '^backend/prisma/migrations/' || true)
 
-if [ -z "$tracked" ]; then
+if [[ -z "$tracked" ]]; then
   echo "No tracked sensitive files found."
   exit 0
 fi
@@ -27,12 +28,12 @@ fi
 echo "Tracked sensitive files found:"
 echo "$tracked"
 
-if [ "$DRY_RUN" -eq 1 ]; then
+if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "Dry run mode. No changes made."; exit 0
 fi
 
 read -p "Proceed to untrack these files from git index? (y/N) " ans
-if [ "$ans" != "y" ] && [ "$ans" != "Y" ]; then
+if [[ "$ans" != "y" ]] && [[ "$ans" != "Y" ]]; then
   echo "Aborted."; exit 0
 fi
 

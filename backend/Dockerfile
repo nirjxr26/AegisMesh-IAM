@@ -37,6 +37,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY package.json ./
 COPY src ./src
 
+# Explicitly remove write permissions (Security Hardening)
+RUN chmod -R 555 ./src ./node_modules ./prisma package.json
+
 USER nodejs
 
 EXPOSE 5000

@@ -502,8 +502,10 @@ exports.createUser = async (req, res, next) => {
 
         await auditUser.created(req, newUser.id, email);
 
-        const { passwordHash: _, ...safeUser } = newUser;
+        const { passwordHash: ignored, ...safeUser } = newUser;
         res.status(201).json({ success: true, data: safeUser });
+
+
     } catch (error) {
         next(error);
     }
@@ -636,7 +638,7 @@ function uniqueIds(ids = []) {
 }
 
 function toCsvCell(value) {
-    return `"${String(value ?? '').replace(/"/g, '""')}"`;
+    return `"${String(value ?? '').replaceAll('""')}"`;
 }
 
 exports.bulkUpdateStatus = async (req, res, next) => {

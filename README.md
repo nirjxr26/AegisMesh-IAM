@@ -23,11 +23,12 @@ The current implementation focuses on a few IAM rules that matter in production:
 
 - **Frontend:** React 19, Vite, Tailwind CSS
 - **Backend:** Node.js, Express
-- **Database:** PostgreSQL 15, Prisma
+- **Machine Learning (MLOps):** Scikit-learn, MLflow, Feature Pipelines
+- **Database:** PostgreSQL 17, Prisma
 - **Security & Auth:** JWT, Passport, TOTP MFA, OAuth 2.0
 - **DevOps:** Docker, Kubernetes, Kustomize, Helm, Argo CD, GitHub Actions
-- **Infra:** Terraform (ECR), AWS ECR, SealedSecrets, Falco
-- **Observability:** Prometheus, Grafana
+- **Infra:** Terraform (ECR), AWS ECR, SealedSecrets, Falco, CrowdSec
+- **Observability:** Prometheus, Grafana (Advanced MLOps Dashboards)
 
 ---
 
@@ -57,6 +58,33 @@ The current implementation focuses on a few IAM rules that matter in production:
 - Centralized audit logs with filtering, export, streaming, and security alerts.
 - Rate limiting, input validation, and middleware-based route protection.
 - Notification center for user-facing security events and access changes.
+
+---
+
+## 🧠 Production MLOps & Threat Intelligence
+
+AegisMesh includes a dedicated **Security Engine** powered by Machine Learning to detect anomalous behavior and provide real-time risk scoring.
+
+### ML Features
+- **Anomaly Detection:** Real-time risk scoring using Scikit-learn Isolation Forest, analyzing audit logs for suspicious patterns.
+- **Robust Pipelines:** Data preprocessing (imputation, scaling, encoding) is bundled with the model in atomic Scikit-learn `Pipeline` objects to prevent training-serving skew.
+- **Experiment Tracking:** Full lineage tracking in **MLflow** with a persistent PostgreSQL backend.
+- **Model Registry:** Automated versioning and staging-to-production promotion flow.
+- **Continuous Training (CT):** Kubernetes CronJobs automate daily retraining on fresh production audit data.
+
+### 📊 MLOps Observability
+- **Model Lineage:** Track which model version is currently serving traffic directly in Grafana.
+- **Drift Detection:** Monitor model confidence and risk score distributions to identify behavioral shifts.
+- **Performance Breakdown:** Stacked latency tracking separating "Data Cleaning" from "ML Inference" time.
+
+---
+
+## Hardened Infrastructure Security
+
+- **Least Privilege:** All containers (Backend, Frontend, ML Engine, MLflow) run as strict non-root users (`UID 10001`).
+- **Read-Only Runtime:** Source code and dependencies are set to mode `555` (Read-only) to prevent runtime code injection.
+- **Kubernetes Hardening:** Pods are locked down with `drop: [ALL]` capabilities and `allowPrivilegeEscalation: false`.
+- **RBAC Tightening:** Zero-trust RBAC for infrastructure operators (Trivy, Falco).
 
 ---
 
@@ -115,14 +143,9 @@ docker-compose up --build
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000 |
-| Grafana | http://localhost:3002 |
+| Grafana | http://localhost:3010 |
+| MLflow | http://localhost:5001 |
 | Prometheus | http://localhost:9090 |
-
-Dev mode with hot reload:
-
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-```
 
 Full setup guide: [`Docker_Setup.md`](./Docker_Setup.md)
 
@@ -130,7 +153,7 @@ Full setup guide: [`Docker_Setup.md`](./Docker_Setup.md)
 
 ### Option 2 — Local Development
 
-Requires Node.js 18+ and PostgreSQL 15+.
+Requires Node.js 22+, Python 3.11+, and PostgreSQL 17+.
 
 ```bash
 # Backend
@@ -139,70 +162,24 @@ npm install
 npm run prisma:generate
 npm run dev        # runs on :5000
 
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev        # runs on :5173
+# Security Engine
+cd security-engine
+pip install -r requirements.txt
+python src/main.py # runs on :8000
 ```
 
 ---
 
-### Option 3 — Kubernetes (GitOps)
-
-Provision infra with Terraform first, then push to main to trigger the full CI/CD pipeline. Argo CD will sync the cluster from the deploy branch automatically.
-
-For local testing with Docker Desktop:
-
-```bash
-docker build -t aegismesh-backend:local ./backend
-docker build -t aegismesh-frontend:local ./frontend
-kubectl apply -k ./k8s
-kubectl -n aegismesh port-forward svc/frontend 3000:3000
-kubectl -n aegismesh port-forward svc/backend 5000:5000
-```
-
-App runs at `http://aegismesh.localhost:3000`.
-
-Full guide: [`k8s/README.md`](./k8s/README.md)
-
----
-
-## Environment Variables
-
-See [`.env.example`](./.env.example) for all options. Key variables:
-
-```env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/aegismesh
-
-JWT_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret
-
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-
-SMTP_HOST=smtp.ethereal.email
-SMTP_USER=
-SMTP_PASS=
-
-VITE_API_URL=http://localhost:5000
-```
-
-For CI/CD secrets, see [`ci-cd/README.md`](./ci-cd/README.md).
-
----
-
-## Project Structure
+### Project Structure
 
 ```
 ├── backend/          # Node.js API, Prisma schema, auth, RBAC engine
 ├── frontend/         # React 19 app, Tailwind CSS
+├── security-engine/  # Python ML engine (Threat Detection & MLOps)
 ├── k8s/              # Kubernetes manifests, Kustomize overlays, SealedSecrets
 ├── terraform/        # AWS infra (ECR repositories)
-├── monitoring/       # Prometheus config, Grafana dashboards
-├── install/          # Cluster component install scripts
+├── monitoring/       # Prometheus, Grafana, and MLflow configurations
+├── scripts/          # Cluster component install and maintenance scripts
 └── diagrams/         # Architecture diagrams
 ```
 
@@ -215,6 +192,7 @@ For CI/CD secrets, see [`ci-cd/README.md`](./ci-cd/README.md).
 | Docker Setup | [`Docker_Setup.md`](./Docker_Setup.md) |
 | Kubernetes | [`k8s/README.md`](./k8s/README.md) |
 | CI/CD Pipeline | [`ci-cd/README.md`](./ci-cd/README.md) |
+| GitHub Runner | [`docs/GITHUB_RUNNER_SETUP.md`](./docs/GITHUB_RUNNER_SETUP.md) |
 
 ---
 

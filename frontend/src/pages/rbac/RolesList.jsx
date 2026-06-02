@@ -306,10 +306,16 @@ export default function RolesList() {
                 <div
                     className="fixed inset-0 z-50 flex items-end justify-center bg-[#0f1623]/40 backdrop-blur-sm p-0 sm:items-center sm:p-4"
                     onClick={handleCloseCreateModal}
+                    onKeyDown={(e) => { if (e.key === 'Escape') handleCloseCreateModal(); }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Close modal overlay"
                 >
                     <div
                         className="mx-4 w-full rounded-t-[20px] bg-white shadow-2xl sm:mx-0 sm:max-w-md sm:rounded-2xl"
                         onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        role="document"
                     >
                         <div className="px-6 py-5 border-b border-[#f0f2f8] flex items-center justify-between">
                             <div className="flex items-center">
