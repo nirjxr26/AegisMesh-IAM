@@ -129,7 +129,7 @@ services:
       DB_USER: ${DB_USER:-admin}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
     ports:
-      - "${GRAFANA_PORT:-3002}:3000"
+      - "${GRAFANA_PORT:-3010}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -150,17 +150,30 @@ services:
     environment:
       DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
       MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports:
+      - "8000:8000"
     networks:
       - aegismesh-network
     restart: unless-stopped
 
-  # MLflow Tracking Server
+  # MLflow Tracking Server (Persistent Metadata in Postgres)
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.11.1
+    build:
+      context: ./monitoring/mlflow
     container_name: aegismesh-mlflow
-    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlflow-artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      mlflow server 
+      --host 0.0.0.0 
+      --port 5000 
+      --backend-store-uri postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
+      --default-artifact-root /mlflow-artifacts
     ports:
       - "5001:5000"
+    volumes:
+      - mlflow_data:/mlflow-artifacts
     networks:
       - aegismesh-network
     restart: unless-stopped

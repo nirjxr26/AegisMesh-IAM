@@ -19,11 +19,22 @@ spec:
 
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
 
       containers:
         - name: frontend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:b11f3991228702265ef848d95b626b06444d4a64
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
 
           env:
             - name: BACKEND_UPSTREAM

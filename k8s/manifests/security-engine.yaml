@@ -26,10 +26,21 @@ spec:
       labels:
         app: security-engine
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
       containers:
       - name: security-engine
         image: aegismesh-security-engine:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
         ports:
         - containerPort: 8000
         env:

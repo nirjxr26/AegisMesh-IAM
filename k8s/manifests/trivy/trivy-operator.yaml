@@ -14,9 +14,19 @@ spec:
         app: trivy-operator
     spec:
       serviceAccountName: trivy-operator
+      automountServiceAccountToken: false
       containers:
       - name: trivy-operator
         image: ghcr.io/aquasecurity/trivy-operator:0.22.0
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:

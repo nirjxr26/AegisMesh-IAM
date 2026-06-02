@@ -17,11 +17,22 @@ spec:
 
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
 
       initContainers:
         - name: wait-for-db
           image: postgres:17-alpine
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
 
           command:
             - sh
@@ -69,6 +80,12 @@ spec:
         - name: prisma-migrate
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
 
           command:
             - sh
@@ -127,6 +144,12 @@ spec:
         - name: backend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
 
           ports:
             - containerPort: 5000
@@ -188,16 +211,6 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 3
             failureThreshold: 5
-
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1001
-
-            capabilities:
-              drop:
-                - ALL
 
           volumeMounts:
             - name: logs
