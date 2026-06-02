@@ -102,3 +102,5 @@ pg_dumpall*
 
 # Local Cloud Credentials
 *.aws/credentials
+
+.sonarqube_report/

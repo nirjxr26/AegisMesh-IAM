@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: security-engine-retraining
+  namespace: aegismesh
+spec:
+  schedule: "0 0 * * *" # Every day at midnight
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: retrainer
+            image: curlimages/curl:latest
+            command:
+            - /bin/sh
+            - -c
+            - "curl -X POST http://security-engine:8000/train"
+          restartPolicy: OnFailure

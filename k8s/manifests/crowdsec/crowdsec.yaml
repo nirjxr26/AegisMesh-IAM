@@ -33,7 +33,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: crowdsec
-  namespace: crowdsec
+  namespace: aegismesh
 spec:
   replicas: 1
   selector:
@@ -44,12 +44,21 @@ spec:
       labels:
         app: crowdsec
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: crowdsec
-        image: crowdsecurity/crowdsec:latest
-        env:
-        - name: COLLECTIONS
-          value: "crowdsecurity/linux crowdsecurity/nginx"
+        image: crowdsecurity/crowdsec:v1.6.0
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 256Mi
+          limits:
+            cpu: 300m
+            memory: 256Mi
+            ephemeral-storage: 512Mi
         volumeMounts:
         - name: crowdsec-config
           mountPath: /etc/crowdsec/acquis.yaml
