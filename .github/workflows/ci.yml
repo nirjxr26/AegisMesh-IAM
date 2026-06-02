@@ -13,12 +13,14 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'security-engine/**'
       - '.github/workflows/ci.yml'
   push:
     branches: [ main ]
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'security-engine/**'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -85,6 +87,9 @@ jobs:
       - name: Build frontend image
         run: docker build -t aegismesh-frontend:ci -f frontend/Dockerfile ./frontend
 
+      - name: Build security-engine image
+        run: docker build -t aegismesh-security-engine:ci -f security-engine/Dockerfile ./security-engine
+
   build-and-push:
     name: Build and push Docker images (main only)
     runs-on: ubuntu-latest
@@ -129,3 +134,15 @@ jobs:
             docker build -t $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-frontend:$STABLE_TAG -f Dockerfile .
             docker push $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG
             docker push $ECR_REGISTRY/aegismesh-frontend:$STABLE_TAG
+
+      - name: Build and push security-engine image
+        working-directory: security-engine
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          STABLE_TAG: v1
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+        run: |
+            docker build -t $ECR_REGISTRY/aegismesh-security-engine:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-security-engine:$STABLE_TAG -f Dockerfile .
+            docker push $ECR_REGISTRY/aegismesh-security-engine:$IMAGE_TAG
+            docker push $ECR_REGISTRY/aegismesh-security-engine:$STABLE_TAG
+

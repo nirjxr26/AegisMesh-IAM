@@ -38,6 +38,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "6.19.3",
     "@prisma/client": "6.19.3",
+    "axios": "^1.6.7",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

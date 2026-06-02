@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crowdsec
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: crowdsec-db-pvc
+  namespace: crowdsec
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crowdsec-config
+  namespace: crowdsec
+data:
+  acquis.yaml: |
+    filenames:
+      - /var/log/nginx/*.log
+      - /var/log/messages
+      - /var/log/syslog
+    labels:
+      type: syslog
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crowdsec
+  namespace: crowdsec
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crowdsec
+  template:
+    metadata:
+      labels:
+        app: crowdsec
+    spec:
+      containers:
+      - name: crowdsec
+        image: crowdsecurity/crowdsec:latest
+        env:
+        - name: COLLECTIONS
+          value: "crowdsecurity/linux crowdsecurity/nginx"
+        volumeMounts:
+        - name: crowdsec-config
+          mountPath: /etc/crowdsec/acquis.yaml
+          subPath: acquis.yaml
+        - name: crowdsec-data
+          mountPath: /var/lib/crowdsec/data
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+      volumes:
+      - name: crowdsec-config
+        configMap:
+          name: crowdsec-config
+      - name: crowdsec-data
+        persistentVolumeClaim:
+          claimName: crowdsec-db-pvc
+      - name: varlog
+        hostPath:
+          path: /var/log

@@ -23,7 +23,7 @@ spec:
       initContainers:
         - name: wait-for-db
           image: postgres:17-alpine
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
 
           command:
             - sh
@@ -42,20 +42,48 @@ spec:
 
         - name: prisma-migrate
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
 
           command:
             - sh
             - -c
             - |
-              # TEMPORARY: migrations applied manually. No-op to avoid repeated failures.
-              exit 0
+              # Retry migrations to tolerate transient DNS/database startup races.
+              attempts=0
+              until npx prisma migrate deploy; do
+                attempts=$((attempts+1))
+                if [ "$attempts" -ge 12 ]; then
+                  echo "prisma migrate deploy failed after ${attempts} attempts"
+                  exit 1
+                fi
+                echo "prisma migrate deploy failed (attempt ${attempts}), retrying in 5s..."
+                sleep 5
+              done
 
           envFrom:
             - configMapRef:
                 name: aegismesh-config
             - secretRef:
                 name: aegismesh-secrets
+
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_PASSWORD
+            - name: DATABASE_URL
+              value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
 
           resources:
             requests:
@@ -71,7 +99,7 @@ spec:
       containers:
         - name: backend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
 
           ports:
             - containerPort: 5000
@@ -81,6 +109,25 @@ spec:
                 name: aegismesh-config
             - secretRef:
                 name: aegismesh-secrets
+
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aegismesh-secrets
+                  key: DB_PASSWORD
+            - name: DATABASE_URL
+              value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
 
           resources:
             requests:

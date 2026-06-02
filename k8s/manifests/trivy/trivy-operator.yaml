@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trivy-operator
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trivy-operator
+  template:
+    metadata:
+      labels:
+        app: trivy-operator
+    spec:
+      serviceAccountName: trivy-operator
+      containers:
+      - name: trivy-operator
+        image: ghcr.io/aquasecurity/trivy-operator:0.22.0
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPERATOR_SCAN_ALL_NAMESPACES
+          value: "true"
+        - name: OPERATOR_RESOURCES_CONFIG_MAP_NAME
+          value: "trivy-operator"
+        - name: OPERATOR_VULNERABILITY_REPORTS_SCANNER
+          value: "Trivy"
+        - name: OPERATOR_CONFIG_AUDIT_REPORTS_SCANNER
+          value: "Trivy"

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: falcosidekick
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: falcosidekick
+  template:
+    metadata:
+      labels:
+        app: falcosidekick
+    spec:
+      containers:
+      - name: falcosidekick
+        image: falcosecurity/falcosidekick:latest
+        ports:
+        - containerPort: 2801
+        env:
+        - name: WEBHOOK_ADDRESS
+          value: "http://security-engine.aegismesh:8000/analyze"
+        - name: DATADOG_APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: security-secrets
+              key: datadog-api-key
+              optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: falcosidekick
+  namespace: monitoring
+spec:
+  selector:
+    app: falcosidekick
+  ports:
+  - protocol: TCP
+    port: 2801
+    targetPort: 2801

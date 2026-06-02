@@ -80,7 +80,12 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════
 // RATE LIMITING
 // ═══════════════════════════════════════
-app.use('/api/', generalLimiter);
+app.use('/api/', (req, res, next) => {
+    if (req.path === '/health') {
+        return next();
+    }
+    return generalLimiter(req, res, next);
+});
 
 // ═══════════════════════════════════════
 // PASSPORT

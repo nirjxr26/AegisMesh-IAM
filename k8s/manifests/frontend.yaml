@@ -22,7 +22,7 @@ spec:
 
       containers:
         - name: frontend
-          image: aegismesh-frontend:local
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:b11f3991228702265ef848d95b626b06444d4a64
           imagePullPolicy: IfNotPresent
 
           env:

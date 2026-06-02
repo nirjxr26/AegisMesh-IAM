@@ -138,6 +138,33 @@ services:
       - aegismesh-network
     restart: unless-stopped
 
+  # Security Engine (ML-powered Threat Detection)
+  security-engine:
+    build:
+      context: ./security-engine
+      dockerfile: Dockerfile
+    container_name: aegismesh-security-engine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    networks:
+      - aegismesh-network
+    restart: unless-stopped
+
+  # MLflow Tracking Server
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.11.1
+    container_name: aegismesh-mlflow
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root /mlflow-artifacts
+    ports:
+      - "5001:5000"
+    networks:
+      - aegismesh-network
+    restart: unless-stopped
+
 networks:
   aegismesh-network:
     driver: bridge
@@ -148,4 +175,6 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  mlflow_data:
     driver: local
