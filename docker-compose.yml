@@ -164,12 +164,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      mlflow server 
-      --host 0.0.0.0 
-      --port 5000 
-      --backend-store-uri postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
-      --default-artifact-root /mlflow-artifacts
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow-artifacts
     ports:
       - "5001:5000"
     volumes:

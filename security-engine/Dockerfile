@@ -14,9 +14,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy only necessary directories and change ownership
-COPY --chown=securityuser:securitygroup src/ ./src/
-COPY --chown=securityuser:securitygroup models/ ./models/
+# Copy only necessary directories as root to ensure they are NOT writable by the app user
+COPY src/ ./src/
+COPY models/ ./models/
+
+# Explicitly remove write permissions (Security Hardening)
+RUN chmod -R 555 ./src ./models
 
 # Switch to non-root user
 USER securityuser
