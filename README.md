@@ -2,118 +2,153 @@
 
 <h1>AegisMesh</h1>
 
-<p>A self-hosted IAM platform for teams that need strong authorization rules, step-up authentication, session control, and auditability without outsourcing identity data.</p>
-
 </div>
+A self-hosted IAM platform with policy-driven authorization, step-up authentication, ML-based threat detection, and a full DevSecOps pipeline.
+
+---
 
 ## Overview
 
-AegisMesh is a full-stack identity and access management platform built for teams that want AWS IAM-style access controls without handing user data to a third party. It combines authentication, policy-driven authorization, MFA, session control, and security auditing in a single self-hosted stack.
+AegisMesh is a full-stack identity and access management platform built for teams that want AWS IAM-style access controls without handing user data to a third party.
 
-The current implementation focuses on a few IAM rules that matter in production:
+Core design rules:
 
 - DENY always wins over ALLOW when policies conflict.
 - Sensitive actions require step-up authentication before they execute.
 - Sessions can be revoked individually or in bulk without logging out every device.
 - Audit logging is treated as a first-class control, not an afterthought.
+- The ML security engine scores every login in real time and feeds results back into the auth flow.
+
+---
+
+## Features
+
+**Authentication & Sessions**
+
+- JWT access and refresh tokens with secure cookie handling.
+- Google and GitHub OAuth with organization-level policy enforcement.
+- TOTP-based MFA with backup code support.
+- Active session viewer with per-session and bulk revocation.
+- Step-up reauthentication for password changes, account deletion, and privileged token actions.
+
+**Authorization & Access Control**
+
+- Dynamic RBAC engine across users, roles, groups, and policies.
+- Explicit DENY precedence across direct, inherited, and attached policy sources.
+- Policy simulator to test access outcomes before pushing changes.
+- Per-user effective permissions view for fast access audits.
+
+**User & Organization Management**
+
+- Full user lifecycle: create, update, verify, bulk operations, delete.
+- Organization-level admin controls with data export.
+- Scoped API keys with privileged reauth and revocation.
+
+**Audit & Monitoring**
+
+- Centralized audit logs with filtering, export, streaming, and security alerts.
+- Rate limiting, input validation, and middleware-based route protection.
+- Notification center for user-facing security events and access changes.
 
 ---
 
 ## Tech Stack
 
-- **Frontend:** React 19, Vite, Tailwind CSS
-- **Backend:** Node.js, Express
-- **Machine Learning (MLOps):** Scikit-learn, MLflow, Feature Pipelines
-- **Database:** PostgreSQL 17, Prisma
-- **Security & Auth:** JWT, Passport, TOTP MFA, OAuth 2.0
-- **DevOps:** Docker, Kubernetes, Kustomize, Helm, Argo CD, GitHub Actions
-- **Infra:** Terraform (ECR), AWS ECR, SealedSecrets, Falco, CrowdSec
-- **Observability:** Datadog (Enterprise APM & Security), Prometheus, Grafana (Local Dashboards)
+| Layer | Technologies |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS |
+| Backend | Node.js, Express |
+| Security Engine | Python, FastAPI, Scikit-learn, MLflow |
+| Database | PostgreSQL 17, Prisma |
+| Auth | JWT, Passport, TOTP MFA, OAuth 2.0 |
+| DevOps | Docker, Kubernetes, Kustomize, Helm, ArgoCD, GitHub Actions |
+| Infrastructure | Terraform, AWS ECR, EC2, SealedSecrets, Falco, CrowdSec |
+| Observability | Datadog APM, Prometheus, Grafana, Loki |
 
 ---
 
-## 🚀 Recent Enhancements: Observability & Optimization
-
-We have recently upgraded the AegisMesh ecosystem with enterprise-grade monitoring and high-efficiency builds.
-
-### 📊 Datadog Enterprise Observability
-- **Distributed Tracing (APM):** End-to-end request tracking from React Frontend → Node.js Backend → Python Security Engine.
-- **Log-to-Trace Correlation:** Every log line is automatically linked to a specific user request trace for rapid debugging.
-- **Continuous Profiling:** Real-time code-level performance monitoring to identify CPU/RAM bottlenecks in the ML inference logic.
-- **Runtime Security Signals:** Integrated **Falco Sidekick** to stream container intrusion alerts directly into the Datadog Security dashboard.
-- **Feature Toggle:** APM can be easily paused/resumed via the `DD_APM_ENABLED` flag in the `.env` file to manage costs.
-
-### ⚡ Optimized Build Pipeline
-- **Multi-Stage Docker Builds:** All services (Backend, Frontend, Security Engine, MLflow) now use multi-stage builds, reducing image sizes by up to 60% and cutting build times.
-- **Parallel Compilation:** CI/CD pipelines and local Docker Compose now support parallel image building.
-- **Security Hardening:** Automatic `chmod -R 555` during build time ensures application code is read-only at runtime, preventing file-system based exploits.
-- **Pinned Dependencies:** All system-level packages (apk/apt) and Python requirements are pinned to specific versions to prevent supply-chain drift.
-
-### 🤖 Advanced MLOps Lifecycle
-- **Unified ML Pipeline:** Preprocessing and inference are bundled into atomic Scikit-learn Pipeline objects to ensure zero training-serving skew.
-- **Automated Retraining:** Kubernetes CronJobs handle the full data-to-model-registry flow without human intervention.
-- **Health-Aware Inference:** Added granular healthchecks to the Security Engine and MLflow to ensure the AI feedback loop is always available.
+## Architecture
+<div align="center">
+<img
+  src="./diagrams/_architecture.png"
+  alt="Pipeline Architecture"
+/>
+</div>
 
 ---
 
-## 🎮 Operations Command Center
+## CI/CD Pipeline
 
-| Feature | Tool | Purpose | Access Link |
-| :--- | :--- | :--- | :--- |
-| **Distributed Tracing** | Datadog APM | Request flow (Frontend → Backend → AI) | [US5 Dashboard](https://us5.datadoghq.com/apm/services) |
-| **Code Profiling** | Datadog Profiler | Function-level CPU/RAM bottlenecks | [US5 Profiler](https://us5.datadoghq.com/apm/profiler) |
-| **Intrusion Detection**| Falco + Datadog | Runtime container security alerts | [US5 Security](https://us5.datadoghq.com/security) |
-| **System Metrics** | Grafana | Cluster health (CPU, RAM, Disk) | [Local:3010](http://localhost:3010) |
-| **MLOps Experiments** | MLflow | Model versions, accuracy, and lineage | [Local:5001](http://localhost:5001) |
-| **Local Monitoring** | Prometheus | Raw metric scraping and time-series data | [Local:9090](http://localhost:9090) |
+Push or PR to any branch triggers the GitHub Actions CI workflow:
 
----
+1. Lint, unit tests, SonarCloud quality gate, and CodeQL analysis run on every PR.
+2. On merge to `main`, CI builds multi-stage Docker images and pushes them to AWS ECR tagged by commit SHA.
+3. The CD workflow patches the Kustomize overlay files under `k8s/overlays/prod` and opens a bot PR back to `main`.
+4. ArgoCD watches the deploy path after merge and applies the manifests to the cluster automatically.
+5. Init containers run in order — `wait-for-db` first, then `prisma-migrate` — before the app starts.
+6. Smoke tests run post-deploy. Failure triggers an automatic `git revert` of the overlay commit.
 
-## 🔍 Where to See What?
+**Key design decisions:**
 
-### 1. In Datadog (Enterprise Cloud)
-*   **Request Traces:** See exactly how a user login flows through your system. In **APM > Traces**, you can click any request to see the database query time and the Security Engine's risk analysis time.
-*   **Linked Logs:** Click any log line in **Logs > Search** to see the **"Trace"** tab. This shows you the exact code execution that generated that specific log.
-*   **Security Signals:** Go to **Security > Signals**. If you or anyone else runs a shell inside a container (`docker exec`), Falco will trigger a "Critical" alert here.
+- CI does not run `kubectl apply`. Only ArgoCD touches the cluster.
+- Every deploy is a Git commit tied to an immutable image tag — fully auditable and revertable.
+- SealedSecrets keep credentials encrypted in the repo. The in-cluster controller handles decryption.
+- Kubelet credential-provider handles ECR auth. `imagePullSecrets` are legacy only.
 
-### 2. In MLflow (AI Lifecycle)
-*   **Experiment Tracking:** Every time the retraining CronJob runs, a new entry appears in the `Security-Engine-Threat-Detection` experiment.
-*   **Model Registry:** You can see which model version is "Production" vs "Staging." The Security Engine always pulls the latest "Production" version automatically.
-
-### 3. In Grafana (Local Infrastructure)
-*   **Custom Dashboards:** Navigate to the `AegisMesh Overview` dashboard to see the **Real-time Risk Score Distribution** and **Inference Latency** alongside standard CPU/Memory stats.
-*   **ML Stats:** View the "Data Preprocessing vs. Inference Time" breakdown to ensure feature engineering isn't slowing down your AI.
+Full pipeline docs: [`ci-cd/README.md`](./ci-cd/README.md)
 
 ---
 
-## 📂 Project Structure
+## MLOps & Security Engine
 
-```text
-├── 💻 frontend/          # React 19 UI & Tailwind styling
-├── ⚙️ backend/           # Node.js API, Prisma & Auth logic
-├── 🧠 security-engine/   # Python AI (Anomaly Detection)
-├── 🏗️ k8s/               # Manifests, Kustomize & NetPolicies
-├── ☁️ terraform/         # AWS Infrastructure (ECR)
-├── 📊 monitoring/        # Prometheus, Grafana & MLflow
-├── 📜 scripts/           # Cluster install & automation
-└── 📝 docs/              # Detailed system guides
-```
+The Security Engine is a FastAPI service that scores every login request against IP, time-of-day, and historical behavior signals. A high risk score triggers step-up MFA or blocks the request before the backend processes it.
+
+**ML pipeline:**
+
+- Model: Scikit-learn Isolation Forest trained on production audit logs.
+- Preprocessing and inference are bundled into a single `Pipeline` object to prevent training-serving skew.
+- MLflow tracks experiment runs, model versions, and staging-to-production promotion with a PostgreSQL backend.
+- A Kubernetes CronJob handles daily retraining on fresh audit data without manual intervention.
+- Grafana tracks which model version is serving traffic, monitors risk score distributions, and breaks down inference latency by stage.
 
 ---
 
-## 📖 Documentation
+## Observability
 
-Detailed guides for specific components of the AegisMesh ecosystem:
+**Datadog (enterprise):**
 
-| Category | Guide |
-| :--- | :--- |
-| **Setup** | [Docker Setup](docs/SETUP.md) \| [Local Development](#quick-start) |
-| **Deployment** | [CI/CD Pipeline](ci-cd/README.md) \| [GitHub Runner](docs/GITHUB_RUNNER_SETUP.md) |
-| **Index** | **[All Documentation](docs/README.md)** |
-| **Kubernetes** | [K8s Overview](k8s/README.md) \| [Ingress & TLS](docs/devops/ingress-and-tls.md) \| [HPA](docs/devops/hpa-metrics-server.md) |
-| **Security** | [Sealed Secrets](docs/devops/sealedsecrets-sops.md) \| [Falco Runtime](docs/devops/falco.md) \| [Kyverno Policies](docs/devops/kyverno-networkpolicy.md) |
-| **Reliability** | [Argo Rollouts](docs/devops/argo-rollouts.md) \| [Backups (Velero)](docs/devops/backups-velero-minio.md) |
-| **Observability** | [Loki Stack](docs/devops/observability-loki-tempo.md) \| [Datadog Setup](#-operations-command-center) |
+- Distributed tracing from React Frontend through Node.js Backend to the Python Security Engine.
+- Every log line is linked to a specific request trace for debugging.
+- Falco Sidekick streams container intrusion alerts directly into Datadog Security Signals.
+- APM can be paused via `DD_APM_ENABLED` in `.env` to manage costs.
+
+**Grafana stack (local):**
+
+- Prometheus collects system and application metrics.
+- Loki aggregates container logs.
+- Grafana dashboards cover auth rates, latency, error rates, and ML model health.
+
+---
+
+## Security
+
+**Build-time:**
+
+- All images use multi-stage builds. Application code is set to mode `555` (read-only) at build time.
+- System packages and Python dependencies are pinned to specific versions.
+
+**Runtime:**
+
+- All containers run as non-root (`UID 10001`) with `drop: [ALL]` capabilities and `allowPrivilegeEscalation: false`.
+- Falco monitors container syscalls and streams alerts to Datadog Security Signals.
+- CrowdSec handles brute-force and malicious IP blocking at the network level.
+- SealedSecrets keep credentials encrypted in Git.
+
+**CI security:**
+
+- SonarCloud quality gates run on every PR.
+- CodeQL performs deep semantic analysis for complex vulnerability patterns.
+- Trivy scans Docker images and Kubernetes manifests for CVEs.
 
 ---
 
@@ -129,7 +164,7 @@ cp .env.example .env
 
 Edit `.env` with your values before starting.
 
-### Docker (Recommended)
+### Option 1 — Docker
 
 ```bash
 docker-compose up --build
@@ -137,44 +172,63 @@ docker-compose up --build
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:3001 |
+| Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000 |
 | Security Engine | http://localhost:8000 |
 | Grafana | http://localhost:3010 |
 | MLflow | http://localhost:5001 |
 | Prometheus | http://localhost:9090 |
 
----
+Full setup guide: [`docker_setup`](docs/SETUP.md)
 
-## 🛠️ Local Action Testing (CI/CD)
+### Option 2 — Local Development
 
-You can now test all GitHub Actions locally using `act` before pushing to the cloud.
+Requires Node.js 22+, Python 3.11+, and PostgreSQL 17+.
 
 ```bash
-# Install act
-scoop install act
+# Backend
+cd backend
+npm install
+npm run prisma:generate
+npm run dev        # runs on :5000
 
-# Run CI locally (tests, lint, docker build)
-act -j backend --container-architecture linux/amd64
-
-# Run Smoke Tests on local cluster
-act -j smoke-test-local --container-architecture linux/amd64
+# Security Engine
+cd security-engine
+pip install -r requirements.txt
+python src/main.py # runs on :8000
 ```
 
 ---
 
-## 📦 Integrated View (Summary)
+## Project Structure
 
-AegisMesh is now a **Hardened MLOps Platform** where:
-1.  **Code** is verified by **SonarCloud** and **CodeQL**.
-2.  **Builds** are optimized via **Multi-Stage Docker** and pinned security layers.
-3.  **Deployments** are automated to **Local/Cloud K8s** via **Windows-Ready CI/CD**.
-4.  **AI Intelligence** is managed by **MLflow** and retrained automatically via **CronJobs**.
-5.  **Observability** is unified in **Datadog** (Cloud APM) and **Grafana** (Local Infra).
-6.  **Runtime Security** is enforced by **Falco** and streamed as real-time signals.
+```
+├── backend/          # Node.js API, Prisma schema, auth, RBAC engine
+├── frontend/         # React 19 app, Tailwind CSS
+├── security-engine/  # Python ML engine, MLflow integration
+├── k8s/              # Kubernetes manifests, Kustomize overlays, SealedSecrets
+├── terraform/        # AWS infrastructure (ECR, EC2)
+├── monitoring/       # Prometheus, Grafana, and MLflow configurations
+├── ci-cd/            # GitHub Actions workflows
+├── scripts/          # Cluster component install and maintenance scripts
+```
 
+---
+
+## Documentation
+
+| Category | Links |
+|---|---|
+| Setup | [Docker Setup](docs/SETUP.md) · [Local Development](#option-2--local-development) |
+| Deployment | [CI/CD Pipeline](ci-cd/README.md) · [GitHub Runner](docs/GITHUB_RUNNER_SETUP.md) |
+| Kubernetes | [K8s Overview](k8s/README.md) · [Ingress & TLS](docs/devops/ingress-and-tls.md) · [HPA](docs/devops/hpa-metrics-server.md) |
+| Security | [SealedSecrets](docs/devops/sealedsecrets-sops.md) · [Falco](docs/devops/falco.md) · [Kyverno](docs/devops/kyverno-networkpolicy.md) |
+| Reliability | [Argo Rollouts](docs/devops/argo-rollouts.md) · [Backups (Velero)](docs/devops/backups-velero-minio.md) |
+| Observability | [Loki Stack](docs/devops/observability-loki-tempo.md) |
+| Index | [All Documentation](docs/README.md) |
+ 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT — see [`LICENSE`](./LICENSE)
