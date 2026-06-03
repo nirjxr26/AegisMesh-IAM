@@ -56,93 +56,6 @@ We have recently upgraded the AegisMesh ecosystem with enterprise-grade monitori
 
 ---
 
-## Features
-
-### Authentication & Sessions
-- JWT access and refresh tokens with secure cookie handling.
-- Google and GitHub OAuth with organization-level policy enforcement.
-- TOTP-based MFA with backup code support.
-- Active session viewer with per-session and bulk revocation.
-- Step-up reauthentication for password changes, account deletion, and privileged token actions.
-
-### Authorization & Access Control
-- Dynamic RBAC engine across users, roles, groups, and policies.
-- Explicit DENY precedence across direct, inherited, and attached policy sources.
-- Policy simulator to test access outcomes before pushing changes.
-- Role and group management with policy attachment and inheritance.
-- Per-user effective permissions view for fast access audits.
-- Scoped authorization for admin and support workflows.
-
-### User & Organization Management
-- Full user lifecycle: create, update, verify, bulk operations, delete.
-- Organization-level admin controls with data export.
-- Scoped API keys with privileged reauth and revocation.
-
-### Security & Monitoring
-- Centralized audit logs with filtering, export, streaming, and security alerts.
-- Rate limiting, input validation, and middleware-based route protection.
-- Notification center for user-facing security events and access changes.
-
----
-
-## Production MLOps & Threat Intelligence
-
-AegisMesh includes a dedicated **Security Engine** powered by Machine Learning to detect anomalous behavior and provide real-time risk scoring.
-
-### ML Features
-- **Anomaly Detection:** Real-time risk scoring using Scikit-learn Isolation Forest, analyzing audit logs for suspicious patterns.
-- **Robust Pipelines:** Data preprocessing (imputation, scaling, encoding) is bundled with the model in atomic Scikit-learn `Pipeline` objects to prevent training-serving skew.
-- **Experiment Tracking:** Full lineage tracking in **MLflow** with a persistent PostgreSQL backend.
-- **Model Registry:** Automated versioning and staging-to-production promotion flow.
-- **Continuous Training (CT):** Kubernetes CronJobs automate daily retraining on fresh production audit data.
-
-### MLOps Observability
-- **Model Lineage:** Track which model version is currently serving traffic directly in Grafana.
-- **Drift Detection:** Monitor model confidence and risk score distributions to identify behavioral shifts.
-- **Performance Breakdown:** Stacked latency tracking separating "Data Cleaning" from "ML Inference" time.
-
----
-
-## Hardened Infrastructure Security
-
-- **Least Privilege:** All containers (Backend, Frontend, ML Engine, MLflow) run as strict non-root users (`UID 10001`).
-- **Read-Only Runtime:** Source code and dependencies are set to mode `555` (Read-only) to prevent runtime code injection.
-- **Kubernetes Hardening:** Pods are locked down with `drop: [ALL]` capabilities and `allowPrivilegeEscalation: false`.
-- **RBAC Tightening:** Zero-trust RBAC for infrastructure operators (Trivy, Falco).
-
----
-
-## CI/CD Architecture
-
-<div align="center">
-<img
-  src="./diagrams/_architecture.png"
-  alt="Pipeline Architecture"
-/>
-</div>
-
-### Pipeline Overview
-
-- Push or PR triggers GitHub Actions CI, which runs lint, tests, and builds for both backend and frontend. On merge to main, CI builds multi-stage Docker images and pushes them to AWS ECR tagged by commit SHA.
-- On CI success, the CD workflow uses the triggering commit SHA as the image tag, patches the Kustomize overlay files under `k8s/overlays/prod`, and opens a pull request from a bot branch back to `main`.
-- Argo CD watches the deploy path after merge and applies the manifests to the cluster automatically. The SealedSecrets controller decrypts encrypted credentials into live Kubernetes Secrets.
-- K3s nodes use the kubelet ECR credential-provider path, so image pulls do not depend on rotating docker-registry secrets.
-- On rollout, init containers run in order — `wait-for-db` first, then `prisma-migrate` — before the app starts. Smoke tests run post-deploy; failure triggers an automatic revert of the overlay commit.
-
-### Key Design Decisions
-
-- CI does not run `kubectl apply`. CD writes overlay commits. Argo CD is the only thing that touches the cluster.
-- Every deploy is a Git commit tied to an immutable image tag — fully auditable and revertable.
-- SealedSecrets keep credentials encrypted in the repo. The in-cluster controller handles decryption.
-- Kubelet credential-provider auth is the long-term ECR mechanism; `imagePullSecrets` are legacy only.
-- Smoke test failure triggers an automatic `git revert` of the overlay commit, rolling back the image update without manual intervention.
-
-The CD workflow uses the GitHub Actions token to create and merge pull requests.
-
-Full pipeline docs: [`ci-cd/README.md`](./ci-cd/README.md)
-
----
-
 ## 🎮 Operations Command Center
 
 | Feature | Tool | Purpose | Access Link |
@@ -173,70 +86,6 @@ Full pipeline docs: [`ci-cd/README.md`](./ci-cd/README.md)
 
 ---
 
-## 🛠️ Advanced Local Testing (CI/CD)
-
-You can now test all GitHub Actions locally using `act` before pushing to the cloud.
-
-```bash
-# Install act
-scoop install act
-
-# Run CI locally (tests, lint, docker build)
-act -j backend --container-architecture linux/amd64
-
-# Run Smoke Tests on local cluster
-act -j smoke-test-local --container-architecture linux/amd64
-```
-
-### Prerequisites
-
-```bash
-git clone https://github.com/nirjxr26/Aegismesh-IAM.git
-cd AegisMesh-IAM
-cp .env.example .env
-```
-
-Edit `.env` with your values before starting.
-
----
-
-### Option 1 — Docker (Recommended)
-
-```bash
-docker-compose up --build
-```
-
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:5000 |
-| Grafana | http://localhost:3010 |
-| MLflow | http://localhost:5001 |
-| Prometheus | http://localhost:9090 |
-
-Full setup guide: [`Docker_Setup.md`](./Docker_Setup.md)
-
----
-
-### Option 2 — Local Development
-
-Requires Node.js 22+, Python 3.11+, and PostgreSQL 17+.
-
-```bash
-# Backend
-cd backend
-npm install
-npm run prisma:generate
-npm run dev        # runs on :5000
-
-# Security Engine
-cd security-engine
-pip install -r requirements.txt
-python src/main.py # runs on :8000
-```
-
----
-
 ## 📂 Project Structure
 
 ```text
@@ -258,7 +107,7 @@ Detailed guides for specific components of the AegisMesh ecosystem:
 
 | Category | Guide |
 | :--- | :--- |
-| **Setup** | [Docker Setup](docs/SETUP.md) \| [Local Development](#option-2--local-development) |
+| **Setup** | [Docker Setup](docs/SETUP.md) \| [Local Development](#quick-start) |
 | **Deployment** | [CI/CD Pipeline](ci-cd/README.md) \| [GitHub Runner](docs/GITHUB_RUNNER_SETUP.md) |
 | **Index** | **[All Documentation](docs/README.md)** |
 | **Kubernetes** | [K8s Overview](k8s/README.md) \| [Ingress & TLS](docs/devops/ingress-and-tls.md) \| [HPA](docs/devops/hpa-metrics-server.md) |
@@ -268,6 +117,64 @@ Detailed guides for specific components of the AegisMesh ecosystem:
 
 ---
 
+## Quick Start
+
+### Prerequisites
+
+```bash
+git clone https://github.com/nirjxr26/Aegismesh-IAM.git
+cd AegisMesh-IAM
+cp .env.example .env
+```
+
+Edit `.env` with your values before starting.
+
+### Docker (Recommended)
+
+```bash
+docker-compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3001 |
+| Backend API | http://localhost:5000 |
+| Security Engine | http://localhost:8000 |
+| Grafana | http://localhost:3010 |
+| MLflow | http://localhost:5001 |
+| Prometheus | http://localhost:9090 |
+
+---
+
+## 🛠️ Local Action Testing (CI/CD)
+
+You can now test all GitHub Actions locally using `act` before pushing to the cloud.
+
+```bash
+# Install act
+scoop install act
+
+# Run CI locally (tests, lint, docker build)
+act -j backend --container-architecture linux/amd64
+
+# Run Smoke Tests on local cluster
+act -j smoke-test-local --container-architecture linux/amd64
+```
+
+---
+
+## 📦 Integrated View (Summary)
+
+AegisMesh is now a **Hardened MLOps Platform** where:
+1.  **Code** is verified by **SonarCloud** and **CodeQL**.
+2.  **Builds** are optimized via **Multi-Stage Docker** and pinned security layers.
+3.  **Deployments** are automated to **Local/Cloud K8s** via **Windows-Ready CI/CD**.
+4.  **AI Intelligence** is managed by **MLflow** and retrained automatically via **CronJobs**.
+5.  **Observability** is unified in **Datadog** (Cloud APM) and **Grafana** (Local Infra).
+6.  **Runtime Security** is enforced by **Falco** and streamed as real-time signals.
+
+---
+
 ## License
 
-MIT — see [`LICENSE`](./LICENSE)
+MIT — see [LICENSE](LICENSE)
