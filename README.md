@@ -246,6 +246,7 @@ python src/main.py # runs on :8000
 ├── 🏗️ k8s/               # Manifests, Kustomize & NetPolicies
 ├── ☁️ terraform/         # AWS Infrastructure (ECR)
 ├── 📊 monitoring/        # Prometheus, Grafana & MLflow
+├── 📜 scripts/           # Cluster install & automation
 └── 📝 docs/              # Detailed system guides
 ```
 
@@ -257,8 +258,9 @@ Detailed guides for specific components of the AegisMesh ecosystem:
 
 | Category | Guide |
 | :--- | :--- |
-| **Setup** | [Docker Setup](Docker_Setup.md) \| [Local Development](#option-2--local-development) |
+| **Setup** | [Docker Setup](docs/SETUP.md) \| [Local Development](#option-2--local-development) |
 | **Deployment** | [CI/CD Pipeline](ci-cd/README.md) \| [GitHub Runner](docs/GITHUB_RUNNER_SETUP.md) |
+| **Index** | **[All Documentation](docs/README.md)** |
 | **Kubernetes** | [K8s Overview](k8s/README.md) \| [Ingress & TLS](docs/devops/ingress-and-tls.md) \| [HPA](docs/devops/hpa-metrics-server.md) |
 | **Security** | [Sealed Secrets](docs/devops/sealedsecrets-sops.md) \| [Falco Runtime](docs/devops/falco.md) \| [Kyverno Policies](docs/devops/kyverno-networkpolicy.md) |
 | **Reliability** | [Argo Rollouts](docs/devops/argo-rollouts.md) \| [Backups (Velero)](docs/devops/backups-velero-minio.md) |
