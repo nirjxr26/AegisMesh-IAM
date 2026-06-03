@@ -1,4 +1,10 @@
 require('dotenv').config();
+if (process.env.DD_APM_ENABLED === 'true') {
+  require('dd-trace').init({
+    logInjection: true,
+    profiling: true,
+  });
+}
 
 const app = require('./app');
 const logger = require('./utils/logger');

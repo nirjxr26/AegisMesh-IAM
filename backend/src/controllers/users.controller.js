@@ -502,7 +502,7 @@ exports.createUser = async (req, res, next) => {
 
         await auditUser.created(req, newUser.id, email);
 
-        const { passwordHash: ignored, ...safeUser } = newUser;
+        const { passwordHash: _ignored, ...safeUser } = newUser;
         res.status(201).json({ success: true, data: safeUser });
 
 
@@ -510,6 +510,47 @@ exports.createUser = async (req, res, next) => {
         next(error);
     }
 };
+
+async function validateUserUpdate(id, status, user, email) {
+    const validStatuses = ['ACTIVE', 'INACTIVE', 'LOCKED'];
+    if (status && !validStatuses.includes(status)) {
+        return { valid: false, code: 'USER_007', message: 'Invalid status value' };
+    }
+
+    if (status === 'LOCKED') {
+        const isTargetSuperAdmin = user.userRoles.some((ur) => ur.role.name === 'SuperAdmin');
+        if (isTargetSuperAdmin) {
+            const activeSuperAdmins = await prisma.user.count({
+                where: { userRoles: { some: { role: { name: 'SuperAdmin' } } }, status: 'ACTIVE' },
+            });
+            if (activeSuperAdmins <= 1) {
+                return { valid: false, code: 'USER_003', message: 'Cannot lock the last SuperAdmin' };
+            }
+        }
+    }
+
+    if (email && email !== user.email) {
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing && existing.id !== id) {
+            return { valid: false, code: 'USER_006', message: 'Email already in use' };
+        }
+    }
+
+    return { valid: true };
+}
+
+async function sanitizeUpdateRoleIds(roleIds) {
+    if (!Array.isArray(roleIds)) return null;
+
+    const sanitized = [...new Set(roleIds)];
+    if (sanitized.length === 0) return sanitized;
+
+    const existingCount = await prisma.role.count({ where: { id: { in: sanitized } } });
+    if (existingCount !== sanitized.length) {
+        throw new Error('ROLE_001: One or more role IDs are invalid');
+    }
+    return sanitized;
+}
 
 exports.updateUser = async (req, res, next) => {
     try {
@@ -525,61 +566,30 @@ exports.updateUser = async (req, res, next) => {
             return res.status(404).json({ success: false, error: { code: 'USER_001', message: 'User not found' } });
         }
 
-        const validStatuses = ['ACTIVE', 'INACTIVE', 'LOCKED'];
-        if (status && !validStatuses.includes(status)) {
-            return res.status(400).json({ success: false, error: { code: 'USER_007', message: 'Invalid status value' } });
-        }
-
         if (req.user.id === id && status && status !== 'ACTIVE') {
             return res.status(400).json({ success: false, error: { code: 'USER_008', message: 'Cannot change your own status' } });
         }
 
-        if (status === 'LOCKED') {
-            const isTargetSuperAdmin = user.userRoles.some((ur) => ur.role.name === 'SuperAdmin');
-            if (isTargetSuperAdmin) {
-                const superAdmins = await prisma.user.count({
-                    where: { userRoles: { some: { role: { name: 'SuperAdmin' } } }, status: 'ACTIVE' },
-                });
-                if (superAdmins <= 1) {
-                    return res.status(400).json({ success: false, error: { code: 'USER_003', message: 'Cannot lock the last SuperAdmin' } });
-                }
-            }
+        const validation = await validateUserUpdate(id, status, user, email);
+        if (!validation.valid) {
+            return res.status(400).json({ success: false, error: { code: validation.code, message: validation.message } });
         }
 
-        if (email && email !== user.email) {
-            const existing = await prisma.user.findUnique({ where: { email } });
-            if (existing && existing.id !== id) {
-                return res.status(409).json({ success: false, error: { code: 'USER_006', message: 'Email already in use' } });
-            }
-        }
-
-        let sanitizedRoleIds = null;
-        if (Array.isArray(roleIds)) {
-            sanitizedRoleIds = [...new Set(roleIds)];
-            if (sanitizedRoleIds.length > 0) {
-                const existingRoles = await prisma.role.count({ where: { id: { in: sanitizedRoleIds } } });
-                if (existingRoles !== sanitizedRoleIds.length) {
-                    return res.status(400).json({
-                        success: false,
-                        error: { code: 'ROLE_001', message: 'One or more role IDs are invalid' },
-                    });
-                }
-            }
+        let sanitizedRoleIds;
+        try {
+            sanitizedRoleIds = await sanitizeUpdateRoleIds(roleIds);
+        } catch (error) {
+            return res.status(400).json({ success: false, error: { code: 'ROLE_001', message: error.message.split(': ')[1] } });
         }
 
         const updateData = {
             updatedAt: new Date(),
+            ...(email !== undefined && { email }),
+            ...(firstName !== undefined && { firstName }),
+            ...(lastName !== undefined && { lastName }),
+            ...(status !== undefined && { status }),
+            ...(status === 'ACTIVE' && { failedLoginCount: 0, lockedUntil: null })
         };
-
-        if (email !== undefined) updateData.email = email;
-        if (firstName !== undefined) updateData.firstName = firstName;
-        if (lastName !== undefined) updateData.lastName = lastName;
-        if (status !== undefined) updateData.status = status;
-
-        if (status === 'ACTIVE') {
-            updateData.failedLoginCount = 0;
-            updateData.lockedUntil = null;
-        }
 
         const updatedUser = await prisma.$transaction(async (tx) => {
             if (Object.keys(updateData).length > 1) {
@@ -588,14 +598,9 @@ exports.updateUser = async (req, res, next) => {
 
             if (sanitizedRoleIds) {
                 await tx.userRole.deleteMany({ where: { userId: id } });
-
                 if (sanitizedRoleIds.length > 0) {
                     await tx.userRole.createMany({
-                        data: sanitizedRoleIds.map((roleId) => ({
-                            userId: id,
-                            roleId,
-                            assignedBy: req.user.id,
-                        })),
+                        data: sanitizedRoleIds.map((roleId) => ({ userId: id, roleId, assignedBy: req.user.id })),
                         skipDuplicates: true,
                     });
                 }
@@ -606,14 +611,7 @@ exports.updateUser = async (req, res, next) => {
                 await tx.user.update({ where: { id }, data: { failedLoginCount: 0 } });
             }
 
-            return tx.user.findUnique({
-                where: { id },
-                include: {
-                    userRoles: {
-                        include: { role: true },
-                    },
-                },
-            });
+            return tx.user.findUnique({ where: { id }, include: { userRoles: { include: { role: true } } } });
         });
 
         if (status && status !== user.status) {
@@ -621,13 +619,7 @@ exports.updateUser = async (req, res, next) => {
         }
 
         const { passwordHash, mfaSecret, mfaBackupCodes, passwordResetToken, emailVerifyToken, ...safeUser } = updatedUser;
-        res.json({
-            success: true,
-            data: {
-                ...safeUser,
-                roles: updatedUser.userRoles.map((ur) => ur.role),
-            },
-        });
+        res.json({ success: true, data: { ...safeUser, roles: updatedUser.userRoles.map((ur) => ur.role) } });
     } catch (error) {
         next(error);
     }
@@ -638,7 +630,7 @@ function uniqueIds(ids = []) {
 }
 
 function toCsvCell(value) {
-    return `"${String(value ?? '').replaceAll('""')}"`;
+    return `"${String(value ?? '').replaceAll('"', '""')}"`;
 }
 
 exports.bulkUpdateStatus = async (req, res, next) => {
