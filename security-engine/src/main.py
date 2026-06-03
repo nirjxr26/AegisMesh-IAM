@@ -1,3 +1,6 @@
+import os
+if os.getenv("DD_APM_ENABLED") == "true":
+    from ddtrace import patch_all; patch_all()
 from fastapi import FastAPI, HTTPException, Request
 from .anomaly_detector import AnomalyDetector
 from prometheus_client import Counter, Histogram, Gauge, make_asgi_app

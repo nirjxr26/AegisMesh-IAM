@@ -37,6 +37,8 @@ spec:
               name: security-secrets
               key: datadog-api-key
               optional: true
+        - name: DATADOG_HOST
+          value: "https://api.us5.datadoghq.com"
 ---
 apiVersion: v1
 kind: Service
