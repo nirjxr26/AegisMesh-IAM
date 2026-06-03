@@ -17,9 +17,12 @@ COPY prisma ./prisma
 # Generate Prisma client (build-time)
 RUN npm run prisma:generate
 
-# Copy source and other files for potential build steps (if any)
-# If no build step exists, we only need package.json and src for production
-COPY . .
+# Copy source code explicitly instead of recursive COPY . .
+# This prevents accidentally including sensitive local files or large binaries.
+COPY src ./src
+COPY package.json ./
+# Include other necessary root files if any (e.g. specific configs)
+# COPY config.js ./
 
 # Production stage
 FROM node:22-alpine

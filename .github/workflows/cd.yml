@@ -107,6 +107,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify local cluster access
+        shell: bash
         run: |
           set -eux
           kubectl config current-context
@@ -116,11 +117,13 @@ jobs:
         uses: azure/setup-kubectl@901a10e89ea615cf61f57ac05cecdf23e7de06d8
 
       - name: Verify target namespace exists
+        shell: bash
         run: |
           set -eux
           kubectl get namespace "$KUBE_NAMESPACE"
 
       - name: Wait for rollouts
+        shell: bash
         run: |
           set -eux
           kubectl rollout status deployment/backend -n "$KUBE_NAMESPACE" --timeout=180s
@@ -128,6 +131,7 @@ jobs:
 
       - name: Run smoke tests
         id: smoke
+        shell: bash
         run: |
           set -eux
           chmod +x scripts/ci/smoke-test.sh
