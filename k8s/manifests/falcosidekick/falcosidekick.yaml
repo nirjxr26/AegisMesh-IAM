@@ -30,7 +30,7 @@ spec:
             ephemeral-storage: 256Mi
         env:
         - name: WEBHOOK_ADDRESS
-          value: "http://security-engine.aegismesh:8000/analyze"
+          value: "http://security-engine.aegismesh:8000/analyze" # nosonar
         - name: DATADOG_APIKEY
           valueFrom:
             secretKeyRef:

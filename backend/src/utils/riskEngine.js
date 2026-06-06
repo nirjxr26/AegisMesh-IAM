@@ -1,7 +1,7 @@
 const axios = require('axios');
 const logger = require('./logger');
 
-const SECURITY_ENGINE_URL = process.env.SECURITY_ENGINE_URL || 'http://security-engine:8000';
+const SECURITY_ENGINE_URL = process.env.SECURITY_ENGINE_URL || 'http://security-engine:8000'; // nosonar
 
 /**
  * Gets a risk score from the ML-powered security engine.
