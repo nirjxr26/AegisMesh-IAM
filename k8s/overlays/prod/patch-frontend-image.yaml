@@ -6,17 +6,14 @@ metadata:
 spec:
   template:
     spec:
-      automountServiceAccountToken: false
       containers:
         - name: frontend
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:b11f3991228702265ef848d95b626b06444d4a64
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:e3488f0e2a4cf3f4161d270ee6ab7c70af367378
           imagePullPolicy: IfNotPresent
           resources:
             requests:
               cpu: "50m"
               memory: "64Mi"
-              ephemeral-storage: "64Mi"
             limits:
               cpu: "250m"
               memory: "256Mi"
-              ephemeral-storage: "256Mi"
