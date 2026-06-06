@@ -231,4 +231,4 @@ python src/main.py # runs on :8000
 
 ## License
 
-MIT — see [`LICENSE`](./LICENSE)
+MIT — see [LICENSE](LICENSE)
