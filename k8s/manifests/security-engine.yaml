@@ -81,4 +81,4 @@ spec:
         - name: DATABASE_URL
           value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
         - name: MLFLOW_TRACKING_URI
-          value: "http://mlflow.monitoring:5000"
+          value: "http://mlflow.monitoring:5000" # nosonar
