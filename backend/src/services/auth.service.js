@@ -17,20 +17,7 @@ const LOCK_DURATION_MINUTES = Number.parseInt(process.env.ACCOUNT_LOCK_DURATION_
 const RESET_EXPIRY_HOURS = Number.parseInt(process.env.PASSWORD_RESET_EXPIRY_HOURS, 10) || 1;
 
 function hasConfiguredBackupCodes(user) {
-    if (Array.isArray(user?.backupCodes) && user.backupCodes.length > 0) {
-        return true;
-    }
-
-    if (!user?.mfaBackupCodes) {
-        return false;
-    }
-
-    try {
-        const parsed = JSON.parse(user.mfaBackupCodes);
-        return Array.isArray(parsed) && parsed.length > 0;
-    } catch {
-        return false;
-    }
+    return Array.isArray(user?.backupCodes) && user.backupCodes.length > 0;
 }
 
 /**
@@ -44,9 +31,10 @@ async function register({ email, password, firstName, lastName, req }) {
 
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+    const hashedVerifyToken = crypto.createHash('sha256').update(emailVerifyToken).digest('hex');
 
     const user = await prisma.user.create({
-        data: { email, passwordHash, firstName, lastName, emailVerifyToken },
+        data: { email, passwordHash, firstName, lastName, emailVerifyToken: hashedVerifyToken },
     });
 
     try {
@@ -229,7 +217,7 @@ async function validateMFA({ user, totpCode, req }) {
 
     const normalizedCode = String(totpCode).toUpperCase();
 
-    const backupCodeValid = await validateBackupCode({
+    const backupCodeValid = await validateHashedBackupCode({
         user,
         normalizedCode,
         req,
@@ -239,42 +227,14 @@ async function validateMFA({ user, totpCode, req }) {
         return;
     }
 
-    const decryptedSecret =
-        decryptText(user.mfaSecret) || user.mfaSecret;
+    const decryptedSecret = decryptText(user.mfaSecret) || user.mfaSecret;
 
-    const isValid = mfaService.verifyTOTP(
-        totpCode,
-        decryptedSecret
-    );
+    const isValid = mfaService.verifyTOTP(totpCode, decryptedSecret);
 
     if (!isValid) {
         await auditAuth.loginMFAFailed(req, user.id);
-
         throw createError('AUTH_005');
     }
-}
-
-async function validateBackupCode({
-    user,
-    normalizedCode,
-    req,
-}) {
-    const hashedCodeValid =
-        await validateHashedBackupCode({
-            user,
-            normalizedCode,
-            req,
-        });
-
-    if (hashedCodeValid) {
-        return true;
-    }
-
-    return validateLegacyBackupCode({
-        user,
-        normalizedCode,
-        req,
-    });
 }
 
 async function validateHashedBackupCode({
@@ -282,10 +242,7 @@ async function validateHashedBackupCode({
     normalizedCode,
     req,
 }) {
-    if (
-        !Array.isArray(user.backupCodes) ||
-        user.backupCodes.length === 0
-    ) {
+    if (!Array.isArray(user.backupCodes) || user.backupCodes.length === 0) {
         return false;
     }
 
@@ -293,9 +250,7 @@ async function validateHashedBackupCode({
     let matched = false;
 
     for (const hash of user.backupCodes) {
-        const isMatch =
-            !matched &&
-            await bcrypt.compare(normalizedCode, hash);
+        const isMatch = !matched && (await bcrypt.compare(normalizedCode, hash));
 
         if (isMatch) {
             matched = true;
@@ -312,38 +267,6 @@ async function validateHashedBackupCode({
     await prisma.user.update({
         where: { id: user.id },
         data: { backupCodes: remainingHashes },
-    });
-
-    await auditMFA.backupCodeUsed(req, user.id);
-
-    return true;
-}
-
-async function validateLegacyBackupCode({
-    user,
-    normalizedCode,
-    req,
-}) {
-    if (!user.mfaBackupCodes) {
-        return false;
-    }
-
-    const legacyCodes = JSON.parse(user.mfaBackupCodes);
-
-    const codeIndex =
-        legacyCodes.indexOf(normalizedCode);
-
-    if (codeIndex === -1) {
-        return false;
-    }
-
-    legacyCodes.splice(codeIndex, 1);
-
-    await prisma.user.update({
-        where: { id: user.id },
-        data: {
-            mfaBackupCodes: JSON.stringify(legacyCodes),
-        },
     });
 
     await auditMFA.backupCodeUsed(req, user.id);
@@ -556,7 +479,8 @@ async function resetPassword({ token, newPassword, req }) {
  * Verify email
  */
 async function verifyEmail({ token, req }) {
-    const user = await prisma.user.findFirst({ where: { emailVerifyToken: token } });
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await prisma.user.findFirst({ where: { emailVerifyToken: hashedToken } });
 
     if (!user) {
         throw createError('AUTH_007', { message: 'Invalid verification token' });

@@ -40,12 +40,8 @@ export default function LiveAuditFeed({ onRowClick, refetchAuditLogs }) {
         stopConnection();
         setConnState('connecting');
 
-        const token = localStorage.getItem('accessToken');
-        const streamUrl = token
-            ? `/api/audit-logs/stream?token=${encodeURIComponent(token)}`
-            : '/api/audit-logs/stream';
-
-        const es = new EventSource(streamUrl);
+        const streamUrl = '/api/audit-logs/stream';
+        const es = new EventSource(streamUrl, { withCredentials: true });
         eventSourceRef.current = es;
 
         es.onopen = () => {

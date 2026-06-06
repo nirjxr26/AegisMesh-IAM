@@ -14,7 +14,7 @@ spec:
         app: trivy-operator
     spec:
       serviceAccountName: trivy-operator
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       containers:
       - name: trivy-operator
         image: ghcr.io/aquasecurity/trivy-operator:0.22.0

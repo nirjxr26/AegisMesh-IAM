@@ -3,6 +3,8 @@ import axios from 'axios';
 const AUTH_EXPIRED_EVENT = 'iam:auth-expired';
 const REAUTH_HEADER = 'x-reauth-token';
 const REAUTH_TOKEN_STORAGE_KEY = 'iam:reauth-token';
+const CSRF_TOKEN_HEADER = 'x-csrf-token';
+
 const PUBLIC_AUTH_PATHS = [
     '/auth/login',
     '/auth/register',
@@ -12,8 +14,9 @@ const PUBLIC_AUTH_PATHS = [
     '/auth/logout',
 ];
 
-const getLocalStorage = () => globalThis.localStorage;
-const getSessionStorage = () => globalThis.sessionStorage;
+let csrfToken = null;
+
+const getSessionStorage = () => (typeof window !== 'undefined' ? window.sessionStorage : null);
 
 const api = axios.create({
     baseURL: '/api',
@@ -23,93 +26,82 @@ const api = axios.create({
     },
 });
 
+/**
+ * Fetches a fresh CSRF token from the server.
+ */
+export const fetchCsrfToken = async () => {
+    try {
+        const { data } = await axios.get('/api/csrf-token', { withCredentials: true });
+        csrfToken = data.data.csrfToken;
+        api.defaults.headers.common[CSRF_TOKEN_HEADER] = csrfToken;
+        return csrfToken;
+    } catch (error) {
+        console.error('Failed to fetch CSRF token', error);
+        return null;
+    }
+};
+
 const getStoredReauthToken = () => {
     return getSessionStorage()?.getItem(REAUTH_TOKEN_STORAGE_KEY) || null;
 };
 
 const storeReauthToken = (token) => {
-    const sessionStorage = getSessionStorage();
-    if (!sessionStorage) {
-        return;
-    }
-
-    if (token) {
-        sessionStorage.setItem(REAUTH_TOKEN_STORAGE_KEY, token);
+    const storage = getSessionStorage();
+    if (storage && token) {
+        storage.setItem(REAUTH_TOKEN_STORAGE_KEY, token);
     }
 };
 
 const clearStoredReauthToken = () => {
-    const sessionStorage = getSessionStorage();
-    if (!sessionStorage) {
-        return;
-    }
-
-    sessionStorage.removeItem(REAUTH_TOKEN_STORAGE_KEY);
-};
-
-const clearStoredAuth = () => {
-    const localStorage = getLocalStorage();
-    localStorage?.removeItem('accessToken');
-    localStorage?.removeItem('refreshToken');
-    clearStoredReauthToken();
-    delete api.defaults.headers.common.Authorization;
+    getSessionStorage()?.removeItem(REAUTH_TOKEN_STORAGE_KEY);
 };
 
 const notifyAuthExpired = () => {
-    globalThis.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
 };
 
 const redirectToLoginIfNeeded = () => {
-    const currentPath = globalThis.location?.pathname || '';
-    if (currentPath === '/login') {
-        return;
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
     }
-
-    globalThis.location.href = '/login';
 };
 
 const isRefreshRequest = (url = '') => url.includes('/auth/refresh-token');
 const isPublicAuthRequest = (url = '') => PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
 
-// Request interceptor to attach access token
+// Request interceptor
 api.interceptors.request.use(
-    (config) => {
-        if (config.skipAuth) {
-            return config;
+    async (config) => {
+        // Ensure CSRF token is present for mutating requests
+        const isMutating = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase());
+        if (isMutating && !csrfToken && config.url !== '/csrf-token') {
+            await fetchCsrfToken();
         }
 
-        const token = getLocalStorage()?.getItem('accessToken');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        } else if (config.headers?.Authorization) {
-            delete config.headers.Authorization;
+        if (csrfToken) {
+            config.headers[CSRF_TOKEN_HEADER] = csrfToken;
         }
 
         const reauthToken = getStoredReauthToken();
         if (reauthToken && !isPublicAuthRequest(config.url || '')) {
             config.headers[REAUTH_HEADER] = reauthToken;
-        } else if (config.headers?.[REAUTH_HEADER]) {
-            delete config.headers[REAUTH_HEADER];
         }
 
         return config;
     },
-    (error) => {
-        throw error;
-    }
+    (error) => Promise.reject(error)
 );
 
-// Response interceptor for token refresh
+// Response interceptor
 let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
     failedQueue.forEach((prom) => {
-        if (error) {
-            prom.reject(error);
-        } else {
-            prom.resolve(token);
-        }
+        if (error) prom.reject(error);
+        else prom.resolve(token);
     });
     failedQueue = [];
 };
@@ -117,16 +109,11 @@ const processQueue = (error, token = null) => {
 api.interceptors.response.use(
     (response) => {
         const reauthToken = response.headers?.[REAUTH_HEADER];
-        if (reauthToken) {
-            storeReauthToken(reauthToken);
-        }
-
+        if (reauthToken) storeReauthToken(reauthToken);
         return response;
     },
     async (error) => {
         const originalRequest = error.config;
-        const requestUrl = originalRequest?.url || '';
-        const hasRefreshToken = Boolean(getLocalStorage()?.getItem('refreshToken'));
         const responseCode = error.response?.data?.code || error.response?.data?.error?.code;
 
         if (responseCode === 'REAUTH_REQUIRED') {
@@ -134,70 +121,45 @@ api.interceptors.response.use(
             throw error;
         }
 
+        // Handle expired CSRF token
+        if (error.response?.status === 403 && responseCode === 'EBADCSRFTOKEN') {
+            await fetchCsrfToken();
+            originalRequest.headers[CSRF_TOKEN_HEADER] = csrfToken;
+            return api(originalRequest);
+        }
+
         if (
             error.response?.status === 401
             && originalRequest
             && !originalRequest._retry
-            && !originalRequest.skipAuth
-            && hasRefreshToken
-            && !isRefreshRequest(requestUrl)
-            && !isPublicAuthRequest(requestUrl)
+            && !isRefreshRequest(originalRequest.url || '')
+            && !isPublicAuthRequest(originalRequest.url || '')
         ) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
-                })
-                    .then((token) => {
-                        if (token) {
-                            originalRequest.headers.Authorization = `Bearer ${token}`;
-                        }
-                        return api(originalRequest);
-                    })
-                    .catch((err) => {
-                        throw err;
-                    });
+                }).then(() => api(originalRequest)).catch((err) => Promise.reject(err));
             }
 
             originalRequest._retry = true;
             isRefreshing = true;
 
             try {
-                const refreshToken = getLocalStorage()?.getItem('refreshToken');
-                if (!refreshToken) {
-                    clearStoredAuth();
-                    notifyAuthExpired();
-                    redirectToLoginIfNeeded();
-                    throw error;
-                }
-
-                const { data } = await axios.post('/api/auth/refresh-token', { refreshToken }, {
-                    withCredentials: true,
-                    skipAuth: true,
-                });
-
-                const { accessToken, refreshToken: newRefreshToken } = data.data;
-                getLocalStorage()?.setItem('accessToken', accessToken);
-                if (newRefreshToken) {
-                    getLocalStorage()?.setItem('refreshToken', newRefreshToken);
-                }
-
-                api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-                processQueue(null, accessToken);
-
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                // Tokens are in cookies, so we just call the endpoint
+                await axios.post('/api/auth/refresh-token', {}, { withCredentials: true });
+                processQueue(null);
                 return api(originalRequest);
             } catch (refreshError) {
-                processQueue(refreshError, null);
-                clearStoredAuth();
+                processQueue(refreshError);
                 notifyAuthExpired();
                 redirectToLoginIfNeeded();
-                throw refreshError;
+                return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
             }
         }
 
-        throw error;
+        return Promise.reject(error);
     }
 );
 
@@ -205,14 +167,8 @@ api.interceptors.response.use(
 export const authAPI = {
     register: (data) => api.post('/auth/register', data),
     login: (data) => api.post('/auth/login', data),
-    logout: () => {
-        const refreshToken = localStorage.getItem('refreshToken');
-        return api.post('/auth/logout', refreshToken ? { refreshToken } : {});
-    },
-    refreshToken: () => {
-        const refreshToken = localStorage.getItem('refreshToken');
-        return api.post('/auth/refresh-token', refreshToken ? { refreshToken } : {});
-    },
+    logout: () => api.post('/auth/logout', {}),
+    refreshToken: () => api.post('/auth/refresh-token', {}),
     forgotPassword: (data) => api.post('/auth/forgot-password', data),
     resetPassword: (data) => api.post('/auth/reset-password', data),
     verifyEmail: (token) => api.post('/auth/verify-email', { token }),

@@ -483,29 +483,32 @@ exports.createUser = async (req, res, next) => {
 
         const passwordHash = await bcrypt.hash(password, 12);
 
-        const newUser = await prisma.user.create({
-            data: {
-                email,
-                firstName,
-                lastName,
-                passwordHash,
-                status: status || 'ACTIVE',
-                emailVerified: true,
-            },
-        });
+        const newUser = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    email,
+                    firstName,
+                    lastName,
+                    passwordHash,
+                    status: status || 'ACTIVE',
+                    emailVerified: true,
+                },
+            });
 
-        if (Array.isArray(roleIds) && roleIds.length > 0) {
-            await Promise.all(
-                roleIds.map((roleId) => prisma.userRole.create({ data: { userId: newUser.id, roleId } }))
-            );
-        }
+            if (Array.isArray(roleIds) && roleIds.length > 0) {
+                await tx.userRole.createMany({
+                    data: roleIds.map((roleId) => ({ userId: user.id, roleId, assignedBy: req.user.id })),
+                    skipDuplicates: true
+                });
+            }
+
+            return user;
+        });
 
         await auditUser.created(req, newUser.id, email);
 
         const { passwordHash: _, ...safeUser } = newUser;
         res.status(201).json({ success: true, data: safeUser });
-
-
     } catch (error) {
         next(error);
     }

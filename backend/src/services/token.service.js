@@ -5,8 +5,16 @@ const logger = require('../utils/logger');
 const { auditSession } = require('../utils/auditLog');
 const { getOrganizationSettings } = require('./organizationSettings.service');
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'dev-access-secret';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret';
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || (process.env.NODE_ENV === 'test' ? 'test-access-secret' : null);
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (process.env.NODE_ENV === 'test' ? 'test-refresh-secret' : null);
+
+if (!ACCESS_SECRET || !REFRESH_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT secrets must be provided in production environment');
+    }
+    logger.warn('⚠️ Using unstable JWT secrets. Set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET in .env');
+}
+
 const ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '15m';
 const REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 

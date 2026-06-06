@@ -44,6 +44,7 @@ exports.updateGroup = async (req, res, next) => {
         const { name, description } = req.body;
         const group = await prisma.group.findUnique({ where: { id: req.params.id } });
         if (!group) throw createError('RBAC_004');
+        if (group.isSystem) throw createError('RBAC_005');
 
         const updatedGroup = await prisma.group.update({ where: { id: req.params.id }, data: { name, description } });
         await auditGroup.updated(req, updatedGroup.id, { name, description });
@@ -56,6 +57,7 @@ exports.deleteGroup = async (req, res, next) => {
     try {
         const group = await prisma.group.findUnique({ where: { id: req.params.id } });
         if (!group) throw createError('RBAC_004');
+        if (group.isSystem) throw createError('RBAC_005');
 
         await prisma.group.delete({ where: { id: req.params.id } });
         await auditGroup.deleted(req, group.id, group.name);

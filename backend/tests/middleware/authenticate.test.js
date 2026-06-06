@@ -218,16 +218,14 @@ describe('authenticate middleware', () => {
         expect(res.status).toHaveBeenCalledWith(401);
     });
 
-    it('allows token via query string on /stream path', async () => {
-        tokenService.verifyAccessToken.mockReturnValue({ sub: 'user-1', sessionId: null });
-        prisma.user.findUnique.mockResolvedValue(ACTIVE_USER);
-
+    it('ignores tokens via query string on /stream path', async () => {
         const req = mockReq({ path: '/stream', query: { token: 'stream-token' } });
+        const res = mockRes();
         const next = jest.fn();
 
-        await authenticate(req, mockRes(), next);
+        await authenticate(req, res, next);
 
-        expect(tokenService.verifyAccessToken).toHaveBeenCalledWith('stream-token');
-        expect(next).toHaveBeenCalled();
+        expect(tokenService.verifyAccessToken).not.toHaveBeenCalledWith('stream-token');
+        expect(res.status).toHaveBeenCalledWith(401);
     });
 });

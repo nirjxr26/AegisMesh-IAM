@@ -17,6 +17,14 @@ exports.assignRole = async (req, res, next) => {
         const { roleId } = req.body;
         const userId = req.params.id;
 
+        const roleToAssign = await prisma.role.findUnique({ where: { id: roleId } });
+        if (!roleToAssign) return res.status(404).json({ success: false, error: 'Role not found' });
+
+        // Prevent non-SuperAdmins from assigning the SuperAdmin role
+        if (roleToAssign.name === 'SuperAdmin' && req.user.role !== 'SuperAdmin') {
+            return res.status(403).json({ success: false, error: { code: 'RBAC_001', message: 'Only SuperAdmins can assign the SuperAdmin role' } });
+        }
+
         const existing = await prisma.userRole.findUnique({
             where: { userId_roleId: { userId, roleId } }
         });
