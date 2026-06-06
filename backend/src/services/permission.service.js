@@ -61,7 +61,13 @@ function extractPolicies(roleMap) {
         });
     });
 
-    return Array.from(policyMap.values());
+    return Array.from(policyMap.values()).map((p) => ({
+        id: p.id,
+        name: p.name,
+        effect: p.effect,
+        actions: p.actions,
+        resources: p.resources,
+    }));
 }
 
 function isUserSuperAdmin(userRoles, userGroups) {
@@ -71,12 +77,11 @@ function isUserSuperAdmin(userRoles, userGroups) {
     return userGroups.some((ug) => ug.group?.groupRoles?.some((gr) => check(gr.role)));
 }
 
-/* -------------------------------------------------------------------------- */
-/* Permissions Public API */
-/* -------------------------------------------------------------------------- */
-
-async function getUserPermissions(userId) {
-    const [userRoles, userGroups] = await Promise.all([
+/**
+ * Fetches all roles and policies for a user in a single efficient query.
+ */
+async function fetchFullUserAccessContext(userId) {
+    return Promise.all([
         prisma.userRole.findMany({
             where: { userId },
             include: { role: { include: { rolePolicies: { include: { policy: true } } } } }
@@ -86,30 +91,27 @@ async function getUserPermissions(userId) {
             include: { group: { include: { groupRoles: { include: { role: { include: { rolePolicies: { include: { policy: true } } } } } } } } }
         })
     ]);
+}
 
+/* -------------------------------------------------------------------------- */
+/* Permissions Public API */
+/* -------------------------------------------------------------------------- */
+
+async function getUserPermissions(userId) {
+    const [userRoles, userGroups] = await fetchFullUserAccessContext(userId);
     const roleMap = extractUniqueRoles(userRoles, userGroups);
-    const policies = extractPolicies(roleMap);
-
-    return policies.map((p) => ({
-        id: p.id,
-        name: p.name,
-        effect: p.effect,
-        actions: p.actions,
-        resources: p.resources,
-    }));
+    return extractPolicies(roleMap);
 }
 
 async function checkPermission(userId, action, resource) {
-    const [userRoles, userGroups] = await Promise.all([
-        prisma.userRole.findMany({ where: { userId }, include: { role: true } }),
-        prisma.userGroup.findMany({ where: { userId }, include: { group: { include: { groupRoles: { include: { role: true } } } } } })
-    ]);
+    const [userRoles, userGroups] = await fetchFullUserAccessContext(userId);
 
     if (isUserSuperAdmin(userRoles, userGroups)) {
         return { allowed: true, reason: 'SuperAdmin', matchedPolicies: [], deniedBy: null };
     }
 
-    const policies = await getUserPermissions(userId);
+    const roleMap = extractUniqueRoles(userRoles, userGroups);
+    const policies = extractPolicies(roleMap);
     const { allowPolicies, denyPolicies } = splitPoliciesByEffect(policies);
 
     // Deny takes precedence
@@ -127,25 +129,16 @@ async function checkPermission(userId, action, resource) {
 }
 
 async function getUserEffectivePermissions(userId) {
-    const [userRoles, userGroups] = await Promise.all([
-        prisma.userRole.findMany({
-            where: { userId },
-            include: { role: { include: { rolePolicies: { include: { policy: true } } } } }
-        }),
-        prisma.userGroup.findMany({
-            where: { userId },
-            include: { group: { include: { groupRoles: { include: { role: { include: { rolePolicies: { include: { policy: true } } } } } } } } }
-        })
-    ]);
+    const [userRoles, userGroups] = await fetchFullUserAccessContext(userId);
+    const roleMap = extractUniqueRoles(userRoles, userGroups);
+    const policies = extractPolicies(roleMap);
 
     const directRoles = userRoles.map((ur) => ur.role);
-    
     const groups = userGroups.map((ug) => ({
         ...ug.group,
         roles: ug.group?.groupRoles?.map((gr) => gr.role) || [],
     }));
 
-    const policies = await getUserPermissions(userId);
     const allowed = new Set();
     const denied = new Set();
 

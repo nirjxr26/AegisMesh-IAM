@@ -154,7 +154,7 @@ export function AuthProvider({ children }) {
         return () => {
             clearRefreshTimer();
         };
-    }, [clearRefreshTimer, loadProfile, refreshToken]);
+    }, [clearRefreshTimer, loadProfile, refreshToken, clearAuthState]);
 
     useEffect(() => {
         const handleAuthExpired = () => {
