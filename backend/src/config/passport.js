@@ -84,6 +84,9 @@ async function handleOAuthLogin(provider, profile, accessToken) {
     });
 
     if (oauthAccount) {
+        if (oauthAccount.user.status !== 'ACTIVE') {
+            throw new Error(`AUTH_008: Account is ${oauthAccount.user.status.toLowerCase()}`);
+        }
         // Update the access token
         await prisma.oAuthAccount.update({
             where: { id: oauthAccount.id },
@@ -96,6 +99,9 @@ async function handleOAuthLogin(provider, profile, accessToken) {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (user) {
+        if (user.status !== 'ACTIVE') {
+            throw new Error(`AUTH_008: Account is ${user.status.toLowerCase()}`);
+        }
         // Link OAuth account to existing user
         await prisma.oAuthAccount.create({
             data: {

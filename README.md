@@ -16,7 +16,7 @@ Core design rules:
 - DENY always wins over ALLOW when policies conflict.
 - Sensitive actions require step-up authentication before they execute.
 - Sessions can be revoked individually or in bulk without logging out every device.
-- Audit logging is treated as a first-class control, not an afterthought.
+- Audit logging is a first-class control, not an afterthought.
 - The ML security engine scores every login in real time and feeds results back into the auth flow.
 
 ---
@@ -210,7 +210,7 @@ python src/main.py # runs on :8000
 ├── terraform/        # AWS infrastructure (ECR, EC2)
 ├── monitoring/       # Prometheus, Grafana, and MLflow configurations
 ├── ci-cd/            # GitHub Actions workflows
-├── scripts/          # Cluster component install and maintenance scripts
+├── scripts/          # Cluster install and maintenance scripts
 ```
 
 ---

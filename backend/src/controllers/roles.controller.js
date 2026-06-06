@@ -42,12 +42,25 @@ exports.getRole = async (req, res, next) => {
 exports.createRole = async (req, res, next) => {
     try {
         const { name, description } = req.body;
-        const existing = await prisma.role.findUnique({ where: { name } });
-        if (existing) return res.status(400).json({ success: false, error: 'Role name must be unique' });
+        const trimmedName = String(name || '').trim();
 
-        const role = await prisma.role.create({ data: { name, description } });
-        await auditRole.created(req, role.id, name);
+        if (!trimmedName) {
+            return res.status(400).json({ success: false, error: 'Role name is required' });
+        }
 
+        const existing = await prisma.role.findFirst({
+            where: { name: { equals: trimmedName, mode: 'insensitive' } }
+        });
+
+        if (existing) {
+            return res.status(409).json({ success: false, error: `Role "${trimmedName}" already exists` });
+        }
+
+        const role = await prisma.role.create({
+            data: { name: trimmedName, description, isSystem: false }
+        });
+
+        await auditRole.created(req, role.id, trimmedName);
         res.status(201).json({ success: true, data: role });
     } catch (error) { next(error); }
 };

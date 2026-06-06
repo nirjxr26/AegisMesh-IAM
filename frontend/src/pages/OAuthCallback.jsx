@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,7 @@ export default function OAuthCallback() {
     const navigate = useNavigate();
     const { loadProfile } = useAuth();
     const [runtimeErrorMessage, setRuntimeErrorMessage] = useState('');
+    const finalizeStartedRef = useRef(false);
 
     const error = searchParams.get('error');
     const errorMessage = error
@@ -14,22 +15,15 @@ export default function OAuthCallback() {
         : runtimeErrorMessage;
 
     useEffect(() => {
-        const accessToken = searchParams.get('accessToken');
-        const refreshToken = searchParams.get('refreshToken');
-
-        if (error) {
+        if (error || finalizeStartedRef.current) {
             return;
         }
 
-        if (accessToken) {
-            localStorage.setItem('accessToken', accessToken);
-        }
-        if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-        }
-
         const finalizeOAuth = async () => {
+            finalizeStartedRef.current = true;
             try {
+                // The backend has already set the HttpOnly cookies.
+                // We just need to load the user profile to confirm auth is active.
                 await loadProfile();
                 navigate('/dashboard', { replace: true });
             } catch {
@@ -38,7 +32,7 @@ export default function OAuthCallback() {
         };
 
         finalizeOAuth();
-    }, [error, loadProfile, navigate, searchParams]);
+    }, [error, loadProfile, navigate]);
 
     if (errorMessage) {
         return (
@@ -47,6 +41,7 @@ export default function OAuthCallback() {
                     <h1 className="text-lg font-semibold text-white">OAuth Sign-In Error</h1>
                     <p className="mt-2 text-sm text-aws-text-dim">{errorMessage}</p>
                     <button
+                        type="button"
                         onClick={() => navigate('/login', { replace: true })}
                         className="mt-4 rounded-xl bg-aws-orange px-4 py-2 text-sm font-medium text-black hover:opacity-90"
                     >

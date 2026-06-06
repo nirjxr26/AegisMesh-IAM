@@ -25,20 +25,7 @@ const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 const mfaSetupState = new Map();
 
 function hasConfiguredBackupCodes(user) {
-    if (Array.isArray(user?.backupCodes) && user.backupCodes.length > 0) {
-        return true;
-    }
-
-    if (!user?.mfaBackupCodes) {
-        return false;
-    }
-
-    try {
-        const parsed = JSON.parse(user.mfaBackupCodes);
-        return Array.isArray(parsed) && parsed.length > 0;
-    } catch {
-        return false;
-    }
+    return Array.isArray(user?.backupCodes) && user.backupCodes.length > 0;
 }
 
 function withMergedPrefs(user) {
@@ -463,7 +450,7 @@ exports.verifyMfa = async (req, res, next) => {
                 mfaType: 'totp',
                 mfaSecret: encryptText(effectiveSecret),
                 backupCodes: hashedCodes,
-                mfaBackupCodes: JSON.stringify(backupCodes),
+                mfaBackupCodes: null,
             },
         });
 
@@ -547,7 +534,7 @@ exports.regenerateBackupCodes = async (req, res, next) => {
             where: { id: req.user.id },
             data: {
                 backupCodes: hashedCodes,
-                mfaBackupCodes: JSON.stringify(backupCodes),
+                mfaBackupCodes: null,
             },
         });
 

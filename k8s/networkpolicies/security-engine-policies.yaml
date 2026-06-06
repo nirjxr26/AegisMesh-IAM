@@ -15,6 +15,9 @@ spec:
     - podSelector:
         matchLabels:
           app: backend
+    - podSelector:
+        matchLabels:
+          app: falcosidekick
     ports:
     - protocol: TCP
       port: 8000

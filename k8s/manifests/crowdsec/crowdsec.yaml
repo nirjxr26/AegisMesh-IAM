@@ -7,7 +7,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: crowdsec-db-pvc
-  namespace: crowdsec
+  namespace: aegismesh
 spec:
   accessModes:
     - ReadWriteOnce
@@ -19,7 +19,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: crowdsec-config
-  namespace: crowdsec
+  namespace: aegismesh
 data:
   acquis.yaml: |
     filenames:
@@ -48,6 +48,9 @@ spec:
       containers:
       - name: crowdsec
         image: crowdsecurity/crowdsec:v1.6.0
+        env:
+        - name: DISABLE_ONLINE_API
+          value: "true"
         ports:
         - containerPort: 8080
         resources:

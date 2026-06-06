@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { authAPI } from '../services/api';
+import { authAPI, fetchCsrfToken } from '../services/api';
 
 const AuthContext = createContext(null);
 const AUTH_EXPIRED_EVENT = 'iam:auth-expired';
@@ -9,7 +9,7 @@ const AUTH_EXPIRED_EVENT = 'iam:auth-expired';
 export function AuthProvider({ children }) {
     const queryClient = useQueryClient();
     const [user, setUser] = useState(null);
-    const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken'));
+    const [accessToken, setAccessToken] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const refreshTimerRef = useRef(null);
@@ -18,6 +18,7 @@ export function AuthProvider({ children }) {
     // Decode JWT to get expiry
     const getTokenExpiry = useCallback((token) => {
         try {
+            if (!token) return null;
             const payload = JSON.parse(atob(token.split('.')[1]));
             return payload.exp * 1000; // Convert to milliseconds
         } catch {
@@ -33,8 +34,6 @@ export function AuthProvider({ children }) {
     }, []);
 
     const clearAuthState = useCallback(() => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         setAccessToken(null);
         setUser(null);
         setIsAuthenticated(false);
@@ -45,16 +44,13 @@ export function AuthProvider({ children }) {
     const scheduleRefresh = useCallback((token) => {
         clearRefreshTimer();
 
-        if (!token) {
-            return;
-        }
+        if (!token) return;
 
         const expiry = getTokenExpiry(token);
         if (!expiry) return;
 
         const timeUntilRefresh = expiry - Date.now() - 60000; // 1 minute before
         if (timeUntilRefresh <= 0) {
-            // Token is about to expire, refresh now
             refreshTokenFnRef.current?.();
             return;
         }
@@ -80,16 +76,11 @@ export function AuthProvider({ children }) {
     // Login
     const login = useCallback(async (credentials) => {
         const { data } = await authAPI.login(credentials);
-        const { accessToken: token, refreshToken: refresh, user: userData } = data.data;
+        const { accessToken: token, user: userData } = data.data;
 
         if (token) {
-            localStorage.setItem('accessToken', token);
             setAccessToken(token);
             scheduleRefresh(token);
-        }
-
-        if (refresh) {
-            localStorage.setItem('refreshToken', refresh);
         }
 
         setUser(userData);
@@ -103,7 +94,7 @@ export function AuthProvider({ children }) {
         try {
             await authAPI.logout();
         } catch {
-            // Continue logout even if API fails
+            // Ignore failure
         } finally {
             clearAuthState();
             queryClient.clear();
@@ -115,16 +106,11 @@ export function AuthProvider({ children }) {
     const refreshToken = useCallback(async () => {
         try {
             const { data } = await authAPI.refreshToken();
-            const { accessToken: newToken, refreshToken: newRefresh } = data.data;
+            const { accessToken: newToken } = data.data;
 
             if (newToken) {
-                localStorage.setItem('accessToken', newToken);
                 setAccessToken(newToken);
                 scheduleRefresh(newToken);
-            }
-
-            if (newRefresh) {
-                localStorage.setItem('refreshToken', newRefresh);
             }
 
             return newToken;
@@ -138,50 +124,37 @@ export function AuthProvider({ children }) {
         refreshTokenFnRef.current = refreshToken;
     }, [refreshToken]);
 
-    // Update user in state
     const updateUser = useCallback((updates) => {
         setUser((prev) => (prev ? { ...prev, ...updates } : null));
     }, []);
 
     // Initialize auth state
     useEffect(() => {
-        const checkAuth = async () => {
-            const token = localStorage.getItem('accessToken');
-            const storedRefreshToken = localStorage.getItem('refreshToken');
-
-            if (!token && !storedRefreshToken) {
-                setUser(null);
-                setIsAuthenticated(false);
-                setIsLoading(false);
-                return;
-            }
-
-            if (token) {
-                setAccessToken(token);
-                scheduleRefresh(token);
-            }
-
+        const initAuth = async () => {
             try {
-                if (!token && storedRefreshToken) {
-                    await refreshToken();
-                }
+                // 1. Fetch initial CSRF token
+                await fetchCsrfToken();
 
-                await loadProfile();
+                // 2. Attempt to refresh token (using HttpOnly cookie)
+                const token = await refreshToken();
+                
+                if (token) {
+                    await loadProfile();
+                } else {
+                    setIsLoading(false);
+                }
             } catch {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                setUser(null);
-                setIsAuthenticated(false);
                 setIsLoading(false);
+                clearAuthState();
             }
         };
 
-        checkAuth();
+        initAuth();
 
         return () => {
             clearRefreshTimer();
         };
-    }, [clearRefreshTimer, loadProfile, refreshToken, scheduleRefresh]);
+    }, [clearRefreshTimer, loadProfile, refreshToken]);
 
     useEffect(() => {
         const handleAuthExpired = () => {
@@ -218,5 +191,3 @@ export function useAuth() {
     }
     return context;
 }
-
-

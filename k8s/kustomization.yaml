@@ -15,5 +15,7 @@ resources:
   - networkpolicies/allow-backend-to-postgres.yaml
   - networkpolicies/allow-dns.yaml
   - networkpolicies/security-engine-policies.yaml
+  - networkpolicies/allow-crowdsec-egress.yaml
+  - networkpolicies/allow-falcosidekick-egress.yaml
 
 

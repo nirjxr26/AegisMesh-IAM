@@ -32,14 +32,6 @@ async function extractToken(req) {
         );
     }
 
-    if (req.path === '/stream') {
-        return (
-            req.query?.token ||
-            req.query?.accessToken ||
-            null
-        );
-    }
-
     return null;
 }
 
