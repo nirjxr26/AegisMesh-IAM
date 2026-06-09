@@ -71,6 +71,7 @@ backups/
 docs/
 AegisMesh-IAM-Fix-Logic-Guide.md
 CI_CD_RUNBOOK.md
+.antigravitycli/
 
 # Jenkins
 .jenkins/
