@@ -67,26 +67,45 @@ Core design rules:
 
 ---
 
-## Architecture
+## System Architecture Diagram
 <div align="center">
 <img
-  src="./diagrams/_architecture.png"
+  src="./diagrams/system_architecture.png"
   alt="Pipeline Architecture"
 />
 </div>
 
 ---
 
-## CI/CD Pipeline
 
-Push or PR to any branch triggers the GitHub Actions CI workflow:
+## CI/CD & MLOps Architecture
+<div align="center">
+<img
+  src="./diagrams/ci_cd.png"
+  alt="Pipeline Architecture"
+/>
+</div>
 
-1. Lint, unit tests, SonarCloud quality gate, and CodeQL analysis run on every PR.
-2. On merge to `main`, CI builds multi-stage Docker images and pushes them to AWS ECR tagged by commit SHA.
-3. The CD workflow patches the Kustomize overlay files under `k8s/overlays/prod` and opens a bot PR back to `main`.
-4. ArgoCD watches the deploy path after merge and applies the manifests to the cluster automatically.
-5. Init containers run in order — `wait-for-db` first, then `prisma-migrate` — before the app starts.
-6. Smoke tests run post-deploy. Failure triggers an automatic `git revert` of the overlay commit.
+---
+
+## CI/CD & MLOps Pipeline
+
+**CI** — Triggered on every PR or push:
+- Lint, unit tests, SonarCloud quality gate, and CodeQL run on every PR
+- On merge to `main`: builds multi-stage Docker images, pushes to AWS ECR tagged by commit SHA
+
+**CD** — Triggered on successful CI against `main`:
+- Patches Kustomize overlays under `k8s/overlays/prod` and opens a bot PR back to `main`
+- ArgoCD detects the merge and applies manifests to the cluster
+
+**Cluster startup**:
+- Init containers run in order — `wait-for-db`, then `prisma-migrate` — before app starts
+- Smoke tests run post-deploy; failure triggers an automatic `git revert` of the overlay commit
+
+**MLOps**:
+- On login, the backend calls the FastAPI security engine at `/analyze`; anomaly score > 0.7 triggers step-up MFA
+- Decisions are logged to PostgreSQL `AuditLog`
+- A K8s CronJob at midnight hits `/train`, pulls recent logs, retrains the Isolation Forest pipeline, registers the new version in MLflow, and hot-swaps the `.joblib` file in memory
 
 **Key design decisions:**
 

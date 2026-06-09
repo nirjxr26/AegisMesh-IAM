@@ -1,34 +1,37 @@
-# AegisMesh Monitoring
+# Observability & Monitoring Stack
 
-This folder configures Prometheus and Grafana for the Docker Compose stack.
+This directory contains the configuration for the AegisMesh observability pipeline.
 
-## Services
+## Components
 
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3002`
-- Backend metrics: `http://localhost:5000/metrics`
+### 1. Application Performance Monitoring (Datadog)
+- **Tracing:** Distributed tracing across Node.js (Backend) and Python (Security Engine).
+- **Log Injection:** Correlates application logs with specific request traces.
+- **Profiling:** Continuous profiling enabled in production to identify bottlenecks.
 
-If you override `PROMETHEUS_PORT` or `GRAFANA_PORT` in `.env`, use those ports instead.
+### 2. Infrastructure Metrics (Prometheus)
+- **Scraping:** Collects metrics from `/metrics` endpoints in the Backend and Security Engine.
+- **ML Monitoring:** Tracks `security_engine_risk_score` and inference latency.
 
-## Grafana Login
+### 3. Log Aggregation (Loki)
+- **Collection:** Aggregates container logs via the Loki stack.
+- **Querying:** Accessible via Grafana for unified log/metric analysis.
 
-Default local credentials:
+### 4. Visualizations (Grafana)
+- **Dashboards:**
+  - **IAM Overview:** Auth rates, failure types, and session counts.
+  - **MLOps Hub:** Model accuracy, drift detection, and retraining status.
+  - **Cluster Health:** K8s resource utilization (HPA status).
 
-- Username: `admin`
-- Password: `admin`
+### 5. MLOps (MLflow)
+- **Tracking:** Logs every training run from the Security Engine.
+- **Registry:** Manages the lifecycle of `SecurityEnginePipeline` (v1, v2, Production).
 
-Change `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` in `.env` for shared or non-local environments.
+## Accessing Dashboards
+When running locally via `docker-compose`:
+- **Grafana:** http://localhost:3010
+- **MLflow:** http://localhost:5001
+- **Prometheus:** http://localhost:9090
 
-## Provisioned Data Sources
-
-- `Prometheus`: backend runtime metrics from `/metrics`
-- `AegisMesh PostgreSQL`: IAM audit/security data from PostgreSQL
-
-## Provisioned Dashboard
-
-Grafana auto-loads the `AegisMesh Overview` dashboard from:
-
-```text
-monitoring/grafana/dashboards/aegismesh-overview.json
-```
-
+---
+For technical details on how Datadog is initialized, refer to the source at `backend/src/server.js` and `security-engine/src/main.py`.

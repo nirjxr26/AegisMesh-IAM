@@ -2,7 +2,7 @@
 
 This document provides a permanent, long-term solution for maintaining the self-hosted runner for the AegisMesh-IAM project.
 
-## 🚀 1. Initial Setup
+## 1. Initial Setup
 To connect a new runner, execute the following command in your runner directory (replace `<TOKEN>` with a fresh token from GitHub Settings):
 
 ```powershell
