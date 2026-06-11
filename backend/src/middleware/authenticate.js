@@ -24,7 +24,9 @@ async function extractToken(req) {
     }
 
     // 2. Check query parameter (often used for SSE/EventSource)
-    if (req.query?.token) {
+    // However, do NOT use query param tokens for the live audit feed (/stream)
+    // to prevent logging/exposing sensitive tokens in URL logs unless explicitly required.
+    if (req.query?.token && !req.path.startsWith('/stream')) {
         return req.query.token;
     }
 
