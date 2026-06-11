@@ -30,9 +30,9 @@ USER root
 RUN apk add --no-cache curl
 USER nginx
 
-# Copy only the built assets and configuration
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+# Copy only the built assets and configuration with read-only permissions
+COPY --from=builder --chown=root:nginx --chmod=555 /app/dist /usr/share/nginx/html
+COPY --chown=root:nginx --chmod=555 nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 3000
 
