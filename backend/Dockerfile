@@ -30,13 +30,13 @@ RUN apk add --no-cache dumb-init curl \
     && addgroup -g 1001 -S nodejs \
     && adduser -S nodejs -u 1001 -G nodejs \
     && mkdir -p /app/logs \
-    && chown -R nodejs:nodejs /app
+    && chown -R nodejs:nodejs /app/logs
 
-# Copy production files with correct ownership
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=nodejs:nodejs /app/src ./src
+# Copy production files with read-only permissions for security
+COPY --from=builder --chown=root:root --chmod=555 /app/node_modules ./node_modules
+COPY --from=builder --chown=root:root --chmod=555 /app/prisma ./prisma
+COPY --from=builder --chown=root:root --chmod=555 /app/package.json ./package.json
+COPY --from=builder --chown=root:root --chmod=555 /app/src ./src
 
 # Surgical permissions (if needed for specific files)
 # Instead of recursive chmod 555, we rely on the container user and read-only FS if possible

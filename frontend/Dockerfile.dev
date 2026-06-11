@@ -16,12 +16,15 @@ COPY --chown=node:node package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm install --no-audit --no-fund --ignore-scripts
 
-# Copy other files with correct ownership
-COPY --chown=node:node . .
+# Explicitly copy needed directories to prevent recursive sensitive data copy
+COPY --chown=node:node index.html vite.config.js tailwind.config.js eslint.config.js ./
+COPY --chown=node:node src/ ./src/
+COPY --chown=node:node public/ ./public/
 
 # EXPOSE 5173
 ENV BIND_ADDR=0.0.0.0
 
-USER root
+# Run as non-root user
+USER node
 
 CMD ["sh", "-c", "npm run dev -- --host ${BIND_ADDR}"]
