@@ -20,10 +20,10 @@ RUN mkdir -p /mlflow-artifacts && chown -R mlflowuser:mlflowgroup /mlflow-artifa
 # Add HEALTHCHECK (Datadog finding)
 # MLflow doesn't have a standard health endpoint, so we check if the port is listening
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5000/ || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/')" || exit 1
 
 USER mlflowuser
 
 EXPOSE 5000
 
-CMD ["mlflow", "server", "--host", "0.0.0.0"]
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--allowed-hosts", "*"]

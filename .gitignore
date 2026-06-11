@@ -103,5 +103,7 @@ pg_dumpall*
 
 # Local Cloud Credentials
 *.aws/credentials
-
+.antigravitycli/
+.agents/
+.claude/    
 .sonarqube_report/

@@ -12,6 +12,7 @@ services:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./scripts/db/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-aegismesh}"]
       interval: 10s
@@ -98,11 +99,11 @@ services:
       - aegismesh-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || curl -f http://localhost:5173/ || exit 1"]
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 5s
+      start_period: 15s
 
   # Prometheus Metrics Store
   prometheus:
@@ -185,10 +186,10 @@ services:
       db:
         condition: service_healthy
     environment:
-      - MLFLOW_BACKEND_STORE_URI=postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
+      - MLFLOW_BACKEND_STORE_URI=postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/mlflow_db
       - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow-artifacts
     ports:
-      - "5001:5000"
+      - "5005:5000"
     volumes:
       - mlflow_data:/mlflow-artifacts
     networks:
@@ -203,12 +204,15 @@ services:
       - DD_API_KEY=${DD_API_KEY:?DD_API_KEY must be set}
       - DD_SITE=${DD_SITE:-datadoghq.com}
       - DD_ENV=${DD_ENV:-development}
+      - DD_HOSTNAME=aegismesh-local
       - DD_LOGS_ENABLED=true
       - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
       - DD_PROCESS_AGENT_ENABLED=true
       - DD_APM_ENABLED=true
       - DD_APM_NON_LOCAL_TRAFFIC=true
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_EC2_USE_IMDSV2=false
+      - DD_CLOUD_PROVIDER_METADATA=[]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc/:/host/proc/:ro

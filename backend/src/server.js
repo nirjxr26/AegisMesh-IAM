@@ -1,5 +1,5 @@
 require('dotenv').config();
-if (process.env.DD_APM_ENABLED === 'true') {
+if (process.env.DD_APM_ENABLED === 'true' || process.env.DD_TRACE_ENABLED === 'true') {
   require('dd-trace').init({
     logInjection: true,
     profiling: true,

@@ -4,6 +4,27 @@ const prisma = require('../config/database');
 const logger = require('../utils/logger');
 const { encryptText, decryptText } = require('../utils/crypto');
 
+function getCookieOptions(req) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https' || isProd;
+
+    return {
+        accessToken: {
+            httpOnly: true,
+            secure: isSecure,
+            sameSite: isSecure ? 'strict' : 'lax',
+            maxAge: 15 * 60 * 1000,
+        },
+        refreshToken: {
+            httpOnly: true,
+            secure: isSecure,
+            sameSite: isSecure ? 'strict' : 'lax',
+            path: '/api/auth/refresh-token',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        },
+    };
+}
+
 /**
  * POST /api/auth/register
  */
@@ -24,21 +45,10 @@ async function login(req, res, next) {
     try {
         const { email, password, totpCode } = req.body;
         const result = await authService.login({ email, password, totpCode, req });
+        const cookieOptions = getCookieOptions(req);
 
-        res.cookie('accessToken', encryptText(result.accessToken), {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 15 * 60 * 1000,
-        });
-
-        res.cookie('refreshToken', encryptText(result.refreshToken), {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            path: '/api/auth/refresh-token',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        res.cookie('accessToken', encryptText(result.accessToken), cookieOptions.accessToken);
+        res.cookie('refreshToken', encryptText(result.refreshToken), cookieOptions.refreshToken);
 
         res.json({ success: true, data: result });
     } catch (error) {
@@ -83,21 +93,10 @@ async function refreshToken(req, res, next) {
         }
 
         const result = await authService.refreshAccessToken({ refreshToken: token, req });
+        const cookieOptions = getCookieOptions(req);
 
-        res.cookie('accessToken', encryptText(result.accessToken), {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 15 * 60 * 1000,
-        });
-
-        res.cookie('refreshToken', encryptText(result.refreshToken), {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            path: '/api/auth/refresh-token',
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
+        res.cookie('accessToken', encryptText(result.accessToken), cookieOptions.accessToken);
+        res.cookie('refreshToken', encryptText(result.refreshToken), cookieOptions.refreshToken);
 
         res.json({ success: true, data: result });
     } catch (error) {

@@ -17,12 +17,18 @@ function derivePrimaryRole(user) {
  * Extracts and verifies JWT from Authorization header or cookies
  */
 async function extractToken(req) {
+    // 1. Check Authorization header
     const authHeader = req.headers.authorization;
-
     if (authHeader?.startsWith('Bearer ')) {
         return authHeader.substring(7);
     }
 
+    // 2. Check query parameter (often used for SSE/EventSource)
+    if (req.query?.token) {
+        return req.query.token;
+    }
+
+    // 3. Check cookies
     if (req.cookies?.accessToken) {
         const rawCookieToken = req.cookies.accessToken;
 

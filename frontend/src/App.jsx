@@ -13,7 +13,6 @@ import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import OAuthCallback from './pages/OAuthCallback';
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const UsersList = lazy(() => import('./pages/users/UsersList'));
 const RolesList = lazy(() => import('./pages/rbac/RolesList'));
 const PoliciesList = lazy(() => import('./pages/rbac/PoliciesList'));
@@ -23,11 +22,8 @@ const RoleDetail = lazy(() => import('./pages/rbac/RoleDetail'));
 const PolicyDetail = lazy(() => import('./pages/rbac/PolicyDetail'));
 const GroupDetail = lazy(() => import('./pages/rbac/GroupDetail'));
 const UserPermissions = lazy(() => import('./pages/rbac/UserPermissions'));
-const AuditLogsPage = lazy(() => import('./pages/audit/AuditLogsPage'));
-const AuditStatsPage = lazy(() => import('./pages/audit/AuditStatsPage'));
 const UserCreate = lazy(() => import('./pages/users/UserCreate'));
 const UserEdit = lazy(() => import('./pages/users/UserEdit'));
-const SecurityPage = lazy(() => import('./pages/security/SecurityPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -125,11 +121,8 @@ export default function App() {
               {/* Protected Shell + Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
-                  <Route path="/dashboard" element={<LazyRoute><Dashboard /></LazyRoute>} />
-
                   {/* RBAC Dashboard Routes */}
                   <Route path="/dashboard/users" element={<LazyRoute><UsersList /></LazyRoute>} />
-                  <Route path="/dashboard/security" element={<LazyRoute><SecurityPage /></LazyRoute>} />
                   <Route path="/dashboard/users/new" element={<LazyRoute><UserCreate /></LazyRoute>} />
                   <Route path="/dashboard/users/:id" element={<LazyRoute><UserDetail /></LazyRoute>} />
                   <Route path="/dashboard/users/:id/edit" element={<LazyRoute><UserEdit /></LazyRoute>} />
@@ -140,13 +133,9 @@ export default function App() {
                   <Route path="/dashboard/groups" element={<LazyRoute><GroupsList /></LazyRoute>} />
                   <Route path="/dashboard/groups/:id" element={<LazyRoute><GroupDetail /></LazyRoute>} />
                   <Route path="/dashboard/users/:id/permissions" element={<LazyRoute><UserPermissions /></LazyRoute>} />
-                  <Route path="/dashboard/audit-logs" element={<LazyRoute><AuditLogsPage /></LazyRoute>} />
-                  <Route path="/dashboard/audit-logs/stats" element={<LazyRoute><AuditStatsPage /></LazyRoute>} />
 
-                  <Route path="/settings/mfa" element={<Navigate to="/dashboard/security" replace />} />
-                  <Route path="/settings/security" element={<Navigate to="/dashboard/security" replace />} />
-                  <Route path="/settings" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/settings/:legacyTab" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/settings" element={<Navigate to="/dashboard/users" replace />} />
+                  <Route path="/settings/:legacyTab" element={<Navigate to="/dashboard/users" replace />} />
                 </Route>
               </Route>
 
