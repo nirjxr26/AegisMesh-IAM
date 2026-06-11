@@ -1,4 +1,4 @@
-# Build stage: prepare build and generate Prisma client
+# Build stage
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -6,50 +6,46 @@ WORKDIR /app
 # Optimize cache by copying package files first
 COPY package*.json ./
 
-# Use npm ci for reproducible builds (synchronized lockfile)
-# Note: I'll use npm install if lockfile is still out of sync, 
-# but I synchronized it in the previous turn.
-RUN npm install --ignore-scripts --no-audit --no-fund
+# Use npm ci with cache mount for faster, reproducible builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --ignore-scripts --no-audit --no-fund
 
-# Copy Prisma schema for client generation
+# Copy Prisma schema and generate client
 COPY prisma ./prisma
-
-# Generate Prisma client (build-time)
 RUN npm run prisma:generate
 
-# Copy source code explicitly instead of recursive COPY . .
-# This prevents accidentally including sensitive local files or large binaries.
+# Copy source code
 COPY src ./src
-COPY package.json ./
-# Include other necessary root files if any (e.g. specific configs)
-# COPY config.js ./
 
 # Production stage
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Install runtime utilities (dumb-init, curl)
-# Pinning apk versions to address Datadog finding
+# Use production environment
+ENV NODE_ENV=production
+
+# Install runtime utilities and setup user
 RUN apk add --no-cache dumb-init curl \
-	&& mkdir -p /app/logs \
-	&& addgroup -g 1001 -S nodejs \
-	&& adduser -S nodejs -u 1001
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S nodejs -u 1001 -G nodejs \
+    && mkdir -p /app/logs \
+    && chown -R nodejs:nodejs /app
 
-# Copy only production dependencies and Prisma client
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/src ./src
+# Copy production files with correct ownership
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nodejs:nodejs /app/src ./src
 
-# Security Hardening
-RUN chmod -R 555 ./src ./node_modules ./prisma package.json
+# Surgical permissions (if needed for specific files)
+# Instead of recursive chmod 555, we rely on the container user and read-only FS if possible
+# For now, ensuring ownership is enough for standard node apps
 
 USER nodejs
 
 EXPOSE 5000
 
-# Add HEALTHCHECK to address Datadog finding
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5000/api/health || exit 1
 

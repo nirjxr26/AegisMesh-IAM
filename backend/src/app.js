@@ -17,6 +17,7 @@ const usersRoutes = require('./routes/users.routes');
 const auditLogRoutes = require('./routes/auditLog.routes');
 const notificationsRoutes = require('./routes/notifications.routes');
 const settingsRoutes = require('./routes/settings.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 const logger = require('./utils/logger');
 const { metricsHandler, metricsMiddleware } = require('./utils/metrics');
 const { scheduleCleanup } = require('./utils/auditCleanup');
@@ -137,6 +138,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 
 // ═══════════════════════════════════════

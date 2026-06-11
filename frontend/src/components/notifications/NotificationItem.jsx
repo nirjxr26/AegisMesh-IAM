@@ -81,9 +81,9 @@ function getAppearance(notification) {
             icon: Lock,
             chipLabel: 'Security',
             iconClassName:
-                'bg-indigo-50 text-indigo-600',
+                'bg-indigo-500/10 text-indigo-400',
             chipClassName:
-                'bg-indigo-50 text-indigo-700 border border-indigo-100',
+                'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
         };
     }
 
@@ -95,9 +95,9 @@ function getAppearance(notification) {
             icon: ShieldCheck,
             chipLabel: 'Role',
             iconClassName:
-                'bg-violet-50 text-violet-600',
+                'bg-violet-500/10 text-violet-400',
             chipClassName:
-                'bg-violet-50 text-violet-700 border border-violet-100',
+                'bg-violet-500/10 text-violet-400 border border-violet-500/20',
         };
     }
 
@@ -108,9 +108,9 @@ function getAppearance(notification) {
             icon: UserPlus,
             chipLabel: 'Account',
             iconClassName:
-                'bg-sky-50 text-sky-600',
+                'bg-blue-500/10 text-blue-400',
             chipClassName:
-                'bg-sky-50 text-sky-700 border border-sky-100',
+                'bg-blue-500/10 text-blue-400 border border-blue-500/20',
         };
     }
 
@@ -124,9 +124,9 @@ function getAppearance(notification) {
             icon: KeyRound,
             chipLabel: 'Access',
             iconClassName:
-                'bg-amber-50 text-amber-600',
+                'bg-amber-500/10 text-amber-400',
             chipClassName:
-                'bg-amber-50 text-amber-700 border border-amber-100',
+                'bg-amber-500/10 text-amber-400 border border-amber-500/20',
         };
     }
 
@@ -138,9 +138,9 @@ function getAppearance(notification) {
             icon: AppWindow,
             chipLabel: 'Access',
             iconClassName:
-                'bg-amber-50 text-amber-600',
+                'bg-amber-500/10 text-amber-400',
             chipClassName:
-                'bg-amber-50 text-amber-700 border border-amber-100',
+                'bg-amber-500/10 text-amber-400 border border-amber-500/20',
         };
     }
 
@@ -161,9 +161,9 @@ function getAppearance(notification) {
             icon: Monitor,
             chipLabel: 'Activity',
             iconClassName:
-                'bg-slate-100 text-slate-700',
+                'bg-white/5 text-white/60',
             chipClassName:
-                'bg-slate-100 text-slate-700 border border-slate-200',
+                'bg-white/5 text-white/60 border border-white/10',
         };
     }
 
@@ -185,9 +185,9 @@ function getAppearance(notification) {
             icon: FileText,
             chipLabel: 'System',
             iconClassName:
-                'bg-cyan-50 text-cyan-700',
+                'bg-cyan-500/10 text-cyan-400',
             chipClassName:
-                'bg-cyan-50 text-cyan-700 border border-cyan-100',
+                'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
         };
     }
 
@@ -199,9 +199,9 @@ function getAppearance(notification) {
             icon: ShieldAlert,
             chipLabel: 'Security',
             iconClassName:
-                'bg-red-50 text-red-600',
+                'bg-red-500/10 text-red-400',
             chipClassName:
-                'bg-red-50 text-red-700 border border-red-100',
+                'bg-red-500/10 text-red-400 border border-red-500/20',
         };
     }
 
@@ -212,9 +212,9 @@ function getAppearance(notification) {
             icon: AlertTriangle,
             chipLabel: 'Critical',
             iconClassName:
-                'bg-red-50 text-red-600',
+                'bg-red-500/10 text-red-400',
             chipClassName:
-                'bg-red-50 text-red-700 border border-red-100',
+                'bg-red-500/10 text-red-400 border border-red-500/20',
         };
     }
 
@@ -231,9 +231,9 @@ function getAppearance(notification) {
         icon: ShieldCheck,
         chipLabel: typeLabel,
         iconClassName:
-            'bg-emerald-50 text-emerald-600',
+            'bg-emerald-500/10 text-emerald-400',
         chipClassName:
-            'bg-emerald-50 text-emerald-700 border border-emerald-100',
+            'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
     };
 }
 
@@ -252,15 +252,15 @@ export default function NotificationItem({
 
     const containerClasses =
         notification.read
-            ? 'border-[#e2e8f0] bg-white'
-            : 'border-[#c7d2fe] bg-[#f8faff] shadow-sm';
+            ? 'border-white/5 bg-[#161B26]/30'
+            : 'border-indigo-500/20 bg-[#161B26]/80 shadow-lg shadow-indigo-500/5';
 
     const isUnread =
         !notification.read;
 
     return (
         <div
-            className={`rounded-2xl border p-3 transition-all ${containerClasses}`}
+            className={`rounded-2xl border p-3 transition-all duration-200 group ${containerClasses}`}
         >
             <div className="flex items-start gap-3">
                 <button
@@ -273,22 +273,22 @@ export default function NotificationItem({
                     className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 text-left"
                 >
                     <div
-                        className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${appearance.iconClassName}`}
+                        className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-transparent transition-all group-hover:scale-105 ${appearance.iconClassName}`}
                     >
-                        <Icon size={18} />
+                        <Icon size={16} />
                     </div>
 
                     <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-[#0f172a]">
+                                <p className="text-xs font-bold text-white/90 group-hover:text-indigo-400 transition-colors">
                                     {
                                         notification.title
                                     }
                                 </p>
 
                                 <p
-                                    className="mt-1 text-xs leading-5 text-[#52607a]"
+                                    className="mt-1 text-[11px] leading-relaxed text-white/40"
                                     style={{
                                         display:
                                             '-webkit-box',
@@ -307,20 +307,20 @@ export default function NotificationItem({
                             </div>
 
                             {isUnread && (
-                                <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#4f46e5]" />
+                                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.5)]" />
                             )}
                         </div>
 
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                             <span
-                                className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${appearance.chipClassName}`}
+                                className={`rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-tighter ${appearance.chipClassName}`}
                             >
                                 {
                                     appearance.chipLabel
                                 }
                             </span>
 
-                            <span className="text-[11px] text-[#7a87a8]">
+                            <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
                                 {formatRelativeTime(
                                     notification.createdAt
                                 )}
@@ -340,14 +340,14 @@ export default function NotificationItem({
                         isDeleting
                     }
                     aria-label="Delete notification"
-                    className="rounded-lg p-2 text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#0f172a] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-lg p-1.5 text-white/20 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                    <Trash2 size={15} />
+                    <Trash2 size={13} />
                 </button>
             </div>
 
             {isUnread && (
-                <div className="mt-3 flex justify-end border-t border-[#edf2f7] pt-3">
+                <div className="mt-3 flex justify-end border-t border-white/5 pt-3">
                     <button
                         type="button"
                         onClick={() =>
@@ -358,11 +358,11 @@ export default function NotificationItem({
                         disabled={
                             isMarkingRead
                         }
-                        className="text-xs font-medium text-[#4f46e5] hover:text-[#3730a3] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="text-[10px] font-black uppercase tracking-widest text-indigo-400/60 hover:text-indigo-400 disabled:cursor-not-allowed transition-colors"
                     >
                         {isMarkingRead
-                            ? 'Saving...'
-                            : 'Mark as read'}
+                            ? 'Processing...'
+                            : 'Mark Resolved'}
                     </button>
                 </div>
             )}

@@ -182,7 +182,6 @@ model Group {
   id          String      @id @default(uuid())
   name        String      @unique
   description String?
-  isSystem    Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   userGroups  UserGroup[]

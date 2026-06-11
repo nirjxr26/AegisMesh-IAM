@@ -1,21 +1,27 @@
 # Development Dockerfile with live reload
 FROM node:22-alpine
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
-COPY package*.json ./
+# Setup ownership early
+RUN chown node:node /app
 
-RUN npm install --no-audit --no-fund --ignore-scripts
+# Copy package files first
+COPY --chown=node:node package*.json ./
 
-COPY index.html vite.config.js tailwind.config.js eslint.config.js ./
-COPY public ./public
-COPY src ./src
-COPY scripts ./scripts
+# Use cache mount for faster dev installs
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-audit --no-fund --ignore-scripts
 
-EXPOSE 5173
+# Copy other files with correct ownership
+COPY --chown=node:node . .
+
+# EXPOSE 5173
 ENV BIND_ADDR=0.0.0.0
 
-# Run as non-root user for improved security
-USER node
+USER root
 
 CMD ["sh", "-c", "npm run dev -- --host ${BIND_ADDR}"]

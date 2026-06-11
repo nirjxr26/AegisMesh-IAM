@@ -5,7 +5,7 @@ async function checkSchema() {
     try {
         console.log('\n=== User Table Columns ===\n');
         const columns = await prisma.$queryRaw`
-      SELECT column_name, data_type
+      SELECT column_name::text, data_type::text
       FROM information_schema.columns
       WHERE table_name = 'User'
       ORDER BY ordinal_position
@@ -16,7 +16,7 @@ async function checkSchema() {
 
         console.log('\n=== All Tables ===\n');
         const tables = await prisma.$queryRaw`
-      SELECT table_name
+      SELECT table_name::text
       FROM information_schema.tables
       WHERE table_schema = 'public'
       ORDER BY table_name

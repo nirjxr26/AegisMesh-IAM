@@ -15,6 +15,7 @@ const PUBLIC_AUTH_PATHS = [
 ];
 
 let csrfToken = null;
+let csrfPromise = null;
 
 const getSessionStorage = () => (typeof window !== 'undefined' ? window.sessionStorage : null);
 
@@ -28,17 +29,26 @@ const api = axios.create({
 
 /**
  * Fetches a fresh CSRF token from the server.
+ * Uses a promise to prevent parallel calls.
  */
 export const fetchCsrfToken = async () => {
-    try {
-        const { data } = await axios.get('/api/csrf-token', { withCredentials: true });
-        csrfToken = data.data.csrfToken;
-        api.defaults.headers.common[CSRF_TOKEN_HEADER] = csrfToken;
-        return csrfToken;
-    } catch (error) {
-        console.error('Failed to fetch CSRF token', error);
-        return null;
-    }
+    if (csrfPromise) return csrfPromise;
+
+    csrfPromise = (async () => {
+        try {
+            const { data } = await axios.get('/api/csrf-token', { withCredentials: true });
+            csrfToken = data.data.csrfToken;
+            api.defaults.headers.common[CSRF_TOKEN_HEADER] = csrfToken;
+            return csrfToken;
+        } catch (error) {
+            console.error('Failed to fetch CSRF token', error);
+            return null;
+        } finally {
+            csrfPromise = null;
+        }
+    })();
+
+    return csrfPromise;
 };
 
 const getStoredReauthToken = () => {
@@ -122,7 +132,7 @@ api.interceptors.response.use(
         }
 
         // Handle expired CSRF token
-        if (error.response?.status === 403 && responseCode === 'EBADCSRFTOKEN') {
+        if (error.response?.status === 403 && (responseCode === 'EBADCSRFTOKEN' || responseCode === 'CSRF_ERROR')) {
             await fetchCsrfToken();
             originalRequest.headers[CSRF_TOKEN_HEADER] = csrfToken;
             return api(originalRequest);
