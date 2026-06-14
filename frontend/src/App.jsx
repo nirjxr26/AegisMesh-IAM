@@ -24,6 +24,9 @@ const GroupDetail = lazy(() => import('./pages/rbac/GroupDetail'));
 const UserPermissions = lazy(() => import('./pages/rbac/UserPermissions'));
 const UserCreate = lazy(() => import('./pages/users/UserCreate'));
 const UserEdit = lazy(() => import('./pages/users/UserEdit'));
+const SecurityPage = lazy(() => import('./pages/security/SecurityPage'));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
+const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -133,9 +136,14 @@ export default function App() {
                   <Route path="/dashboard/groups" element={<LazyRoute><GroupsList /></LazyRoute>} />
                   <Route path="/dashboard/groups/:id" element={<LazyRoute><GroupDetail /></LazyRoute>} />
                   <Route path="/dashboard/users/:id/permissions" element={<LazyRoute><UserPermissions /></LazyRoute>} />
+                  <Route path="/dashboard/security" element={<LazyRoute><SecurityPage /></LazyRoute>} />
 
-                  <Route path="/settings" element={<Navigate to="/dashboard/users" replace />} />
-                  <Route path="/settings/:legacyTab" element={<Navigate to="/dashboard/users" replace />} />
+                  {/* Settings Routes */}
+                  <Route path="/settings" element={<LazyRoute><SettingsPage /></LazyRoute>} />
+                  <Route path="/settings/:tab" element={<LazyRoute><SettingsPage /></LazyRoute>} />
+
+                  <Route path="/settings/mfa" element={<Navigate to="/dashboard/security" replace />} />
+                  <Route path="/settings/security" element={<Navigate to="/dashboard/security" replace />} />
                 </Route>
               </Route>
 

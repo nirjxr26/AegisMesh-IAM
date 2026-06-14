@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Layers, Copy, Check, Edit2, Trash2, X, ChevronDown, KeyRound } from 'lucide-react';
+import { ChevronLeft, Layers, Copy, Check, Edit2, X, ChevronDown, KeyRound } from 'lucide-react';
 import { rbacAPI, userAPI } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -210,7 +210,7 @@ export default function GroupDetail() {
                             </button>
                             <button
                                 onClick={() => {
-                                    if (window.confirm(`Are you sure you want to delete "${group.name}"?`)) {
+                                    if (globalThis.confirm(`Are you sure you want to delete "${group.name}"?`)) {
                                         deleteGroupMutation.mutate();
                                     }
                                 }}
@@ -325,7 +325,7 @@ export default function GroupDetail() {
                                             </Link>
                                             <button
                                                 onClick={() => {
-                                                    if (window.confirm(`Remove ${user.firstName} ${user.lastName}?`)) {
+                                                    if (globalThis.confirm(`Remove ${user.firstName} ${user.lastName}?`)) {
                                                         removeMemberMutation.mutate(user.id);
                                                     }
                                                 }}
@@ -412,7 +412,7 @@ export default function GroupDetail() {
                                         {/* Detach Button */}
                                         <button
                                             onClick={() => {
-                                                if (window.confirm(`Detach role "${role.name}"?`)) {
+                                                if (globalThis.confirm(`Detach role "${role.name}"?`)) {
                                                     detachRoleMutation.mutate(role.id);
                                                 }
                                             }}

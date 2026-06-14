@@ -1,4 +1,6 @@
 import PropTypes from 'prop-types';
+import React, { useEffect } from 'react';
+import { X } from 'lucide-react';
 import NotificationItem from './NotificationItem';
 
 const FILTERS = [
@@ -115,6 +117,16 @@ export default function NotificationCenter({
     onOpenPreferences,
     onOpenSecurity,
 }) {
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                onOpen?.(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onOpen]);
+
     const sourceNotifications =
         allNotifications || notifications;
 
@@ -150,161 +162,126 @@ export default function NotificationCenter({
         notifications.length > 0;
 
     return (
-        <div className="absolute right-0 top-full z-50 mt-3 w-[min(26rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-white/10 bg-[#161B26] shadow-2xl backdrop-blur-xl">
-            <div className="border-b border-white/5 bg-gradient-to-br from-[#1c2331] to-[#161B26] px-4 py-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <p className="text-sm font-bold text-white/95">
-                            Incident Feed
-                        </p>
+        <>
+            {/* Backdrop */}
+            <button 
+                type="button"
+                className="fixed inset-0 z-[60] bg-[#0f1623]/40 backdrop-blur-sm animate-in fade-in duration-200 cursor-default"
+                onClick={() => onOpen?.(null)}
+                aria-label="Close notification center"
+            />
+            
+            {/* Centered Modal */}
+            <div 
+                className="fixed left-1/2 top-1/2 z-[70] w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2.5rem] border border-[#dbe4f0] bg-white shadow-[0_40px_100px_rgba(15,23,42,0.25)] animate-in fade-in zoom-in duration-200"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="notification-center-title"
+            >
+                <div className="border-b border-[#eef2f7] bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_65%)] px-8 py-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 id="notification-center-title" className="text-[20px] font-bold text-[#0f172a] tracking-tight">
+                                Notification Center
+                            </h2>
 
-                        <div className="mt-1 flex items-center gap-2">
-                            <p className="text-[11px] text-white/40">
-                                Real-time forensic telemetry
-                            </p>
+                            <div className="mt-1 flex items-center gap-2">
+                                <p className="text-sm text-[#64748b]">
+                                    Real-time account, access, and security updates.
+                                </p>
 
-                            <span
-                                className={`rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-tighter ${connectionBadgeClasses}`}
+                                <span
+                                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${connectionBadgeClasses}`}
+                                >
+                                    {connectionMode}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={onMarkAllRead}
+                                disabled={unreadCount === 0 || isMarkingAllRead}
+                                className="rounded-xl border border-[#d0d7e8] px-4 py-2 text-xs font-bold text-[#334155] hover:border-[#4f46e5] hover:text-[#4f46e5] transition-all disabled:opacity-50"
                             >
-                                {
-                                    connectionMode
-                                }
-                            </span>
+                                {isMarkingAllRead ? 'Saving...' : 'Mark all read'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => onOpen?.(null)}
+                                className="rounded-xl p-2 text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#0f172a] transition-all"
+                                aria-label="Close"
+                            >
+                                <X size={24} />
+                            </button>
                         </div>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={
-                            onMarkAllRead
-                        }
-                        disabled={
-                            unreadCount ===
-                                0 ||
-                            isMarkingAllRead
-                        }
-                        className="rounded-lg border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:border-indigo-500/50 hover:text-indigo-400 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-                    >
-                        {isMarkingAllRead
-                            ? 'Processing...'
-                            : 'Clear Unread'}
-                    </button>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between gap-3">
-                    <div className="flex flex-wrap gap-2">
-                        {FILTERS.map(
-                            (filter) => (
+                    <div className="mt-6 flex items-center justify-between gap-3">
+                        <div className="flex flex-wrap gap-2">
+                            {FILTERS.map((filter) => (
                                 <FilterPill
-                                    key={
-                                        filter.id
-                                    }
-                                    label={
-                                        filter.label
-                                    }
-                                    count={
-                                        filterCountMap[
-                                            filter.id
-                                        ] ??
-                                        0
-                                    }
-                                    active={
-                                        activeFilter ===
-                                        filter.id
-                                    }
-                                    onClick={() =>
-                                        onFilterChange?.(
-                                            filter.id
-                                        )
-                                    }
+                                    key={filter.id}
+                                    label={filter.label}
+                                    count={filterCountMap[filter.id] ?? 0}
+                                    active={activeFilter === filter.id}
+                                    onClick={() => onFilterChange?.(filter.id)}
                                 />
-                            )
-                        )}
+                            ))}
+                        </div>
+
+                        <span className="rounded-full bg-[#eef2ff] px-3 py-1.5 text-xs font-bold text-[#4f46e5]">
+                            {unreadCount} UNREAD
+                        </span>
                     </div>
-
-                    <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 text-[10px] font-black text-indigo-400">
-                        {unreadCount}{' '}
-                        NEW
-                    </span>
                 </div>
-            </div>
 
-            <div className="max-h-[28rem] overflow-y-auto bg-[#0F1117]/30 px-4 py-4 dashboard-scrollbar-hidden">
-                {isLoading && (
-                    <LoadingState />
-                )}
+                <div className="max-h-[34rem] overflow-y-auto bg-[#f8fafc] px-8 py-8">
+                    {isLoading && <LoadingState />}
 
-                {!isLoading &&
-                    !hasNotifications && (
-                        <EmptyState
-                            activeFilter={
-                                activeFilter
-                            }
-                        />
+                    {!isLoading && !hasNotifications && (
+                        <EmptyState activeFilter={activeFilter} />
                     )}
 
-                {!isLoading &&
-                    hasNotifications && (
-                        <div className="space-y-3 transition-opacity duration-150">
-                            {notifications.map(
-                                (
-                                    notification
-                                ) => (
-                                    <NotificationItem
-                                        key={
-                                            notification.id
-                                        }
-                                        notification={
-                                            notification
-                                        }
-                                        onOpen={
-                                            onOpen
-                                        }
-                                        onMarkRead={
-                                            onMarkRead
-                                        }
-                                        onDelete={
-                                            onDelete
-                                        }
-                                        isMarkingRead={
-                                            pendingReadId ===
-                                            notification.id
-                                        }
-                                        isDeleting={
-                                            pendingDeleteId ===
-                                            notification.id
-                                        }
-                                    />
-                                )
-                            )}
+                    {!isLoading && hasNotifications && (
+                        <div className="space-y-4">
+                            {notifications.map((notification) => (
+                                <NotificationItem
+                                    key={notification.id}
+                                    notification={notification}
+                                    onOpen={onOpen}
+                                    onMarkRead={onMarkRead}
+                                    onDelete={onDelete}
+                                    isMarkingRead={pendingReadId === notification.id}
+                                    isDeleting={pendingDeleteId === notification.id}
+                                />
+                            ))}
                         </div>
                     )}
-            </div>
+                </div>
 
-            <div className="border-t border-white/5 bg-[#161B26] px-4 py-3">
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={
-                            onOpenPreferences
-                        }
-                        className="flex-1 rounded-xl border border-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white/40 hover:border-white/20 hover:text-white transition-colors"
-                    >
-                        Preferences
-                    </button>
+                <div className="border-t border-[#eef2f7] bg-white px-8 py-5">
+                    <div className="flex items-center gap-4">
+                        <button
+                            type="button"
+                            onClick={onOpenPreferences}
+                            className="flex-1 rounded-2xl border border-[#d0d7e8] px-4 py-3 text-sm font-bold text-[#334155] hover:border-[#4f46e5] hover:text-[#4f46e5] transition-all"
+                        >
+                            Notification Preferences
+                        </button>
 
-                    <button
-                        type="button"
-                        onClick={
-                            onOpenSecurity
-                        }
-                        className="flex-1 rounded-xl bg-indigo-600 px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
-                    >
-                        Threat Center
-                    </button>
+                        <button
+                            type="button"
+                            onClick={onOpenSecurity}
+                            className="flex-1 rounded-2xl bg-[#4f46e5] px-4 py-3 text-sm font-bold text-white hover:bg-[#3730a3] transition-all shadow-md shadow-indigo-200"
+                        >
+                            Review Security
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 

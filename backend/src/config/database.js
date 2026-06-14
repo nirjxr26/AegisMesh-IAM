@@ -1,8 +1,6 @@
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Pool } = require('pg');
 const logger = require('../utils/logger');
 const { observeDatabaseQuery } = require('../utils/metrics');
 
@@ -12,15 +10,8 @@ if (!process.env.DATABASE_URL) {
 
 // Reuse a global instance in non-production to avoid multiple clients during reloads/tests
 const globalForPrisma = globalThis;
-const globalForPg = globalThis;
-
-const pool = globalForPg.pgPool || new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
-const adapter = new PrismaPg(pool);
 
 const basePrisma = globalForPrisma.prisma || new PrismaClient({
-    adapter,
     log: [{ emit: 'event', level: 'error' }],
 });
 
@@ -60,7 +51,6 @@ const prisma = globalForPrisma.prismaExtended || basePrisma.$extends({
 if (process.env.NODE_ENV !== 'production') {
     globalForPrisma.prisma = basePrisma;
     globalForPrisma.prismaExtended = prisma;
-    globalForPg.pgPool = pool;
 }
 
 module.exports = prisma;

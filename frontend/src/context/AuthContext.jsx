@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authAPI, fetchCsrfToken } from '../services/api';
+import PropTypes from "prop-types";
 
 const AuthContext = createContext(null);
 const AUTH_EXPIRED_EVENT = 'iam:auth-expired';
@@ -162,27 +163,45 @@ export function AuthProvider({ children }) {
             setIsLoading(false);
         };
 
-        window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+        globalThis.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
         return () => {
-            window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+            globalThis.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
         };
     }, [clearAuthState]);
 
-    const value = {
-        user,
-        accessToken,
-        isAuthenticated,
-        isLoading,
-        loading: isLoading,
-        login,
-        logout,
-        refreshToken,
-        updateUser,
-        loadProfile,
-    };
+    const value = useMemo(
+        () => ({
+            user,
+            accessToken,
+            isAuthenticated,
+            isLoading,
+            loading: isLoading,
+            login,
+            logout,
+            refreshToken,
+            updateUser,
+            loadProfile,
+        }),
+        [
+            user,
+            accessToken,
+            isAuthenticated,
+            isLoading,
+            login,
+            logout,
+            refreshToken,
+            updateUser,
+            loadProfile,
+        ]
+    );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+AuthProvider.propTypes = {
+    children: PropTypes.node.isRequired,
+}
+
 
 export function useAuth() {
     const context = useContext(AuthContext);
