@@ -1,16 +1,43 @@
-    # React + Vite
+# AegisMesh Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The AegisMesh administrative dashboard built with **React 19** and **Vite**.
 
-Currently, two official plugins are available:
+## Tech Stack
+- **Framework:** React 19.2.0
+- **Build Tool:** Vite
+- **Styling:** Tailwind CSS
+- **State:** React Context API + Custom Hooks
+- **Icons:** Lucide React
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Getting Started
 
-## React Compiler
+### Local Development
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+3. Open http://localhost:3000
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Production Build
+```bash
+npm run build
+npm run preview
+```
 
-## Expanding the ESLint configuration
+## Project Structure
+- `src/components/`: Reusable UI components (Modals, Tables, Forms).
+- `src/pages/`: Main views (Dashboard, User Management, Policy Editor).
+- `src/context/`: Auth and Theme context providers.
+- `src/hooks/`: Custom hooks for API interaction and form handling.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Security Features
+- **CSRF Protection:** Integrated with the backend's `csurf` middleware.
+- **Secure Cookies:** JWT access tokens are handled via HttpOnly/Secure cookies.
+- **Route Guards:** Private routes are protected by the `AuthContext`.
+
+---
+For the underlying API specifications, see the [[docs/README.md|Main Documentation Portal]].

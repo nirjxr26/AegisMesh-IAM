@@ -133,6 +133,11 @@
 
 * {
   box-sizing: border-box;
+  font-family: var(--font-sans);
+}
+
+code, kbd, samp, pre, .font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
 
 html,
@@ -385,5 +390,15 @@ body {
 }
 
 .sidebar-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for dashboard page while keeping it scrollable */
+.dashboard-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dashboard-scrollbar-hidden::-webkit-scrollbar {
   display: none;
 }

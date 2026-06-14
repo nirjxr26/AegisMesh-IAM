@@ -30,7 +30,11 @@ class AnomalyDetector:
         self.mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000") # nosonar
         mlflow.set_tracking_uri(self.mlflow_uri)
         self.mlflow_client = mlflow.tracking.MlflowClient()
-        mlflow.set_experiment("Security-Engine-Threat-Detection")
+        
+        try:
+            mlflow.set_experiment("Security-Engine-Threat-Detection")
+        except Exception as e:
+            logger.warning(f"Could not initialize MLflow experiment: {e}")
 
         self.model = self._load_model()
         self.db_url = os.getenv("DATABASE_URL")

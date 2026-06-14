@@ -12,6 +12,8 @@ import {
 
 import {
     BarChart2,
+    ChevronLeft,
+    ChevronRight,
     FileText,
     KeyRound,
     Layers,
@@ -54,46 +56,36 @@ function NavItem({
     };
 
     const baseClasses = classNames(
-        'group transition-all duration-150',
+        'group transition-all duration-200 ease-in-out',
         isLast ? 'mb-0' : 'mb-0.5',
         active
             ? 'bg-[rgba(99,102,241,0.18)] text-white'
             : 'bg-transparent text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.06)] hover:text-[rgba(255,255,255,0.85)]'
     );
 
-    if (collapsed) {
-        return (
-            <Link
-                to={path}
-                title={label}
-                onClick={handleClick}
-                aria-current={active ? 'page' : undefined}
-                className={classNames(
-                    baseClasses,
-                    'mx-auto flex h-10 w-10 items-center justify-center rounded-lg'
-                )}
-            >
-                {iconElement}
-            </Link>
-        );
-    }
-
     return (
         <Link
             to={path}
+            title={collapsed ? label : undefined}
             onClick={handleClick}
             aria-current={active ? 'page' : undefined}
             className={classNames(
                 baseClasses,
-                'flex w-full items-center gap-[10px] rounded-lg px-[10px] py-2 text-[13px]',
-                active
-                    ? 'font-semibold'
-                    : 'font-medium'
+                'flex items-center rounded-lg transition-all duration-200 ease-in-out',
+                collapsed 
+                    ? 'mx-auto h-10 w-10 justify-center px-0 py-0' 
+                    : 'w-full gap-[10px] px-[10px] py-2 text-[13px]',
+                active ? 'font-semibold' : 'font-medium'
             )}
         >
             {iconElement}
 
-            <span>{label}</span>
+            <span className={classNames(
+                'transition-all duration-200 ease-in-out overflow-hidden whitespace-nowrap',
+                collapsed ? 'w-0 opacity-0 invisible ml-0' : 'w-auto opacity-100 visible'
+            )}>
+                {label}
+            </span>
         </Link>
     );
 }
@@ -152,12 +144,16 @@ SectionToggle.propTypes = {
 };
 
 export default function Sidebar({
+    collapsed: controlledCollapsed,
+    onCollapseToggle,
     onClose,
 }) {
     const { user } = useAuth();
     const location = useLocation();
     const pathname = location.pathname;
-    const collapsed = false;
+    const [localCollapsed, setLocalCollapsed] = useState(false);
+    const collapsed = onCollapseToggle ? controlledCollapsed : localCollapsed;
+    const handleToggle = onCollapseToggle || (() => setLocalCollapsed(!localCollapsed));
 
     const [expandedSections, setExpandedSections] = useState({
         identity: true,
@@ -239,11 +235,26 @@ export default function Sidebar({
     };
 
     return (
-        <aside className="relative flex h-full w-64 shrink-0 flex-col border-r border-[#1f2937] bg-[#0f172a] shadow-2xl lg:shadow-none">
-            <div className="relative border-b border-[#1f2937] px-5 py-5">
-                <span className="text-[15px] font-bold text-white tracking-tight">
-                    AegisMesh
-                </span>
+        <aside className={classNames("relative flex h-full shrink-0 flex-col border-r border-[#1f2937] bg-[#0f172a] shadow-2xl lg:shadow-none transition-[width] duration-200 ease-in-out will-change-[width]", collapsed ? "w-16" : "w-64")}>
+            <div className="relative border-b border-[#1f2937] px-5 py-5 flex items-center justify-between">
+                {!collapsed ? (
+                    <span className="text-[15px] font-bold text-white tracking-tight">
+                        AegisMesh
+                    </span>
+                ) : (
+                    <span className="text-[15px] font-bold text-[#6366f1] tracking-tight mx-auto">
+                        AM
+                    </span>
+                )}
+
+                <button
+                    type="button"
+                    onClick={handleToggle}
+                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    className="hidden lg:block rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                    {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
 
                 <button
                     type="button"
@@ -257,12 +268,12 @@ export default function Sidebar({
 
             <div className="mb-1 border-b border-[#1f2937] px-[6px] pb-5 pt-4">
                 <div className={classNames('flex items-center', collapsed ? 'justify-center' : 'gap-3')}>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4f46e5] text-sm font-bold text-white">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#4f46e5] text-sm font-bold text-white">
                         {initials}
                     </div>
 
                     {!collapsed && (
-                        <div className="min-w-0">
+                        <div className="min-w-0 transition-all duration-200 ease-in-out overflow-hidden whitespace-nowrap">
                             <p className="truncate text-xs font-semibold text-[#e2e8f0]">
                                 {fullName}
                             </p>
@@ -275,7 +286,7 @@ export default function Sidebar({
             </div>
 
             <div className="sidebar-scrollbar-hidden flex flex-1 flex-col overflow-y-auto px-[10px] py-4">
-                <div className="mb-4">
+                <div className={classNames('mb-4', collapsed && 'flex justify-center')}>
                     <NavItem
                         icon={LayoutDashboard}
                         label="Overview"
@@ -287,23 +298,27 @@ export default function Sidebar({
                 </div>
 
                 <div className="mb-4">
-                    <SectionToggle
-                        label="IDENTITY"
-                        expanded={identityExpanded}
-                        onToggle={() => toggleSection('identity')}
-                    />
-                    <div className={classNames('transition-all duration-200 overflow-hidden', identityExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0')}>
+                    {!collapsed && (
+                        <SectionToggle
+                            label="IDENTITY"
+                            expanded={identityExpanded}
+                            onToggle={() => toggleSection('identity')}
+                        />
+                    )}
+                    <div className={classNames('transition-all duration-200 overflow-hidden', (identityExpanded || collapsed) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0')}>
                         {identityItems.map((item, index) => renderItem(item, index === identityItems.length - 1))}
                     </div>
                 </div>
 
                 <div className="mb-4">
-                    <SectionToggle
-                        label="MONITORING"
-                        expanded={monitoringExpanded}
-                        onToggle={() => toggleSection('monitoring')}
-                    />
-                    <div className={classNames('transition-all duration-200 overflow-hidden', monitoringExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0')}>
+                    {!collapsed && (
+                        <SectionToggle
+                            label="MONITORING"
+                            expanded={monitoringExpanded}
+                            onToggle={() => toggleSection('monitoring')}
+                        />
+                    )}
+                    <div className={classNames('transition-all duration-200 overflow-hidden', (monitoringExpanded || collapsed) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0')}>
                         {monitoringItems.map((item, index) => renderItem(item, index === monitoringItems.length - 1))}
                     </div>
                 </div>
@@ -313,5 +328,7 @@ export default function Sidebar({
 }
 
 Sidebar.propTypes = {
+    collapsed: PropTypes.bool,
+    onCollapseToggle: PropTypes.func,
     onClose: PropTypes.func,
 };

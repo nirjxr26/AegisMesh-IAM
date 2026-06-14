@@ -78,19 +78,77 @@ function isUserSuperAdmin(userRoles, userGroups) {
 }
 
 /**
- * Fetches all roles and policies for a user in a single efficient query.
+ * Fetches all roles and policies for a user in a reliable, decomposed sequence.
+ * Avoids deep nesting that causes 'column not available' errors with some DB adapters.
  */
 async function fetchFullUserAccessContext(userId) {
-    return Promise.all([
-        prisma.userRole.findMany({
-            where: { userId },
-            include: { role: { include: { rolePolicies: { include: { policy: true } } } } }
-        }),
-        prisma.userGroup.findMany({
-            where: { userId },
-            include: { group: { include: { groupRoles: { include: { role: { include: { rolePolicies: { include: { policy: true } } } } } } } } }
+    // 1. Fetch direct roles and their policies
+    const directUserRoles = await prisma.userRole.findMany({
+        where: { userId },
+        include: {
+            role: {
+                include: {
+                    rolePolicies: {
+                        include: {
+                            policy: true
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Fetch user's groups
+    const userGroups = await prisma.userGroup.findMany({
+        where: { userId },
+        select: {
+            groupId: true,
+            group: {
+                select: {
+                    id: true,
+                    name: true,
+                    description: true
+                }
+            }
+        }
+    });
+
+    const groupIds = userGroups.map((ug) => ug.groupId);
+
+    // 3. Fetch roles attached to those groups and their policies
+    const groupRoles = groupIds.length > 0
+        ? await prisma.groupRole.findMany({
+            where: { groupId: { in: groupIds } },
+            include: {
+                role: {
+                    include: {
+                        rolePolicies: {
+                            include: {
+                                policy: true
+                            }
+                        }
+                    }
+                }
+            }
         })
-    ]);
+        : [];
+
+    // Map groupRoles back into a format compatible with existing extraction logic
+    const enrichedUserGroups = userGroups.map((ug) => {
+        const rolesForThisGroup = groupRoles
+            .filter((gr) => gr.groupId === ug.groupId)
+            .map((gr) => ({ role: gr.role }));
+
+        return {
+            ...ug,
+            group: {
+                ...ug.group,
+                groupRoles: rolesForThisGroup
+            }
+        };
+    });
+
+    return [directUserRoles, enrichedUserGroups];
 }
 
 /* -------------------------------------------------------------------------- */

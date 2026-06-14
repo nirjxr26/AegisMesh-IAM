@@ -15,14 +15,14 @@ function FilterPill({
     onClick,
 }) {
     const activeClasses = active
-        ? 'bg-[#4f46e5] text-white'
-        : 'bg-[#eef2ff] text-[#4f46e5] hover:bg-[#e0e7ff]';
+        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+        : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/80';
 
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${activeClasses}`}
+            className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${activeClasses}`}
         >
             {label} ({count})
         </button>
@@ -51,12 +51,12 @@ function EmptyState({ activeFilter }) {
         emptyStateCopyMap.all;
 
     return (
-        <div className="rounded-2xl border border-dashed border-[#d0d7e8] bg-[#f8fafc] px-5 py-10 text-center">
-            <p className="text-sm font-medium text-[#0f172a]">
+        <div className="rounded-2xl border border-dashed border-white/10 bg-[#0F1117]/50 px-5 py-10 text-center">
+            <p className="text-sm font-semibold text-white/90">
                 No notifications yet
             </p>
 
-            <p className="mt-2 text-xs leading-5 text-[#64748b]">
+            <p className="mt-2 text-xs leading-5 text-white/40">
                 {copy}
             </p>
         </div>
@@ -78,17 +78,17 @@ function LoadingState() {
                 return (
                     <div
                         key={skeletonKey}
-                        className="animate-pulse rounded-2xl border border-[#e2e8f0] bg-white p-4"
+                        className="animate-pulse rounded-2xl border border-white/5 bg-[#161B26] p-4"
                     >
                         <div className="flex items-start gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-[#e2e8f0]" />
+                            <div className="h-10 w-10 rounded-xl bg-white/5" />
 
                             <div className="flex-1 space-y-2">
-                                <div className="h-4 w-40 rounded bg-[#e2e8f0]" />
+                                <div className="h-4 w-40 rounded bg-white/5" />
 
-                                <div className="h-3 w-full rounded bg-[#edf2f7]" />
+                                <div className="h-3 w-full rounded bg-white/[0.02]" />
 
-                                <div className="h-3 w-4/5 rounded bg-[#edf2f7]" />
+                                <div className="h-3 w-4/5 rounded bg-white/[0.02]" />
                             </div>
                         </div>
                     </div>
@@ -144,8 +144,8 @@ export default function NotificationCenter({
 
     const connectionBadgeClasses =
         connectionMode === 'Live'
-            ? 'bg-emerald-50 text-emerald-700'
-            : 'bg-sky-50 text-sky-700';
+            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+            : 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
 
     const hasNotifications =
         notifications.length > 0;

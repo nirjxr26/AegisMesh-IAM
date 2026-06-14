@@ -25,6 +25,31 @@ function errorHandler(err, req, res, _next) {
         });
     }
 
+    // Prisma connection / credential / authentication errors
+    const errMsgLower = err.message ? String(err.message).toLowerCase() : '';
+    const isPrismaDbConnError = 
+        (err.code && err.code.startsWith('P1')) || 
+        errMsgLower.includes('authentication failed against database server') ||
+        errMsgLower.includes('database credentials') ||
+        errMsgLower.includes('can\'t reach database server') ||
+        errMsgLower.includes('cannot connect to the database') ||
+        (errMsgLower.includes('prisma') && (
+            errMsgLower.includes('connection') || 
+            errMsgLower.includes('credential') || 
+            errMsgLower.includes('authentication') || 
+            errMsgLower.includes('failed')
+        ));
+
+    if (isPrismaDbConnError) {
+        return res.status(503).json({
+            success: false,
+            error: {
+                code: 'DATABASE_ERROR',
+                message: 'Database connection or authentication failed. Please verify credentials and database availability.',
+            },
+        });
+    }
+
     // Prisma errors
     if (err.code === 'P2002') {
         return res.status(409).json({

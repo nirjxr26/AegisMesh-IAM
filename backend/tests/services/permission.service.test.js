@@ -4,6 +4,7 @@
 jest.mock('../../src/config/database', () => ({
     userRole: { findMany: jest.fn() },
     userGroup: { findMany: jest.fn() },
+    groupRole: { findMany: jest.fn() },
 }));
 
 const prisma = require('../../src/config/database');
@@ -27,9 +28,10 @@ function makePolicy({ id, name, effect, actions, resources }) {
     return { id, name, effect, actions, resources };
 }
 
-function setupMocks({ userRoles = [], userGroups = [] } = {}) {
+function setupMocks({ userRoles = [], userGroups = [], groupRoles = [] } = {}) {
     prisma.userRole.findMany.mockResolvedValue(userRoles);
     prisma.userGroup.findMany.mockResolvedValue(userGroups);
+    prisma.groupRole.findMany.mockResolvedValue(groupRoles);
 }
 
 afterEach(() => jest.clearAllMocks());
@@ -50,17 +52,19 @@ describe('checkPermission – SuperAdmin bypass', () => {
         prisma.userRole.findMany.mockResolvedValue([]);
         prisma.userGroup.findMany.mockResolvedValue([
             {
+                groupId: 'g1',
                 group: {
                     id: 'g1',
-                    groupRoles: [
-                        {
-                            role: {
-                                id: 'r1',
-                                name: 'SuperAdmin',
-                                rolePolicies: [],
-                            },
-                        },
-                    ],
+                },
+            },
+        ]);
+        prisma.groupRole.findMany.mockResolvedValue([
+            {
+                groupId: 'g1',
+                role: {
+                    id: 'r1',
+                    name: 'SuperAdmin',
+                    rolePolicies: [],
                 },
             },
         ]);

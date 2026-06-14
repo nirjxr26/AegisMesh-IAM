@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 
 export default function AppLayout() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    const isDashboard = location.pathname === '/dashboard';
 
     const handleOpenSettings = useCallback(() => {
         navigate('/settings?tab=profile');
@@ -37,7 +41,7 @@ export default function AppLayout() {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-aws-text font-sans">
+        <div className={`flex h-screen overflow-hidden ${isDashboard ? 'bg-[#0F1117]' : 'bg-[#F8FAFC]'} text-aws-text font-sans`}>
             {sidebarOpen && (
                 <button
                     type="button"
@@ -48,9 +52,13 @@ export default function AppLayout() {
             )}
 
             <div
-                className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out lg:relative lg:inset-auto lg:translate-x-0 lg:flex lg:flex-shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed inset-y-0 left-0 z-30 transform transition-all duration-200 ease-in-out lg:relative lg:inset-auto lg:translate-x-0 lg:flex lg:flex-shrink-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}`}
             >
-                <Sidebar onClose={() => setSidebarOpen(false)} />
+                <Sidebar
+                    collapsed={sidebarCollapsed}
+                    onCollapseToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    onClose={() => setSidebarOpen(false)}
+                />
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -60,7 +68,7 @@ export default function AppLayout() {
                     onSignOut={handleSignOut}
                 />
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-6">
+                <main className={`flex-1 overflow-y-auto p-4 md:p-6 ${isDashboard ? 'bg-[#0F1117] text-white dashboard-scrollbar-hidden' : ''}`}>
                     <Outlet />
                 </main>
             </div>
