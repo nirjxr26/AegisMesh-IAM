@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Eye, FileText, Key, KeyRound, Pencil, Plus, Search, Sparkles, Trash2, Users, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rbacAPI, userAPI } from '../../services/api';
@@ -57,6 +57,27 @@ export default function RolesList() {
         deleteFn: (id) => rbacAPI.deleteRole(id)
     });
 
+    const handleCloseCreateModal = useCallback(() => {
+        if (createMutation.isPending) return;
+        setFormErrors({});
+        setName('');
+        setDescription('');
+        setArn('');
+        setSelectedUsers([]);
+        setSelectedPolicies([]);
+        setIsCreateOpen(false);
+    }, [createMutation.isPending]);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isCreateOpen) {
+                handleCloseCreateModal();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isCreateOpen, handleCloseCreateModal]);
+
     const { data: usersData } = useQuery({
         queryKey: ['users-for-role-creation'],
         queryFn: () => userAPI.getUsers({ limit: 100 }),
@@ -81,17 +102,6 @@ export default function RolesList() {
     const handleOpenCreateModal = () => {
         setFormErrors({});
         setIsCreateOpen(true);
-    };
-
-    const handleCloseCreateModal = () => {
-        if (createMutation.isPending) return;
-        setFormErrors({});
-        setName('');
-        setDescription('');
-        setArn('');
-        setSelectedUsers([]);
-        setSelectedPolicies([]);
-        setIsCreateOpen(false);
     };
 
     const handleCreate = (e) => {
@@ -144,12 +154,6 @@ export default function RolesList() {
 
         if (role?.id) {
             navigate(`/dashboard/roles/${role.id}`);
-        }
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Escape') {
-            handleCloseCreateModal();
         }
     };
 
@@ -358,7 +362,7 @@ export default function RolesList() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto" onKeyDown={handleKeyDown}>
+                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2 sm:col-span-1">
                                     <label htmlFor="role-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
@@ -409,59 +413,55 @@ export default function RolesList() {
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <p id="users-selection-label" className="text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
-                                        <Users size={14} /> Assign Users
-                                    </p>
-                                    <div 
-                                        role="group"
-                                        aria-labelledby="users-selection-label"
-                                        className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]"
-                                    >
-                                        {users.length === 0 ? (
-                                            <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
-                                        ) : users.map(user => (
-                                            <label key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedUsers.includes(user.id)}
-                                                    onChange={() => toggleUser(user.id)}
-                                                    className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
-                                                />
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-[#0f172a] truncate">{user.firstName} {user.lastName}</p>
-                                                    <p className="text-[11px] text-[#7a87a8] truncate">{user.email}</p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
+                                    <fieldset className="border border-[#d0d7e8] rounded-xl p-4 bg-[#f8fafc]">
+                                        <legend className="px-2 text-xs font-bold uppercase tracking-wider text-[#64748b] flex items-center gap-2">
+                                            <Users size={14} /> Assign Users
+                                        </legend>
+                                        <div className="mt-2 max-h-48 overflow-y-auto space-y-2">
+                                            {users.length === 0 ? (
+                                                <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
+                                            ) : users.map(user => (
+                                                <label key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedUsers.includes(user.id)}
+                                                        onChange={() => toggleUser(user.id)}
+                                                        className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-semibold text-[#0f172a] truncate">{user.firstName} {user.lastName}</p>
+                                                        <p className="text-[11px] text-[#7a87a8] truncate">{user.email}</p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <p id="policies-selection-label" className="text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
-                                        <FileText size={14} /> Attach Policies
-                                    </p>
-                                    <div 
-                                        role="group"
-                                        aria-labelledby="policies-selection-label"
-                                        className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]"
-                                    >
-                                        {policies.length === 0 ? (
-                                            <p className="text-xs text-[#94a3b8] italic p-2">No policies available</p>
-                                        ) : policies.map(policy => (
-                                            <label key={policy.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedPolicies.includes(policy.id)}
-                                                    onChange={() => togglePolicy(policy.id)}
-                                                    className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
-                                                />
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-[#0f172a] truncate">{policy.name}</p>
-                                                    <p className="text-[11px] text-[#7a87a8] truncate">{policy.effect}</p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
+                                    <fieldset className="border border-[#d0d7e8] rounded-xl p-4 bg-[#f8fafc]">
+                                        <legend className="px-2 text-xs font-bold uppercase tracking-wider text-[#64748b] flex items-center gap-2">
+                                            <FileText size={14} /> Attach Policies
+                                        </legend>
+                                        <div className="mt-2 max-h-48 overflow-y-auto space-y-2">
+                                            {policies.length === 0 ? (
+                                                <p className="text-xs text-[#94a3b8] italic p-2">No policies available</p>
+                                            ) : policies.map(policy => (
+                                                <label key={policy.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedPolicies.includes(policy.id)}
+                                                        onChange={() => togglePolicy(policy.id)}
+                                                        className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-semibold text-[#0f172a] truncate">{policy.name}</p>
+                                                        <p className="text-[11px] text-[#7a87a8] truncate">{policy.effect}</p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
                                 </div>
                             </div>
 

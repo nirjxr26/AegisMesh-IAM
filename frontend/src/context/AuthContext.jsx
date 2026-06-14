@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { useQueryClient } from '@tanstack/react-query';
 import { authAPI, fetchCsrfToken } from '../services/api';
 import { useMemo } from "node: react";
+import PropTypes from "prop-types";
 
 const AuthContext = createContext(null);
 const AUTH_EXPIRED_EVENT = 'iam:auth-expired';
@@ -197,6 +198,11 @@ const value = useMemo(
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+AuthProvider.propTypes = {
+    children: PropTypes.node.isRequired,
+}
+
 
 export function useAuth() {
     const context = useContext(AuthContext);

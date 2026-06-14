@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, Eye, FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { rbacAPI } from '../../services/api';
@@ -62,6 +62,16 @@ export default function PoliciesList() {
         setFormErrors({});
     };
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isCreateOpen) {
+                handleCloseCreateModal();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isCreateOpen]);
+
     const handleCreate = (e) => {
         e.preventDefault();
         const errors = {};
@@ -103,12 +113,6 @@ export default function PoliciesList() {
             deleteMutation.mutate(policy.id);
         }
     }
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Escape') {
-            handleCloseCreateModal();
-        }
-    };
 
     const renderPoliciesContent = () => {
         if (isLoading) {
@@ -357,7 +361,7 @@ export default function PoliciesList() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleCreate} className="p-8 space-y-6" onKeyDown={handleKeyDown}>
+                        <form onSubmit={handleCreate} className="p-8 space-y-6">
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2">
                                     <label htmlFor="policy-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Policy Name</label>
@@ -384,24 +388,26 @@ export default function PoliciesList() {
                                     />
                                 </div>
 
-                                <div role="group" aria-labelledby="effect-label">
-                                    <span id="effect-label" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Effect</span>
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setCreateForm(prev => ({ ...prev, effect: 'ALLOW' }))}
-                                            className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition-all ${createForm.effect === 'ALLOW' ? 'border-[#16a34a] bg-[#dcfce7] text-[#16a34a]' : 'border-[#d0d7e8] bg-white text-[#64748b] hover:bg-[#f8faff]'}`}
-                                        >
-                                            Allow
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setCreateForm(prev => ({ ...prev, effect: 'DENY' }))}
-                                            className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition-all ${createForm.effect === 'DENY' ? 'border-[#dc2626] bg-[#fee2e2] text-[#dc2626]' : 'border-[#d0d7e8] bg-white text-[#64748b] hover:bg-[#f8faff]'}`}
-                                        >
-                                            Deny
-                                        </button>
-                                    </div>
+                                <div className="col-span-2">
+                                    <fieldset className="border-none p-0 m-0">
+                                        <legend className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Effect</legend>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setCreateForm(prev => ({ ...prev, effect: 'ALLOW' }))}
+                                                className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition-all ${createForm.effect === 'ALLOW' ? 'border-[#16a34a] bg-[#dcfce7] text-[#16a34a]' : 'border-[#d0d7e8] bg-white text-[#64748b] hover:bg-[#f8faff]'}`}
+                                            >
+                                                Allow
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setCreateForm(prev => ({ ...prev, effect: 'DENY' }))}
+                                                className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition-all ${createForm.effect === 'DENY' ? 'border-[#dc2626] bg-[#fee2e2] text-[#dc2626]' : 'border-[#d0d7e8] bg-white text-[#64748b] hover:bg-[#f8faff]'}`}
+                                            >
+                                                Deny
+                                            </button>
+                                        </div>
+                                    </fieldset>
                                 </div>
 
                                 <div className="col-span-2">

@@ -1952,6 +1952,10 @@ PasswordField.propTypes = {
     error: PropTypes.string,
 };
 
+SettingsPage.propTypes = {
+    initialTabOverride: PropTypes.string,
+};
+
 Modal.propTypes = {
     title: PropTypes.string,
     icon: PropTypes.elementType,

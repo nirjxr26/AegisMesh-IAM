@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import NotificationItem from './NotificationItem';
 
@@ -116,6 +117,16 @@ export default function NotificationCenter({
     onOpenPreferences,
     onOpenSecurity,
 }) {
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                onOpen?.(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onOpen]);
+
     const sourceNotifications =
         allNotifications || notifications;
 
@@ -153,20 +164,26 @@ export default function NotificationCenter({
     return (
         <>
             {/* Backdrop */}
-            <div 
-                className="fixed inset-0 z-[60] bg-[#0f1623]/40 backdrop-blur-sm animate-in fade-in duration-200"
+            <button 
+                type="button"
+                className="fixed inset-0 z-[60] bg-[#0f1623]/40 backdrop-blur-sm animate-in fade-in duration-200 cursor-default"
                 onClick={() => onOpen?.(null)}
-                aria-hidden="true"
+                aria-label="Close notification center"
             />
             
             {/* Centered Modal */}
-            <div className="fixed left-1/2 top-1/2 z-[70] w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2.5rem] border border-[#dbe4f0] bg-white shadow-[0_40px_100px_rgba(15,23,42,0.25)] animate-in fade-in zoom-in duration-200">
+            <div 
+                className="fixed left-1/2 top-1/2 z-[70] w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2.5rem] border border-[#dbe4f0] bg-white shadow-[0_40px_100px_rgba(15,23,42,0.25)] animate-in fade-in zoom-in duration-200"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="notification-center-title"
+            >
                 <div className="border-b border-[#eef2f7] bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_65%)] px-8 py-6">
                     <div className="flex items-start justify-between gap-4">
                         <div>
-                            <p className="text-[20px] font-bold text-[#0f172a] tracking-tight">
+                            <h2 id="notification-center-title" className="text-[20px] font-bold text-[#0f172a] tracking-tight">
                                 Notification Center
-                            </p>
+                            </h2>
 
                             <div className="mt-1 flex items-center gap-2">
                                 <p className="text-sm text-[#64748b]">

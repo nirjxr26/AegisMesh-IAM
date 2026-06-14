@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Layers, Pencil, Trash2, Users, X, KeyRound } from 'lucide-react';
@@ -44,6 +44,26 @@ export default function GroupsList() {
         deleteFn: (id) => rbacAPI.deleteGroup(id)
     });
 
+    const handleCloseForm = () => {
+        setShowForm(false);
+        setName('');
+        setDescription('');
+        setArn('');
+        setSelectedUsers([]);
+        setSelectedRoles([]);
+        setErrors({});
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && showForm) {
+                handleCloseForm();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showForm]);
+
     const { data: usersData } = useQuery({
         queryKey: ['users-for-group-creation'],
         queryFn: () => userAPI.getUsers({ limit: 100 }),
@@ -80,16 +100,6 @@ export default function GroupsList() {
         handleCloseForm();
     };
 
-    const handleCloseForm = () => {
-        setShowForm(false);
-        setName('');
-        setDescription('');
-        setArn('');
-        setSelectedUsers([]);
-        setSelectedRoles([]);
-        setErrors({});
-    };
-
     const toggleUser = (userId) => {
         setSelectedUsers(prev => 
             prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
@@ -100,12 +110,6 @@ export default function GroupsList() {
         setSelectedRoles(prev => 
             prev.includes(roleId) ? prev.filter(id => id !== roleId) : [...prev, roleId]
         );
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Escape') {
-            handleCloseForm();
-        }
     };
 
     const users = usersData?.data?.data?.users || [];
@@ -243,7 +247,7 @@ export default function GroupsList() {
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[75vh] overflow-y-auto" onKeyDown={handleKeyDown}>
+                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[75vh] overflow-y-auto">
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2 sm:col-span-1">
                                     <label htmlFor="group-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Group Name</label>
@@ -290,59 +294,55 @@ export default function GroupsList() {
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <p id="members-selection-label" className="text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
-                                        <Users size={14} /> Assign Members
-                                    </p>
-                                    <div 
-                                        role="group" 
-                                        aria-labelledby="members-selection-label"
-                                        className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]"
-                                    >
-                                        {users.length === 0 ? (
-                                            <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
-                                        ) : users.map(user => (
-                                            <label key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedUsers.includes(user.id)}
-                                                    onChange={() => toggleUser(user.id)}
-                                                    className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
-                                                />
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-[#0f172a] truncate">{user.firstName} {user.lastName}</p>
-                                                    <p className="text-[11px] text-[#7a87a8] truncate">{user.email}</p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
+                                    <fieldset className="border border-[#d0d7e8] rounded-xl p-4 bg-[#f8fafc]">
+                                        <legend className="px-2 text-xs font-bold uppercase tracking-wider text-[#64748b] flex items-center gap-2">
+                                            <Users size={14} /> Assign Members
+                                        </legend>
+                                        <div className="mt-2 max-h-48 overflow-y-auto space-y-2">
+                                            {users.length === 0 ? (
+                                                <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
+                                            ) : users.map(user => (
+                                                <label key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedUsers.includes(user.id)}
+                                                        onChange={() => toggleUser(user.id)}
+                                                        className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-semibold text-[#0f172a] truncate">{user.firstName} {user.lastName}</p>
+                                                        <p className="text-[11px] text-[#7a87a8] truncate">{user.email}</p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <p id="roles-selection-label" className="text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
-                                        <KeyRound size={14} /> Assign Roles
-                                    </p>
-                                    <div 
-                                        role="group"
-                                        aria-labelledby="roles-selection-label"
-                                        className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]"
-                                    >
-                                        {rolesList.length === 0 ? (
-                                            <p className="text-xs text-[#94a3b8] italic p-2">No roles available</p>
-                                        ) : rolesList.map(role => (
-                                            <label key={role.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedRoles.includes(role.id)}
-                                                    onChange={() => toggleRole(role.id)}
-                                                    className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
-                                                />
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-[#0f172a] truncate">{role.name}</p>
-                                                    <p className="text-[11px] text-[#7a87a8] truncate">{role.isSystem ? 'System' : 'Custom'}</p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
+                                    <fieldset className="border border-[#d0d7e8] rounded-xl p-4 bg-[#f8fafc]">
+                                        <legend className="px-2 text-xs font-bold uppercase tracking-wider text-[#64748b] flex items-center gap-2">
+                                            <KeyRound size={14} /> Assign Roles
+                                        </legend>
+                                        <div className="mt-2 max-h-48 overflow-y-auto space-y-2">
+                                            {rolesList.length === 0 ? (
+                                                <p className="text-xs text-[#94a3b8] italic p-2">No roles available</p>
+                                            ) : rolesList.map(role => (
+                                                <label key={role.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedRoles.includes(role.id)}
+                                                        onChange={() => toggleRole(role.id)}
+                                                        className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-semibold text-[#0f172a] truncate">{role.name}</p>
+                                                        <p className="text-[11px] text-[#7a87a8] truncate">{role.isSystem ? 'System' : 'Custom'}</p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </fieldset>
                                 </div>
                             </div>
 
