@@ -19,6 +19,8 @@ import toast from 'react-hot-toast';
 import { rbacAPI, userAPI } from '../../services/api';
 import RoleTemplates from '../../components/roles/RoleTemplates';
 import { useEntityList } from '../../hooks/useEntityList';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
 
 const EMPTY_ROLES = [];
 
@@ -143,7 +145,7 @@ export default function RolesList() {
             return;
         }
 
-        if (window.confirm(`Are you sure you want to delete "${role.name}"?`)) {
+        if (globalThis.confirm(`Are you sure you want to delete "${role.name}"?`)) {
             deleteMutation.mutate(role.id);
         }
     };
@@ -154,6 +156,12 @@ export default function RolesList() {
 
         if (role?.id) {
             navigate(`/dashboard/roles/${role.id}`);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            handleCloseCreateModal();
         }
     };
 
@@ -190,7 +198,9 @@ export default function RolesList() {
                     <div className="bg-white border border-[#d0d7e8] rounded-2xl px-5 py-4 mb-4 flex items-center gap-3 shadow-sm flex-wrap lg:flex-nowrap">
                         <div className="relative flex-1 min-w-[260px]">
                             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a87a8]" />
+                            <label htmlFor="role-search" className="sr-only">Search roles</label>
                             <input
+                                id="role-search"
                                 type="text"
                                 placeholder="Search roles..."
                                 value={search}
@@ -200,7 +210,9 @@ export default function RolesList() {
                         </div>
 
                         <div className="relative">
+                            <label htmlFor="type-filter" className="sr-only">Filter by type</label>
                             <select
+                                id="type-filter"
                                 value={typeFilter}
                                 onChange={(e) => setTypeFilter(e.target.value)}
                                 className="appearance-none bg-[#f4f6fb] border border-[#d0d7e8] rounded-xl px-4 py-2.5 pr-8 text-sm text-[#3a4560] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
@@ -215,30 +227,17 @@ export default function RolesList() {
 
                     <div className="w-full">
                         {isLoading ? (
-                            <div className="py-24 text-center">
-                                <div className="inline-block w-8 h-8 border-3 border-[#4f46e5] border-t-transparent rounded-full animate-spin mb-4"></div>
-                                <p className="text-sm text-[#7a87a8]">Loading roles...</p>
-                            </div>
+                            <LoadingState message="Loading roles..." />
                         ) : isError ? (
                             <div className="py-16 text-center text-sm text-red-500">Failed to load roles.</div>
                         ) : filteredRoles.length === 0 ? (
-                            <div className="py-16 flex flex-col items-center gap-3 text-center px-4 bg-white border border-[#d0d7e8] rounded-2xl shadow-sm">
-                                <div className="bg-[#f4f6fb] rounded-2xl p-4 text-[#7a87a8]">
-                                    <KeyRound size={32} />
-                                </div>
-                                <p className="text-[15px] font-semibold text-[#0f1623]">No roles yet</p>
-                                <p className="text-[13px] text-[#7a87a8]">Create your first role to start assigning permissions.</p>
-                                <div className="flex gap-2 mt-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleOpenCreateModal}
-                                        className="bg-[#4f46e5] hover:bg-[#3730a3] text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-colors"
-                                    >
-                                        <Plus size={15} />
-                                        + New Role
-                                    </button>
-                                </div>
-                            </div>
+                            <EmptyState
+                                icon={KeyRound}
+                                title="No roles yet"
+                                description="Create your first role to start assigning permissions."
+                                actionLabel="New Role"
+                                onAction={handleOpenCreateModal}
+                            />
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {filteredRoles.map((role) => (
@@ -329,11 +328,16 @@ export default function RolesList() {
             {isCreateOpen && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1623]/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-                    onMouseDown={(e) => e.target === e.currentTarget && handleCloseCreateModal()}
+                    onClick={(e) => e.target === e.currentTarget && handleCloseCreateModal()}
+                    onKeyDown={handleKeyDown}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Close modal"
                 >
                     <div
                         className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
-                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        role="document"
                     >
                         <div className="border-b border-[#eef2f7] bg-[#f8faff] px-8 py-6">
                             <div className="flex items-center justify-between">
@@ -347,6 +351,7 @@ export default function RolesList() {
                                     type="button"
                                     onClick={handleCloseCreateModal}
                                     className="rounded-lg p-2 text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#0f172a] transition-all"
+                                    aria-label="Close"
                                 >
                                     <X size={20} />
                                 </button>
@@ -356,10 +361,11 @@ export default function RolesList() {
                         <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
+                                    <label htmlFor="role-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
                                         Role Name
                                     </label>
                                     <input
+                                        id="role-name"
                                         type="text"
                                         value={name}
                                         onChange={(e) => {
@@ -375,10 +381,11 @@ export default function RolesList() {
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
+                                    <label htmlFor="role-arn" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
                                         ARN (Optional)
                                     </label>
                                     <input
+                                        id="role-arn"
                                         type="text"
                                         value={arn}
                                         onChange={(e) => setArn(e.target.value)}
@@ -388,10 +395,11 @@ export default function RolesList() {
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
+                                    <label htmlFor="role-description" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
                                         Description
                                     </label>
                                     <textarea
+                                        id="role-description"
                                         rows={2}
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
@@ -401,9 +409,9 @@ export default function RolesList() {
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
+                                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
                                         <Users size={14} /> Assign Users
-                                    </label>
+                                    </span>
                                     <div className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]">
                                         {users.length === 0 ? (
                                             <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
@@ -425,9 +433,9 @@ export default function RolesList() {
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
+                                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
                                         <FileText size={14} /> Attach Policies
-                                    </label>
+                                    </span>
                                     <div className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]">
                                         {policies.length === 0 ? (
                                             <p className="text-xs text-[#94a3b8] italic p-2">No policies available</p>

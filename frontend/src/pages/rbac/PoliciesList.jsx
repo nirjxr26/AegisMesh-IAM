@@ -21,6 +21,8 @@ import {
 
 import { rbacAPI } from '../../services/api';
 import { useEntityList } from '../../hooks/useEntityList';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
 
 const EMPTY_POLICIES = [];
 
@@ -114,10 +116,16 @@ export default function PoliciesList() {
 
     function handleDelete(policy) {
         if (policy.isSystem) return;
-        if (window.confirm(`Are you sure you want to delete "${policy.name}"?`)) {
+        if (globalThis.confirm(`Are you sure you want to delete "${policy.name}"?`)) {
             deleteMutation.mutate(policy.id);
         }
     }
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            handleCloseCreateModal();
+        }
+    };
 
     return (
         <div className="w-full">
@@ -143,7 +151,9 @@ export default function PoliciesList() {
             <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[#d0d7e8] bg-white px-5 py-4 shadow-sm lg:flex-nowrap">
                 <div className="relative min-w-[260px] flex-1">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a87a8]" />
+                    <label htmlFor="policy-search" className="sr-only">Search policies</label>
                     <input
+                        id="policy-search"
                         type="text"
                         value={search}
                         onChange={(e) => {
@@ -156,7 +166,9 @@ export default function PoliciesList() {
                 </div>
 
                 <div className="relative">
+                    <label htmlFor="effect-filter" className="sr-only">Filter by effect</label>
                     <select
+                        id="effect-filter"
                         value={effectFilter}
                         onChange={(e) => {
                             setEffectFilter(e.target.value);
@@ -172,7 +184,9 @@ export default function PoliciesList() {
                 </div>
 
                 <div className="relative">
+                    <label htmlFor="type-filter" className="sr-only">Filter by type</label>
                     <select
+                        id="type-filter"
                         value={typeFilter}
                         onChange={(e) => {
                             setTypeFilter(e.target.value);
@@ -191,20 +205,15 @@ export default function PoliciesList() {
             {/* Grid */}
             <div className="w-full">
                 {isLoading ? (
-                    <div className="py-24 text-center">
-                        <div className="inline-block w-8 h-8 border-3 border-[#4f46e5] border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-sm text-[#7a87a8]">Loading policies...</p>
-                    </div>
+                    <LoadingState message="Loading policies..." />
                 ) : isError ? (
                     <div className="py-16 text-center text-sm text-red-500">Failed to load policies.</div>
                 ) : visiblePolicies.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3 px-4 py-16 text-center bg-white border border-[#d0d7e8] rounded-2xl shadow-sm">
-                        <div className="inline-flex rounded-2xl bg-[#f4f6fb] p-4">
-                            <FileText size={28} className="text-[#7a87a8]" />
-                        </div>
-                        <p className="text-[15px] font-semibold text-[#0f1623]">No policies found</p>
-                        <p className="text-[13px] text-[#7a87a8]">Try different filters or create a new policy.</p>
-                    </div>
+                    <EmptyState
+                        icon={FileText}
+                        title="No policies found"
+                        description="Try different filters or create a new policy."
+                    />
                 ) : (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -323,11 +332,16 @@ export default function PoliciesList() {
             {isCreateOpen && (
                 <div 
                     className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1623]/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-                    onMouseDown={(e) => e.target === e.currentTarget && handleCloseCreateModal()}
+                    onClick={(e) => e.target === e.currentTarget && handleCloseCreateModal()}
+                    onKeyDown={handleKeyDown}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Close modal"
                 >
                     <div 
                         className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
-                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        role="document"
                     >
                         <div className="border-b border-[#eef2f7] bg-[#f8faff] px-8 py-6">
                             <div className="flex items-center justify-between">
@@ -341,6 +355,7 @@ export default function PoliciesList() {
                                     type="button"
                                     onClick={handleCloseCreateModal}
                                     className="rounded-lg p-2 text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#0f172a] transition-all"
+                                    aria-label="Close"
                                 >
                                     <X size={20} />
                                 </button>
@@ -350,8 +365,9 @@ export default function PoliciesList() {
                         <form onSubmit={handleCreate} className="p-8 space-y-6">
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Policy Name</label>
+                                    <label htmlFor="policy-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Policy Name</label>
                                     <input
+                                        id="policy-name"
                                         type="text"
                                         value={createForm.name}
                                         onChange={(e) => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
@@ -362,8 +378,9 @@ export default function PoliciesList() {
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Description</label>
+                                    <label htmlFor="policy-description" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Description</label>
                                     <textarea
+                                        id="policy-description"
                                         value={createForm.description}
                                         onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
                                         placeholder="Brief description..."
@@ -373,7 +390,7 @@ export default function PoliciesList() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Effect</label>
+                                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Effect</span>
                                     <div className="flex gap-2">
                                         <button
                                             type="button"
@@ -393,8 +410,9 @@ export default function PoliciesList() {
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Actions (Comma separated)</label>
+                                    <label htmlFor="policy-actions" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Actions (Comma separated)</label>
                                     <textarea
+                                        id="policy-actions"
                                         value={actionInput}
                                         onChange={(e) => setActionInput(e.target.value)}
                                         placeholder="s3:ListBucket, s3:GetObject"

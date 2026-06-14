@@ -27,6 +27,8 @@ import ReauthModal from '../../components/security/ReauthModal';
 import { useReauth } from '../../hooks/useReauth';
 import { getAvatarColor, getInitials, getStatusMeta } from '../../utils/formatters';
 import { useEntityList } from '../../hooks/useEntityList';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function UsersList() {
     const navigate = useNavigate();
@@ -102,7 +104,9 @@ export default function UsersList() {
                 <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[#d0d7e8] bg-white px-5 py-4 shadow-sm lg:flex-nowrap">
                     <div className="relative flex-1 min-w-[240px]">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a87a8]" />
+                        <label htmlFor="user-search" className="sr-only">Search users</label>
                         <input
+                            id="user-search"
                             type="text"
                             placeholder="Search users..."
                             value={search}
@@ -112,7 +116,9 @@ export default function UsersList() {
                     </div>
 
                     <div className="relative">
+                        <label htmlFor="status-filter" className="sr-only">Filter by status</label>
                         <select
+                            id="status-filter"
                             value={statusFilter}
                             onChange={handleStatusFilterChange}
                             className="cursor-pointer appearance-none rounded-xl border border-[#d0d7e8] bg-[#f4f6fb] px-4 py-2.5 pr-8 text-sm text-[#3a4560] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
@@ -126,7 +132,9 @@ export default function UsersList() {
                     </div>
 
                     <div className="relative">
+                        <label htmlFor="mfa-filter" className="sr-only">Filter by MFA status</label>
                         <select
+                            id="mfa-filter"
                             value={mfaFilter}
                             onChange={handleMfaFilterChange}
                             className="cursor-pointer appearance-none rounded-xl border border-[#d0d7e8] bg-[#f4f6fb] px-4 py-2.5 pr-8 text-sm text-[#3a4560] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
@@ -139,7 +147,9 @@ export default function UsersList() {
                     </div>
 
                     <div className="relative">
+                        <label htmlFor="role-filter" className="sr-only">Filter by role</label>
                         <select
+                            id="role-filter"
                             value={roleFilter}
                             onChange={handleRoleFilterChange}
                             className="cursor-pointer appearance-none rounded-xl border border-[#d0d7e8] bg-[#f4f6fb] px-4 py-2.5 pr-8 text-sm text-[#3a4560] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
@@ -154,25 +164,22 @@ export default function UsersList() {
                 </div>
 
                 {isLoading ? (
-                    <div className="py-24 text-center">
-                        <div className="inline-block w-8 h-8 border-3 border-[#4f46e5] border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-sm text-[#7a87a8]">Loading users...</p>
-                    </div>
+                    <LoadingState message="Loading users..." />
                 ) : isError ? (
                     <div className="py-16 text-center text-sm text-red-500">Failed to load users. Please refresh.</div>
                 ) : users.length === 0 ? (
-                    <div className="py-16 flex flex-col items-center gap-3 text-center px-4 bg-white border border-[#d0d7e8] rounded-2xl shadow-sm">
-                        <div className="bg-[#f4f6fb] rounded-2xl p-4 text-[#7a87a8]">
-                            <Users size={32} />
-                        </div>
-                        <p className="text-[15px] font-semibold text-[#0f1623]">No users found</p>
-                        <p className="text-[13px] text-[#7a87a8]">Try adjusting your search or filters.</p>
-                    </div>
+                    <EmptyState
+                        icon={Users}
+                        title="No users found"
+                        description="Try adjusting your search or filters."
+                    />
                 ) : (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {users.map((user) => {
                                 const status = getStatusMeta(user.status);
+                                const isMfaProtected = user.mfaEnabled;
+                                
                                 return (
                                     <div
                                         key={user.id}
@@ -228,8 +235,8 @@ export default function UsersList() {
                                         <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between">
                                             <div className="flex flex-col">
                                                 <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Security</span>
-                                                <span className={`text-[12px] font-semibold ${user.mfaEnabled ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                                    {user.mfaEnabled ? 'MFA Protected' : 'MFA Off'}
+                                                <span className={`text-[12px] font-semibold ${isMfaProtected ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                    {isMfaProtected ? 'MFA Protected' : 'MFA Off'}
                                                 </span>
                                             </div>
                                             <Link
@@ -246,7 +253,7 @@ export default function UsersList() {
 
                         <div className="mt-8 flex items-center justify-between">
                             <p className="text-sm text-[#64748b]">
-                                Showing page <span className="font-semibold text-[#0f172a]">{pagination.page}</span> of <span className="font-semibold text-[#0f172a]">{pagination.totalPages}</span>
+                                Showing page <span className="font-semibold text-[#0f1623]">{pagination.page}</span> of <span className="font-semibold text-[#0f1623]">{pagination.totalPages}</span>
                             </p>
 
                             <div className="flex items-center gap-2">

@@ -59,7 +59,7 @@ export function getAvatarColor(firstName = '', lastName = '') {
     const name = `${firstName}${lastName}`;
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        hash = (name.codePointAt(i) || 0) + ((hash << 5) - hash);
     }
 
     return colors[Math.abs(hash) % colors.length];

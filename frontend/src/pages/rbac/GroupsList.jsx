@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { KeyRound, Layers, Pencil, Trash2, Users, X } from 'lucide-react';
+import { Layers, Pencil, Trash2, Users, X, KeyRound } from 'lucide-react';
 import { rbacAPI, userAPI } from '../../services/api';
 import { useEntityList } from '../../hooks/useEntityList';
+import LoadingState from '../../components/common/LoadingState';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function GroupsList() {
     const [showForm, setShowForm] = useState(false);
@@ -99,6 +101,12 @@ export default function GroupsList() {
         );
     };
 
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            handleCloseForm();
+        }
+    };
+
     const users = usersData?.data?.data?.users || [];
     const rolesList = rolesData?.data?.data || [];
 
@@ -122,13 +130,21 @@ export default function GroupsList() {
                 {showForm ? (
                     <div
                         className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1623]/45 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-                        onMouseDown={(event) => {
+                        onClick={(event) => {
                             if (event.target === event.currentTarget) {
                                 handleCloseForm();
                             }
                         }}
+                        onKeyDown={handleKeyDown}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Close modal"
                     >
-                        <div className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-in zoom-in duration-200" onMouseDown={(event) => event.stopPropagation()}>
+                        <div 
+                            className="w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-in zoom-in duration-200" 
+                            onClick={(event) => event.stopPropagation()}
+                            role="document"
+                        >
                             <div className="px-8 py-6 border-b border-[#f0f2f8] flex items-center justify-between bg-[#f8faff]">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-[#4f46e5]/10 rounded-xl p-2 inline-flex">
@@ -140,6 +156,7 @@ export default function GroupsList() {
                                     type="button"
                                     onClick={handleCloseForm}
                                     className="text-[#7a87a8] hover:text-[#0f1623] p-2 rounded-lg hover:bg-[#f4f6fb] transition-colors"
+                                    aria-label="Close"
                                 >
                                     <X size={20} />
                                 </button>
@@ -148,8 +165,9 @@ export default function GroupsList() {
                             <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[75vh] overflow-y-auto">
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div className="col-span-2 sm:col-span-1">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Group Name</label>
+                                        <label htmlFor="group-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Group Name</label>
                                         <input
+                                            id="group-name"
                                             type="text"
                                             value={name}
                                             onChange={(e) => {
@@ -167,8 +185,9 @@ export default function GroupsList() {
                                     </div>
 
                                     <div className="col-span-2 sm:col-span-1">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">ARN (Optional)</label>
+                                        <label htmlFor="group-arn" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">ARN (Optional)</label>
                                         <input
+                                            id="group-arn"
                                             type="text"
                                             value={arn}
                                             onChange={(e) => setArn(e.target.value)}
@@ -178,8 +197,9 @@ export default function GroupsList() {
                                     </div>
 
                                     <div className="col-span-2">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Description</label>
+                                        <label htmlFor="group-description" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Description</label>
                                         <textarea
+                                            id="group-description"
                                             value={description}
                                             onChange={(e) => setDescription(e.target.value)}
                                             placeholder="Brief description of the group's purpose"
@@ -189,9 +209,9 @@ export default function GroupsList() {
                                     </div>
 
                                     <div className="col-span-2 sm:col-span-1">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
+                                        <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
                                             <Users size={14} /> Assign Members
-                                        </label>
+                                        </span>
                                         <div className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]">
                                             {users.length === 0 ? (
                                                 <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
@@ -213,9 +233,9 @@ export default function GroupsList() {
                                     </div>
 
                                     <div className="col-span-2 sm:col-span-1">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
+                                        <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
                                             <KeyRound size={14} /> Assign Roles
-                                        </label>
+                                        </span>
                                         <div className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]">
                                             {rolesList.length === 0 ? (
                                                 <p className="text-xs text-[#94a3b8] italic p-2">No roles available</p>
@@ -260,25 +280,15 @@ export default function GroupsList() {
 
                 {/* Groups Grid */}
                 {isLoading ? (
-                    <div className="py-24 text-center">
-                        <div className="inline-block w-8 h-8 border-3 border-[#4f46e5] border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-sm text-[#7a87a8]">Loading groups...</p>
-                    </div>
+                    <LoadingState message="Loading groups..." />
                 ) : groups.length === 0 ? (
-                    <div className="py-16 flex flex-col items-center gap-3 text-center px-4 bg-white border border-[#d0d7e8] rounded-2xl shadow-sm">
-                        <div className="bg-[#f4f6fb] rounded-2xl p-4 text-[#7a87a8]">
-                            <Layers size={32} />
-                        </div>
-                        <p className="text-[15px] font-semibold text-[#0f1623]">No groups yet</p>
-                        <p className="text-[13px] text-[#7a87a8]">Create your first group to organize users and assign roles.</p>
-                        <button
-                            type="button"
-                            onClick={() => setShowForm(true)}
-                            className="mt-2 bg-[#4f46e5] hover:bg-[#3730a3] text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition-colors"
-                        >
-                            + New Group
-                        </button>
-                    </div>
+                    <EmptyState
+                        icon={Layers}
+                        title="No groups yet"
+                        description="Create your first group to organize users and assign roles."
+                        actionLabel="New Group"
+                        onAction={() => setShowForm(true)}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {groups.map((group) => (
@@ -301,7 +311,7 @@ export default function GroupsList() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (window.confirm(`Are you sure you want to delete "${group.name}"?`)) {
+                                                if (globalThis.confirm(`Are you sure you want to delete "${group.name}"?`)) {
                                                     deleteMutation.mutate(group.id);
                                                 }
                                             }}

@@ -19,9 +19,6 @@ import {
     ShieldCheck,
     UserPlus,
     Users,
-    Pencil,
-    Trash2,
-    Eye,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { auditAPI, authAPI, rbacAPI, userAPI } from '../services/api';
