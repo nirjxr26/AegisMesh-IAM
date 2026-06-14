@@ -7,7 +7,7 @@ const authorize = require('../middleware/authorize');
 const { validate } = require('../middleware/validate');
 const schemas = require('../config/validationSchemas');
 
-// router.use(authenticate);
+router.use(authenticate);
 
 router.post('/simulate', authorize('policies:read', 'policies/*'), validate(schemas.policySimulation), policiesController.simulatePolicy);
 

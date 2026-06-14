@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
     ChevronDown,
@@ -18,6 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import { rbacAPI, userAPI } from '../../services/api';
 import RoleTemplates from '../../components/roles/RoleTemplates';
+import { useEntityList } from '../../hooks/useEntityList';
 
 const EMPTY_ROLES = [];
 
@@ -25,7 +26,6 @@ export default function RolesList() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -37,28 +37,18 @@ export default function RolesList() {
     const [selectedPolicies, setSelectedPolicies] = useState([]);
     const [formErrors, setFormErrors] = useState({});
 
-    const { data: rolesData, isLoading, isError } = useQuery({
-        queryKey: ['roles', search],
-        queryFn: () => rbacAPI.getRoles({ search }),
-    });
-
-    const { data: usersData } = useQuery({
-        queryKey: ['users-for-role-creation'],
-        queryFn: () => userAPI.getUsers({ limit: 100 }),
-        enabled: isCreateOpen,
-    });
-
-    const { data: policiesData } = useQuery({
-        queryKey: ['policies-for-role-creation'],
-        queryFn: () => rbacAPI.getPolicies({ limit: 100 }),
-        enabled: isCreateOpen,
-    });
-
-    const users = usersData?.data?.data?.users || [];
-    const policies = policiesData?.data?.data?.data || [];
-
-    const createMutation = useMutation({
-        mutationFn: async (data) => {
+    const {
+        data: roles,
+        isLoading,
+        isError,
+        search,
+        setSearch,
+        createMutation,
+        deleteMutation
+    } = useEntityList({
+        entityKey: 'roles',
+        fetchFn: rbacAPI.getRoles,
+        createFn: async (data) => {
             const roleResponse = await rbacAPI.createRole({
                 name: data.name,
                 description: data.description,
@@ -75,28 +65,23 @@ export default function RolesList() {
             }
             return roleResponse;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries(['roles']);
-            toast.success('Role created successfully');
-            handleCloseCreateModal();
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.error || 'Failed to create role');
-        },
+        deleteFn: (id) => rbacAPI.deleteRole(id)
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: (id) => rbacAPI.deleteRole(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['roles']);
-            toast.success('Role deleted');
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.error || 'Failed to delete role');
-        },
+    const { data: usersData } = useQuery({
+        queryKey: ['users-for-role-creation'],
+        queryFn: () => userAPI.getUsers({ limit: 100 }),
+        enabled: isCreateOpen,
     });
 
-    const roles = rolesData?.data?.data ?? EMPTY_ROLES;
+    const { data: policiesData } = useQuery({
+        queryKey: ['policies-for-role-creation'],
+        queryFn: () => rbacAPI.getPolicies({ limit: 100 }),
+        enabled: isCreateOpen,
+    });
+
+    const users = usersData?.data?.data?.users || [];
+    const policies = policiesData?.data?.data?.data || [];
 
     const filteredRoles = useMemo(() => {
         if (!typeFilter) return roles;

@@ -4,12 +4,6 @@ import React, {
 } from 'react';
 
 import {
-    useMutation,
-    useQuery,
-    useQueryClient,
-} from '@tanstack/react-query';
-
-import {
     Link,
     useNavigate,
 } from 'react-router-dom';
@@ -25,20 +19,14 @@ import {
     X,
 } from 'lucide-react';
 
-import toast from 'react-hot-toast';
-
 import { rbacAPI } from '../../services/api';
+import { useEntityList } from '../../hooks/useEntityList';
 
 const EMPTY_POLICIES = [];
 
 export default function PoliciesList() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
-
-    const [search, setSearch] = useState('');
-    const [effectFilter, setEffectFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
-    const [page, setPage] = useState(1);
     const perPage = 20;
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -53,36 +41,29 @@ export default function PoliciesList() {
     const [formErrors, setFormErrors] = useState({});
 
     const {
-        data: policiesData,
+        data: policies,
         isLoading,
         isError,
-    } = useQuery({
-        queryKey: ['policies', search, effectFilter],
-        queryFn: () => rbacAPI.getPolicies({ search, effect: effectFilter }),
+        search,
+        setSearch,
+        filters,
+        setFilters,
+        page,
+        setPage,
+        createMutation,
+        deleteMutation,
+    } = useEntityList({
+        entityKey: 'policies',
+        fetchFn: rbacAPI.getPolicies,
+        createFn: (data) => rbacAPI.createPolicy(data),
+        deleteFn: (id) => rbacAPI.deletePolicy(id),
     });
 
-    const createMutation = useMutation({
-        mutationFn: (data) => rbacAPI.createPolicy(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['policies']);
-            toast.success('Policy created successfully');
-            handleCloseCreateModal();
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.error || 'Failed to create policy');
-        },
-    });
+    const effectFilter = filters.effect || '';
 
-    const deleteMutation = useMutation({
-        mutationFn: (id) => rbacAPI.deletePolicy(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['policies']);
-            toast.success('Policy deleted');
-        },
-        onError: (error) => {
-            toast.error(error.response?.data?.error || 'Failed to delete policy');
-        },
-    });
+    const setEffectFilter = (val) => {
+        setFilters(prev => ({ ...prev, effect: val }));
+    };
 
     const handleCloseCreateModal = () => {
         setIsCreateOpen(false);
@@ -118,8 +99,6 @@ export default function PoliciesList() {
             actions,
         });
     };
-
-    const policies = policiesData?.data?.data ?? EMPTY_POLICIES;
 
     const filteredPolicies = useMemo(() => {
         if (!typeFilter) return policies;

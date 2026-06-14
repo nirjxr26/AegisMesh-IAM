@@ -10,7 +10,6 @@ if (!process.env.DATABASE_URL) {
 
 // Reuse a global instance in non-production to avoid multiple clients during reloads/tests
 const globalForPrisma = globalThis;
-const globalForPg = globalThis;
 
 const basePrisma = globalForPrisma.prisma || new PrismaClient({
     log: [{ emit: 'event', level: 'error' }],

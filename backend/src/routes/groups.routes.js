@@ -7,7 +7,7 @@ const authorize = require('../middleware/authorize');
 const { validate } = require('../middleware/validate');
 const schemas = require('../config/validationSchemas');
 
-// router.use(authenticate);
+router.use(authenticate);
 
 router.get('/', authorize('groups:read', 'groups/*'), groupsController.getGroups);
 router.post('/', authorize('groups:write', 'groups/*'), validate(schemas.group), groupsController.createGroup);

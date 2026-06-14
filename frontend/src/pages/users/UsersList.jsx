@@ -1,8 +1,4 @@
-import React, {
-    useEffect,
-    useMemo,
-    useState,
-} from 'react';
+import React from 'react';
 
 import {
     useQuery,
@@ -29,88 +25,8 @@ import {
 import ReauthModal from '../../components/security/ReauthModal';
 
 import { useReauth } from '../../hooks/useReauth';
-
-const AVATAR_COLORS = {
-    A: '#4f46e5',
-    B: '#059669',
-    C: '#0284c7',
-    D: '#dc2626',
-    E: '#7c3aed',
-    F: '#0891b2',
-    G: '#ea580c',
-    H: '#2563eb',
-    I: '#06b6d4',
-    J: '#1d4ed8',
-    K: '#9333ea',
-    L: '#0d9488',
-    M: '#ca8a04',
-    N: '#16a34a',
-    O: '#4338ca',
-    P: '#6366f1',
-    Q: '#6b21a8',
-    R: '#7c2d12',
-    S: '#166534',
-    T: '#1e293b',
-    U: '#374151',
-    V: '#1e1b4b',
-    W: '#0f172a',
-    X: '#581c87',
-    Y: '#be185d',
-    Z: '#991b1b',
-};
-
-function getAvatarColor(firstName, lastName) {
-    const initials =
-        `${firstName?.[0] || ''}${lastName?.[0] || ''}`.trim();
-
-    if (!initials) return '#4f46e5';
-
-    const initial =
-        initials.toUpperCase()[0];
-
-    return (
-        AVATAR_COLORS[initial] ||
-        '#4f46e5'
-    );
-}
-
-function getInitials(firstName, lastName) {
-    const first = firstName?.[0] || '';
-    const last = lastName?.[0] || '';
-    return `${first}${last}`.toUpperCase() || 'U';
-}
-
-function getStatusMeta(status) {
-    if (status === 'ACTIVE') {
-        return {
-            label: 'Active',
-            className:
-                'bg-emerald-100 text-emerald-700',
-        };
-    }
-
-    if (status === 'LOCKED') {
-        return {
-            label: 'Locked',
-            className:
-                'bg-red-100 text-red-700',
-        };
-    }
-
-    if (status === 'INACTIVE') {
-        return {
-            label: 'Inactive',
-            className:
-                'bg-slate-100 text-slate-600',
-        };
-    }
-
-    return {
-        label: status || 'Pending',
-        className:
-            'bg-amber-100 text-amber-700',
-    };
-}
+import { getAvatarColor, getInitials, getStatusMeta } from '../../utils/formatters';
+import { useEntityList } from '../../hooks/useEntityList';
 
 export default function UsersList() {
     const navigate = useNavigate();
@@ -120,40 +36,25 @@ export default function UsersList() {
         handleReauthSuccess,
     } = useReauth();
 
-    const [search, setSearch] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
-    const [mfaFilter, setMfaFilter] = useState('');
-    const [roleFilter, setRoleFilter] = useState('');
-    const [page, setPage] = useState(1);
-    const limit = 20;
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearch(search);
-            setPage(1);
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [search]);
-
-    const queryParams = useMemo(() => {
-        const params = { page, limit };
-        if (debouncedSearch) params.search = debouncedSearch;
-        if (statusFilter) params.status = statusFilter;
-        if (mfaFilter) params.mfaEnabled = mfaFilter === 'true';
-        if (roleFilter) params.roleId = roleFilter;
-        return params;
-    }, [page, limit, debouncedSearch, statusFilter, mfaFilter, roleFilter]);
-
     const {
-        data: usersResponse,
-        isLoading: isUsersLoading,
-        isError: isUsersError,
-    } = useQuery({
-        queryKey: ['users', queryParams],
-        queryFn: () => userAPI.getUsers(queryParams).then((res) => res.data),
+        data: users,
+        pagination,
+        isLoading,
+        isError,
+        search,
+        setSearch,
+        filters,
+        setFilters,
+        setPage,
+    } = useEntityList({
+        entityKey: 'users',
+        fetchFn: userAPI.getUsers,
+        perPage: 20,
     });
+
+    const statusFilter = filters.status || '';
+    const mfaFilter = filters.mfaEnabled === undefined ? '' : String(filters.mfaEnabled);
+    const roleFilter = filters.roleId || '';
 
     const {
         data: rolesResponse,
@@ -162,12 +63,20 @@ export default function UsersList() {
         queryFn: () => rbacAPI.getRoles({ limit: 100 }).then((res) => res.data),
     });
 
-    const users = usersResponse?.data || [];
     const roles = rolesResponse?.data || [];
-    const pagination = usersResponse?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 };
 
-    const isLoading = isUsersLoading;
-    const isError = isUsersError;
+    const handleStatusFilterChange = (e) => {
+        setFilters(prev => ({ ...prev, status: e.target.value }));
+    };
+
+    const handleMfaFilterChange = (e) => {
+        const val = e.target.value;
+        setFilters(prev => ({ ...prev, mfaEnabled: val === '' ? undefined : val === 'true' }));
+    };
+
+    const handleRoleFilterChange = (e) => {
+        setFilters(prev => ({ ...prev, roleId: e.target.value }));
+    };
 
     return (
         <>
@@ -205,7 +114,7 @@ export default function UsersList() {
                     <div className="relative">
                         <select
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
+                            onChange={handleStatusFilterChange}
                             className="cursor-pointer appearance-none rounded-xl border border-[#d0d7e8] bg-[#f4f6fb] px-4 py-2.5 pr-8 text-sm text-[#3a4560] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
                         >
                             <option value="">All Statuses</option>
@@ -219,7 +128,7 @@ export default function UsersList() {
                     <div className="relative">
                         <select
                             value={mfaFilter}
-                            onChange={(e) => setMfaFilter(e.target.value)}
+                            onChange={handleMfaFilterChange}
                             className="cursor-pointer appearance-none rounded-xl border border-[#d0d7e8] bg-[#f4f6fb] px-4 py-2.5 pr-8 text-sm text-[#3a4560] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
                         >
                             <option value="">MFA: All</option>
@@ -232,7 +141,7 @@ export default function UsersList() {
                     <div className="relative">
                         <select
                             value={roleFilter}
-                            onChange={(e) => setRoleFilter(e.target.value)}
+                            onChange={handleRoleFilterChange}
                             className="cursor-pointer appearance-none rounded-xl border border-[#d0d7e8] bg-[#f4f6fb] px-4 py-2.5 pr-8 text-sm text-[#3a4560] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
                         >
                             <option value="">All Roles</option>

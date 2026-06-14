@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { KeyRound, Layers, Pencil, Search, Trash2, Users, X } from 'lucide-react';
+import { KeyRound, Layers, Pencil, Trash2, Users, X } from 'lucide-react';
 import { rbacAPI, userAPI } from '../../services/api';
-import toast from 'react-hot-toast';
+import { useEntityList } from '../../hooks/useEntityList';
 
 export default function GroupsList() {
-    const queryClient = useQueryClient();
     const [showForm, setShowForm] = useState(false);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -15,28 +14,15 @@ export default function GroupsList() {
     const [selectedRoles, setSelectedRoles] = useState([]);
     const [errors, setErrors] = useState({});
 
-    const { data: groupsData, isLoading } = useQuery({
-        queryKey: ['groups'],
-        queryFn: () => rbacAPI.getGroups(),
-    });
-
-    const { data: usersData } = useQuery({
-        queryKey: ['users-for-group-creation'],
-        queryFn: () => userAPI.getUsers({ limit: 100 }),
-        enabled: showForm,
-    });
-
-    const { data: rolesData } = useQuery({
-        queryKey: ['roles-for-group-creation'],
-        queryFn: () => rbacAPI.getRoles({ limit: 100 }),
-        enabled: showForm,
-    });
-
-    const users = usersData?.data?.data?.users || [];
-    const rolesList = rolesData?.data?.data || [];
-
-    const createMutation = useMutation({
-        mutationFn: async (data) => {
+    const {
+        data: groups,
+        isLoading,
+        createMutation,
+        deleteMutation
+    } = useEntityList({
+        entityKey: 'groups',
+        fetchFn: rbacAPI.getGroups,
+        createFn: async (data) => {
             const groupResponse = await rbacAPI.createGroup({
                 name: data.name,
                 description: data.description,
@@ -53,25 +39,19 @@ export default function GroupsList() {
             }
             return groupResponse;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries(['groups']);
-            toast.success('Group created successfully');
-            handleCloseForm();
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.error || 'Failed to create group');
-        }
+        deleteFn: (id) => rbacAPI.deleteGroup(id)
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: (id) => rbacAPI.deleteGroup(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['groups']);
-            toast.success('Group deleted');
-        },
-        onError: (err) => {
-            toast.error(err.response?.data?.error || 'Failed to delete group');
-        }
+    const { data: usersData } = useQuery({
+        queryKey: ['users-for-group-creation'],
+        queryFn: () => userAPI.getUsers({ limit: 100 }),
+        enabled: showForm,
+    });
+
+    const { data: rolesData } = useQuery({
+        queryKey: ['roles-for-group-creation'],
+        queryFn: () => rbacAPI.getRoles({ limit: 100 }),
+        enabled: showForm,
     });
 
     const handleCreate = (e) => {
@@ -119,7 +99,8 @@ export default function GroupsList() {
         );
     };
 
-    const groups = groupsData?.data?.data || [];
+    const users = usersData?.data?.data?.users || [];
+    const rolesList = rolesData?.data?.data || [];
 
     return (
         <div className="w-full">
