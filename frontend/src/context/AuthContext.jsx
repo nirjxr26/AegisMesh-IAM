@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authAPI, fetchCsrfToken } from '../services/api';
+import { useMemo } from "node: react";
 
 const AuthContext = createContext(null);
 const AUTH_EXPIRED_EVENT = 'iam:auth-expired';
@@ -162,13 +163,14 @@ export function AuthProvider({ children }) {
             setIsLoading(false);
         };
 
-        window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+        globalThis.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
         return () => {
-            window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+            globalThis.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
         };
     }, [clearAuthState]);
 
-    const value = {
+const value = useMemo(
+    () => ({
         user,
         accessToken,
         isAuthenticated,
@@ -179,7 +181,19 @@ export function AuthProvider({ children }) {
         refreshToken,
         updateUser,
         loadProfile,
-    };
+    }),
+    [
+        user,
+        accessToken,
+        isAuthenticated,
+        isLoading,
+        login,
+        logout,
+        refreshToken,
+        updateUser,
+        loadProfile,
+    ]
+);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,20 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import {
-    ChevronDown,
-    Eye,
-    FileText,
-    Key,
-    KeyRound,
-    Pencil,
-    Plus,
-    Sparkles,
-    Search,
-    Trash2,
-    Users,
-    X,
-} from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, Eye, FileText, Key, KeyRound, Pencil, Plus, Search, Sparkles, Trash2, Users, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rbacAPI, userAPI } from '../../services/api';
 import RoleTemplates from '../../components/roles/RoleTemplates';
@@ -125,6 +112,7 @@ export default function RolesList() {
             userIds: selectedUsers,
             policyIds: selectedPolicies,
         });
+        handleCloseCreateModal();
     };
 
     const toggleUser = (userId) => {
@@ -163,6 +151,113 @@ export default function RolesList() {
         if (e.key === 'Escape') {
             handleCloseCreateModal();
         }
+    };
+
+    const renderRolesContent = () => {
+        if (isLoading) {
+            return <LoadingState message="Loading roles..." />;
+        }
+
+        if (isError) {
+            return <div className="py-16 text-center text-sm text-red-500">Failed to load roles.</div>;
+        }
+
+        if (filteredRoles.length === 0) {
+            return (
+                <EmptyState
+                    icon={KeyRound}
+                    title="No roles yet"
+                    description="Create your first role to start assigning permissions."
+                    actionLabel="New Role"
+                    onAction={handleOpenCreateModal}
+                />
+            );
+        }
+
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredRoles.map((role) => (
+                    <div
+                        key={role.id}
+                        className="group bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#4f46e5]/30 transition-all duration-200 flex flex-col h-full"
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center shrink-0">
+                                <Key size={18} />
+                            </div>
+                            <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/dashboard/roles/${role.id}`)}
+                                    className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#f0f9ff] hover:text-[#0ea5e9] hover:border-[#0ea5e9] transition-all"
+                                    title="View"
+                                >
+                                    <Eye size={14} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/dashboard/roles/${role.id}`)}
+                                    className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#eef2ff] hover:text-[#6366f1] hover:border-[#6366f1] transition-all"
+                                    title="Edit"
+                                >
+                                    <Pencil size={14} />
+                                </button>
+                                {!role.isSystem && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(role)}
+                                        className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#fef2f2] hover:text-[#ef4444] hover:border-[#fca5a5] transition-all"
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mb-4 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-sm font-bold text-[#0f172a] truncate">
+                                    {role.name}
+                                </h3>
+                                {role.isSystem ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dbeafe] text-[#1d4ed8] uppercase tracking-wider">
+                                        System
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#475569] uppercase tracking-wider">
+                                        Custom
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[12px] text-[#64748b] line-clamp-2 leading-relaxed">
+                                {role.description || 'No description provided'}
+                            </p>
+                        </div>
+
+                        <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between">
+                            <div className="flex gap-4">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Policies</span>
+                                    <span className="text-[13px] font-semibold text-[#334155]">{role._count?.rolePolicies || 0}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Users</span>
+                                    <span className="text-[13px] font-semibold text-[#334155]">{role._count?.userRoles || 0}</span>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/dashboard/roles/${role.id}`)}
+                                className="text-[12px] font-bold text-[#4f46e5] hover:text-[#3730a3] transition-colors"
+                            >
+                                Manage Role →
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
     };
 
     return (
@@ -226,118 +321,23 @@ export default function RolesList() {
                     </div>
 
                     <div className="w-full">
-                        {isLoading ? (
-                            <LoadingState message="Loading roles..." />
-                        ) : isError ? (
-                            <div className="py-16 text-center text-sm text-red-500">Failed to load roles.</div>
-                        ) : filteredRoles.length === 0 ? (
-                            <EmptyState
-                                icon={KeyRound}
-                                title="No roles yet"
-                                description="Create your first role to start assigning permissions."
-                                actionLabel="New Role"
-                                onAction={handleOpenCreateModal}
-                            />
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filteredRoles.map((role) => (
-                                    <div
-                                        key={role.id}
-                                        className="group bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#4f46e5]/30 transition-all duration-200 flex flex-col h-full"
-                                    >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="w-10 h-10 rounded-xl bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center shrink-0">
-                                                <Key size={18} />
-                                            </div>
-                                            <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => navigate(`/dashboard/roles/${role.id}`)}
-                                                    className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#f0f9ff] hover:text-[#0ea5e9] hover:border-[#0ea5e9] transition-all"
-                                                    title="View"
-                                                >
-                                                    <Eye size={14} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => navigate(`/dashboard/roles/${role.id}`)}
-                                                    className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#eef2ff] hover:text-[#6366f1] hover:border-[#6366f1] transition-all"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil size={14} />
-                                                </button>
-                                                {!role.isSystem && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDelete(role)}
-                                                        className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#fef2f2] hover:text-[#ef4444] hover:border-[#fca5a5] transition-all"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="mb-4 flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="text-sm font-bold text-[#0f172a] truncate">
-                                                    {role.name}
-                                                </h3>
-                                                {role.isSystem ? (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dbeafe] text-[#1d4ed8] uppercase tracking-wider">
-                                                        System
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#475569] uppercase tracking-wider">
-                                                        Custom
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-[12px] text-[#64748b] line-clamp-2 leading-relaxed">
-                                                {role.description || 'No description provided'}
-                                            </p>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between">
-                                            <div className="flex gap-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Policies</span>
-                                                    <span className="text-[13px] font-semibold text-[#334155]">{role._count?.rolePolicies || 0}</span>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Users</span>
-                                                    <span className="text-[13px] font-semibold text-[#334155]">{role._count?.userRoles || 0}</span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate(`/dashboard/roles/${role.id}`)}
-                                                className="text-[12px] font-bold text-[#4f46e5] hover:text-[#3730a3] transition-colors"
-                                            >
-                                                Manage Role →
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        {renderRolesContent()}
                     </div>
                 </div>
 
             {isCreateOpen && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1623]/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-                    onClick={(e) => e.target === e.currentTarget && handleCloseCreateModal()}
-                    onKeyDown={handleKeyDown}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Close modal"
-                >
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <button
+                        type="button"
+                        className="fixed inset-0 bg-[#0f1623]/40 backdrop-blur-sm animate-in fade-in duration-200 cursor-default"
+                        onClick={handleCloseCreateModal}
+                        aria-label="Close modal"
+                    />
                     <div
-                        className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
-                        onClick={(e) => e.stopPropagation()}
-                        role="document"
+                        className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="create-role-title"
                     >
                         <div className="border-b border-[#eef2f7] bg-[#f8faff] px-8 py-6">
                             <div className="flex items-center justify-between">
@@ -345,7 +345,7 @@ export default function RolesList() {
                                     <div className="bg-[#4f46e5]/10 rounded-xl p-2 text-[#4f46e5]">
                                         <KeyRound size={20} />
                                     </div>
-                                    <h2 className="text-[20px] font-bold text-[#0f172a]">Create New Role</h2>
+                                    <h2 id="create-role-title" className="text-[20px] font-bold text-[#0f172a]">Create New Role</h2>
                                 </div>
                                 <button
                                     type="button"
@@ -358,7 +358,7 @@ export default function RolesList() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto" onKeyDown={handleKeyDown}>
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2 sm:col-span-1">
                                     <label htmlFor="role-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">
@@ -409,10 +409,14 @@ export default function RolesList() {
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
+                                    <p id="users-selection-label" className="text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
                                         <Users size={14} /> Assign Users
-                                    </span>
-                                    <div className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]">
+                                    </p>
+                                    <div 
+                                        role="group"
+                                        aria-labelledby="users-selection-label"
+                                        className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]"
+                                    >
                                         {users.length === 0 ? (
                                             <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
                                         ) : users.map(user => (
@@ -433,10 +437,14 @@ export default function RolesList() {
                                 </div>
 
                                 <div className="col-span-2 sm:col-span-1">
-                                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
+                                    <p id="policies-selection-label" className="text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2 flex items-center gap-2">
                                         <FileText size={14} /> Attach Policies
-                                    </span>
-                                    <div className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]">
+                                    </p>
+                                    <div 
+                                        role="group"
+                                        aria-labelledby="policies-selection-label"
+                                        className="border border-[#d0d7e8] rounded-xl p-3 max-h-48 overflow-y-auto space-y-2 bg-[#f8fafc]"
+                                    >
                                         {policies.length === 0 ? (
                                             <p className="text-xs text-[#94a3b8] italic p-2">No policies available</p>
                                         ) : policies.map(policy => (

@@ -1,24 +1,6 @@
-import React, {
-    useMemo,
-    useState,
-} from 'react';
-
-import {
-    Link,
-    useNavigate,
-} from 'react-router-dom';
-
-import {
-    ChevronDown,
-    Eye,
-    FileText,
-    Pencil,
-    Plus,
-    Search,
-    Trash2,
-    X,
-} from 'lucide-react';
-
+import React, { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, Eye, FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { rbacAPI } from '../../services/api';
 import { useEntityList } from '../../hooks/useEntityList';
 import LoadingState from '../../components/common/LoadingState';
@@ -100,6 +82,7 @@ export default function PoliciesList() {
             description: createForm.description.trim(),
             actions,
         });
+        handleCloseCreateModal();
     };
 
     const filteredPolicies = useMemo(() => {
@@ -125,6 +108,139 @@ export default function PoliciesList() {
         if (e.key === 'Escape') {
             handleCloseCreateModal();
         }
+    };
+
+    const renderPoliciesContent = () => {
+        if (isLoading) {
+            return <LoadingState message="Loading policies..." />;
+        }
+
+        if (isError) {
+            return <div className="py-16 text-center text-sm text-red-500">Failed to load policies.</div>;
+        }
+
+        if (visiblePolicies.length === 0) {
+            return (
+                <EmptyState
+                    icon={FileText}
+                    title="No policies found"
+                    description="Try different filters or create a new policy."
+                />
+            );
+        }
+
+        return (
+            <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {visiblePolicies.map((policy) => (
+                        <div
+                            key={policy.id}
+                            className="group bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#4f46e5]/30 transition-all duration-200 flex flex-col h-full"
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center shrink-0">
+                                    <FileText size={18} />
+                                </div>
+                                <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Link
+                                        to={`/dashboard/policies/${policy.id}`}
+                                        className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#f0f9ff] hover:text-[#0ea5e9] hover:border-[#0ea5e9] transition-all"
+                                        title="View"
+                                    >
+                                        <Eye size={14} />
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/dashboard/policies/${policy.id}`)}
+                                        className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#eef2ff] hover:text-[#6366f1] hover:border-[#6366f1] transition-all"
+                                        title="Edit"
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
+                                    {!policy.isSystem && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDelete(policy)}
+                                            className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#fef2f2] hover:text-[#ef4444] hover:border-[#fca5a5] transition-all"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mb-4 flex-1">
+                                <div className="flex items-center flex-wrap gap-2 mb-2">
+                                    <h3 className="text-sm font-bold text-[#0f172a] truncate max-w-[140px]">
+                                        {policy.name}
+                                    </h3>
+                                    <div className="flex gap-1.5">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                            policy.effect === 'ALLOW' ? 'bg-[#dcfce7] text-[#16a34a]' : 'bg-[#fee2e2] text-[#dc2626]'
+                                        }`}>
+                                            {policy.effect}
+                                        </span>
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                            policy.isSystem ? 'bg-[#dbeafe] text-[#1d4ed8]' : 'bg-[#f1f5f9] text-[#475569]'
+                                        }`}>
+                                            {policy.isSystem ? 'System' : 'Custom'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <p className="text-[12px] text-[#64748b] line-clamp-2 leading-relaxed">
+                                    {policy.description || 'No description provided'}
+                                </p>
+                            </div>
+
+                            <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between">
+                                <div className="flex gap-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Actions</span>
+                                        <span className="text-[13px] font-semibold text-[#334155]">{policy.actions?.length || 0}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Attached</span>
+                                        <span className="text-[13px] font-semibold text-[#334155]">{policy._count?.rolePolicies || 0}</span>
+                                    </div>
+                                </div>
+                                <Link
+                                    to={`/dashboard/policies/${policy.id}`}
+                                    className="text-[12px] font-bold text-[#4f46e5] hover:text-[#3730a3] transition-colors"
+                                >
+                                    View Details →
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Pagination */}
+                <div className="mt-8 flex items-center justify-between">
+                    <p className="text-sm text-[#64748b]">
+                        Showing page <span className="font-semibold text-[#0f172a]">{safePage}</span> of <span className="font-semibold text-[#0f172a]">{totalPages}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            disabled={safePage <= 1}
+                            onClick={() => setPage(p => p - 1)}
+                            className="rounded-xl border border-[#d0d7e8] px-4 py-2 text-sm font-medium text-[#3a4560] transition-all hover:bg-[#f4f6fb] disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            type="button"
+                            disabled={safePage >= totalPages}
+                            onClick={() => setPage(p => p + 1)}
+                            className="rounded-xl border border-[#d0d7e8] px-4 py-2 text-sm font-medium text-[#3a4560] transition-all hover:bg-[#f4f6fb] disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
     };
 
     return (
@@ -204,144 +320,23 @@ export default function PoliciesList() {
 
             {/* Grid */}
             <div className="w-full">
-                {isLoading ? (
-                    <LoadingState message="Loading policies..." />
-                ) : isError ? (
-                    <div className="py-16 text-center text-sm text-red-500">Failed to load policies.</div>
-                ) : visiblePolicies.length === 0 ? (
-                    <EmptyState
-                        icon={FileText}
-                        title="No policies found"
-                        description="Try different filters or create a new policy."
-                    />
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {visiblePolicies.map((policy) => (
-                                <div
-                                    key={policy.id}
-                                    className="group bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#4f46e5]/30 transition-all duration-200 flex flex-col h-full"
-                                >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="w-10 h-10 rounded-xl bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center shrink-0">
-                                            <FileText size={18} />
-                                        </div>
-                                        <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Link
-                                                to={`/dashboard/policies/${policy.id}`}
-                                                className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#f0f9ff] hover:text-[#0ea5e9] hover:border-[#0ea5e9] transition-all"
-                                                title="View"
-                                            >
-                                                <Eye size={14} />
-                                            </Link>
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate(`/dashboard/policies/${policy.id}`)}
-                                                className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#eef2ff] hover:text-[#6366f1] hover:border-[#6366f1] transition-all"
-                                                title="Edit"
-                                            >
-                                                <Pencil size={14} />
-                                            </button>
-                                            {!policy.isSystem && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(policy)}
-                                                    className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#fef2f2] hover:text-[#ef4444] hover:border-[#fca5a5] transition-all"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-4 flex-1">
-                                        <div className="flex items-center flex-wrap gap-2 mb-2">
-                                            <h3 className="text-sm font-bold text-[#0f172a] truncate max-w-[140px]">
-                                                {policy.name}
-                                            </h3>
-                                            <div className="flex gap-1.5">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                                    policy.effect === 'ALLOW' ? 'bg-[#dcfce7] text-[#16a34a]' : 'bg-[#fee2e2] text-[#dc2626]'
-                                                }`}>
-                                                    {policy.effect}
-                                                </span>
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                                    policy.isSystem ? 'bg-[#dbeafe] text-[#1d4ed8]' : 'bg-[#f1f5f9] text-[#475569]'
-                                                }`}>
-                                                    {policy.isSystem ? 'System' : 'Custom'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <p className="text-[12px] text-[#64748b] line-clamp-2 leading-relaxed">
-                                            {policy.description || 'No description provided'}
-                                        </p>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between">
-                                        <div className="flex gap-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Actions</span>
-                                                <span className="text-[13px] font-semibold text-[#334155]">{policy.actions?.length || 0}</span>
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Attached</span>
-                                                <span className="text-[13px] font-semibold text-[#334155]">{policy._count?.rolePolicies || 0}</span>
-                                            </div>
-                                        </div>
-                                        <Link
-                                            to={`/dashboard/policies/${policy.id}`}
-                                            className="text-[12px] font-bold text-[#4f46e5] hover:text-[#3730a3] transition-colors"
-                                        >
-                                            View Details →
-                                        </Link>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Pagination */}
-                        <div className="mt-8 flex items-center justify-between">
-                            <p className="text-sm text-[#64748b]">
-                                Showing page <span className="font-semibold text-[#0f172a]">{safePage}</span> of <span className="font-semibold text-[#0f172a]">{totalPages}</span>
-                            </p>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    disabled={safePage <= 1}
-                                    onClick={() => setPage(p => p - 1)}
-                                    className="rounded-xl border border-[#d0d7e8] px-4 py-2 text-sm font-medium text-[#3a4560] transition-all hover:bg-[#f4f6fb] disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    type="button"
-                                    disabled={safePage >= totalPages}
-                                    onClick={() => setPage(p => p + 1)}
-                                    className="rounded-xl border border-[#d0d7e8] px-4 py-2 text-sm font-medium text-[#3a4560] transition-all hover:bg-[#f4f6fb] disabled:opacity-40 disabled:cursor-not-allowed"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        </div>
-                    </>
-                )}
+                {renderPoliciesContent()}
             </div>
 
             {/* Create Policy Modal */}
             {isCreateOpen && (
-                <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f1623]/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-                    onClick={(e) => e.target === e.currentTarget && handleCloseCreateModal()}
-                    onKeyDown={handleKeyDown}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Close modal"
-                >
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <button
+                        type="button"
+                        className="fixed inset-0 bg-[#0f1623]/40 backdrop-blur-sm animate-in fade-in duration-200 cursor-default"
+                        onClick={handleCloseCreateModal}
+                        aria-label="Close modal"
+                    />
                     <div 
-                        className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
-                        onClick={(e) => e.stopPropagation()}
-                        role="document"
+                        className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="create-policy-title"
                     >
                         <div className="border-b border-[#eef2f7] bg-[#f8faff] px-8 py-6">
                             <div className="flex items-center justify-between">
@@ -349,7 +344,7 @@ export default function PoliciesList() {
                                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4f46e5]/10 text-[#4f46e5]">
                                         <FileText size={20} />
                                     </div>
-                                    <h2 className="text-[20px] font-bold text-[#0f172a]">Create New Policy</h2>
+                                    <h2 id="create-policy-title" className="text-[20px] font-bold text-[#0f172a]">Create New Policy</h2>
                                 </div>
                                 <button 
                                     type="button"
@@ -362,7 +357,7 @@ export default function PoliciesList() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleCreate} className="p-8 space-y-6">
+                        <form onSubmit={handleCreate} className="p-8 space-y-6" onKeyDown={handleKeyDown}>
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2">
                                     <label htmlFor="policy-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Policy Name</label>
@@ -389,8 +384,8 @@ export default function PoliciesList() {
                                     />
                                 </div>
 
-                                <div>
-                                    <span className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Effect</span>
+                                <div role="group" aria-labelledby="effect-label">
+                                    <span id="effect-label" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">Effect</span>
                                     <div className="flex gap-2">
                                         <button
                                             type="button"

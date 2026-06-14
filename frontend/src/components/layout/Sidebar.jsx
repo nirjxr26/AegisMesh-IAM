@@ -237,13 +237,13 @@ export default function Sidebar({
     return (
         <aside className={classNames("relative flex h-full shrink-0 flex-col border-r border-[#1f2937] bg-[#0f172a] shadow-2xl lg:shadow-none transition-[width] duration-200 ease-in-out will-change-[width]", collapsed ? "w-16" : "w-64")}>
             <div className="relative border-b border-[#1f2937] px-5 py-5 flex items-center justify-between">
-                {!collapsed ? (
-                    <span className="text-[15px] font-bold text-white tracking-tight">
-                        AegisMesh
-                    </span>
-                ) : (
+                {collapsed ? (
                     <span className="text-[15px] font-bold text-[#6366f1] tracking-tight mx-auto">
                         AM
+                    </span>
+                ) : (
+                    <span className="text-[15px] font-bold text-white tracking-tight">
+                        AegisMesh
                     </span>
                 )}
 
