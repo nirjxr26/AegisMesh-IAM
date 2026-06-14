@@ -136,6 +136,7 @@ export default function App() {
                   <Route path="/dashboard/groups" element={<LazyRoute><GroupsList /></LazyRoute>} />
                   <Route path="/dashboard/groups/:id" element={<LazyRoute><GroupDetail /></LazyRoute>} />
                   <Route path="/dashboard/users/:id/permissions" element={<LazyRoute><UserPermissions /></LazyRoute>} />
+                  <Route path="/dashboard/security" element={<LazyRoute><SecurityPage /></LazyRoute>} />
 
                   {/* Settings Routes */}
                   <Route path="/settings" element={<LazyRoute><SettingsPage /></LazyRoute>} />

@@ -1821,16 +1821,17 @@ NotificationPrefRow.propTypes = {
     setLocalPrefs: PropTypes.func.isRequired,
 };
 
-export default function SettingsPage() {
+export default function SettingsPage({ initialTabOverride = null }) {
     const { user, updateUser } = useAuth();
     const { legacyTab } = useParams();
     const location = useLocation();
     const [searchParams] = useSearchParams();
 
     const initialTab = useMemo(() => {
+        if (initialTabOverride) return initialTabOverride;
         const queryTab = searchParams.get('tab');
         return normalizeTab(location.state?.activeTab || legacyTab || queryTab || 'profile');
-    }, [legacyTab, location.state, searchParams]);
+    }, [legacyTab, location.state, searchParams, initialTabOverride]);
 
     const [activeTab, setActiveTab] = useState(initialTab);
 
