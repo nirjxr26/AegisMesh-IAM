@@ -28,6 +28,8 @@ const AuditStatsPage = lazy(() => import('./pages/audit/AuditStatsPage'));
 const UserCreate = lazy(() => import('./pages/users/UserCreate'));
 const UserEdit = lazy(() => import('./pages/users/UserEdit'));
 const SecurityPage = lazy(() => import('./pages/security/SecurityPage'));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
+const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -143,10 +145,12 @@ export default function App() {
                   <Route path="/dashboard/audit-logs" element={<LazyRoute><AuditLogsPage /></LazyRoute>} />
                   <Route path="/dashboard/audit-logs/stats" element={<LazyRoute><AuditStatsPage /></LazyRoute>} />
 
+                  {/* Settings Routes */}
+                  <Route path="/settings" element={<LazyRoute><SettingsPage /></LazyRoute>} />
+                  <Route path="/settings/:tab" element={<LazyRoute><SettingsPage /></LazyRoute>} />
+
                   <Route path="/settings/mfa" element={<Navigate to="/dashboard/security" replace />} />
                   <Route path="/settings/security" element={<Navigate to="/dashboard/security" replace />} />
-                  <Route path="/settings" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/settings/:legacyTab" element={<Navigate to="/dashboard" replace />} />
                 </Route>
               </Route>
 

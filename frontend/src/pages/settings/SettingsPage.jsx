@@ -1876,11 +1876,11 @@ export default function SettingsPage() {
 
     return (
         <div className="min-h-[calc(100vh-64px)] bg-[#f4f6fb]">
-            <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-                <div className="flex w-full min-h-[calc(100vh-80px)] flex-col gap-4 items-start md:flex-row md:gap-6">
-                    <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white md:w-[240px] md:self-start md:sticky md:top-6">
+            <div className="w-full px-0 py-0">
+                <div className="flex w-full min-h-[calc(100vh-64px)] flex-col gap-0 items-start md:flex-row">
+                    <aside className="flex w-full shrink-0 flex-col overflow-hidden border-r border-[#e2e8f0] bg-white md:w-[240px] md:self-stretch md:sticky md:top-0">
                         <div
-                            className="flex gap-1 overflow-x-auto px-1 py-0 md:flex-col md:p-2"
+                            className="flex gap-0 overflow-x-auto px-0 py-0 md:flex-col"
                             style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
                         >
                             {tabs.map((tab) => (
@@ -1893,14 +1893,14 @@ export default function SettingsPage() {
                             ))}
                         </div>
 
-                        <div className="mt-auto hidden border-t border-[#f1f5f9] px-[10px] pb-1 pt-3 md:block">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-full bg-[#6366f1] text-white text-[12px] font-bold flex items-center justify-center shrink-0">
+                        <div className="mt-auto hidden border-t border-[#f1f5f9] px-[16px] pb-4 pt-4 md:block">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-[#6366f1] text-white text-[13px] font-bold flex items-center justify-center shrink-0">
                                     {getInitials(effectiveUser)}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-[13px] font-semibold text-[#0f172a] truncate">{fullName}</p>
-                                    <span className="inline-flex items-center text-[10px] text-[#7c3aed] bg-[#ede9fe] px-[7px] py-[1px] rounded-[20px] font-semibold mt-0.5">
+                                    <p className="text-[13px] font-bold text-[#0f172a] truncate">{fullName}</p>
+                                    <span className="inline-flex items-center text-[10px] text-[#7c3aed] bg-[#ede9fe] px-[8px] py-[2px] rounded-full font-bold mt-1 uppercase tracking-tight">
                                         {roleLabel}
                                     </span>
                                 </div>
@@ -1908,15 +1908,17 @@ export default function SettingsPage() {
                         </div>
                     </aside>
 
-                    <div className="flex-1 min-w-0 w-full">
-                        <div className="mb-5 w-full rounded-2xl border border-[#e2e8f0] bg-white p-5 md:p-7">
-                            <h1 className="text-xl font-semibold text-[#0f1623]">Settings</h1>
-                            <p className="text-sm text-[#7a87a8] mt-0.5">
-                                Manage your account and system preferences.
-                            </p>
-                        </div>
+                    <div className="flex-1 min-w-0 w-full bg-white md:bg-[#f8fafc] md:p-8">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="mb-6 w-full">
+                                <h1 className="text-[22px] font-bold text-[#0f1623]">Settings</h1>
+                                <p className="text-sm text-[#7a87a8] mt-1">
+                                    Manage your account and system preferences.
+                                </p>
+                            </div>
 
-                        <div className="w-full">{activeContent}</div>
+                            <div className="w-full">{activeContent}</div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -7,48 +8,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  LOCKED
-}
-
 model User {
-  id                   String    @id @default(uuid())
-  email                String    @unique
-  passwordHash         String?
-  firstName            String
-  lastName             String
-  jobTitle             String?
-  department           String?
-  timezone             String    @default("UTC")
-  language             String    @default("en")
-  avatarUrl            String?
-  status               UserStatus @default(ACTIVE)
-  emailVerified        Boolean   @default(false)
-  emailVerifyToken     String?
-  mfaEnabled           Boolean   @default(false)
-  mfaType              String?
-  mfaSecret            String?
-  mfaBackupCodes       String?   // JSON stringified array
-  backupCodes          String[]  @default([])
-  trustedDevices       Json?
+  id                      String            @id @default(uuid())
+  email                   String            @unique
+  passwordHash            String?
+  firstName               String
+  lastName                String
+  status                  UserStatus        @default(ACTIVE)
+  emailVerified           Boolean           @default(false)
+  emailVerifyToken        String?
+  mfaEnabled              Boolean           @default(false)
+  mfaSecret               String?
+  mfaBackupCodes          String?
+  passwordChangedAt       DateTime?
+  passwordResetToken      String?
+  passwordResetExpires    DateTime?
+  failedLoginCount        Int               @default(0)
+  lockedUntil             DateTime?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  avatarUrl               String?
+  backupCodes             String[]          @default([])
+  department              String?
+  jobTitle                String?
+  language                String            @default("en")
+  mfaType                 String?
   notificationPreferences Json?
-  passwordChangedAt    DateTime?
-  passwordResetToken   String?
-  passwordResetExpires DateTime?
-  failedLoginCount     Int       @default(0)
-  lockedUntil          DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  sessions             Session[]
-  oauthAccounts        OAuthAccount[]
-  auditLogs            AuditLog[]
-  notifications        NotificationLog[]
-  userRoles            UserRole[]
-  userGroups           UserGroup[]
-  createdPolicies      Policy[]
-  apiTokens            ApiToken[]
+  timezone                String            @default("UTC")
+  trustedDevices          Json?
+  apiTokens               ApiToken[]
+  auditLogs               AuditLog[]
+  notifications           NotificationLog[]
+  oauthAccounts           OAuthAccount[]
+  createdPolicies         Policy[]
+  sessions                Session[]
+  userGroups              UserGroup[]
+  userRoles               UserRole[]
 }
 
 model Session {
@@ -84,7 +79,7 @@ model OrganizationSettings {
 }
 
 model ApiToken {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
   name        String
   tokenHash   String
@@ -92,24 +87,157 @@ model ApiToken {
   scopes      String[]
   expiresAt   DateTime?
   lastUsedAt  DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   revokedAt   DateTime?
-  isActive    Boolean  @default(true)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive    Boolean   @default(true)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isActive])
   @@index([tokenPrefix])
 }
 
 model OAuthAccount {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   userId      String
-  provider    String // "google" | "github"
+  provider    String
   providerId  String
   accessToken String?
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
+}
+
+model AuditLog {
+  id         String        @id @default(uuid())
+  userId     String?
+  action     String
+  resource   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime      @default(now())
+  category   AuditCategory @default(SYSTEM)
+  city       String?
+  country    String?
+  duration   Int?
+  errorCode  String?
+  resourceId String?
+  sessionId  String?
+  result     AuditResult   @default(SUCCESS)
+  user       User?         @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([category])
+  @@index([result])
+  @@index([ipAddress])
+  @@index([createdAt])
+}
+
+model NotificationLog {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  link      String?
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, read])
+  @@index([userId, type])
+}
+
+model Group {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  groupRoles  GroupRole[]
+  userGroups  UserGroup[]
+}
+
+model Role {
+  id           String       @id @default(uuid())
+  name         String       @unique
+  description  String?
+  isSystem     Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  groupRoles   GroupRole[]
+  rolePolicies RolePolicy[]
+  userRoles    UserRole[]
+}
+
+model Policy {
+  id           String       @id @default(uuid())
+  name         String       @unique
+  description  String?
+  effect       PolicyEffect
+  actions      String[]
+  resources    String[]
+  conditions   Json?
+  isSystem     Boolean      @default(false)
+  createdBy    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  creator      User?        @relation(fields: [createdBy], references: [id])
+  rolePolicies RolePolicy[]
+}
+
+model UserRole {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model GroupRole {
+  id         String   @id @default(uuid())
+  groupId    String
+  roleId     String
+  assignedAt DateTime @default(now())
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, roleId])
+}
+
+model UserGroup {
+  id       String   @id @default(uuid())
+  userId   String
+  groupId  String
+  joinedAt DateTime @default(now())
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+model RolePolicy {
+  id       String @id @default(uuid())
+  roleId   String
+  policyId String
+  policy   Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  role     Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, policyId])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
 }
 
 enum AuditCategory {
@@ -133,135 +261,7 @@ enum AuditResult {
   BLOCKED
 }
 
-model AuditLog {
-  id         String        @id @default(uuid())
-  userId     String?
-  sessionId  String?
-  action     String
-  category   AuditCategory @default(SYSTEM)
-  resource   String?
-  resourceId String?
-  ipAddress  String?
-  userAgent  String?
-  country    String?
-  city       String?
-  result     AuditResult   @default(SUCCESS)
-  duration   Int?
-  errorCode  String?
-  metadata   Json?
-  createdAt  DateTime      @default(now())
-  user       User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
-  @@index([action])
-  @@index([category])
-  @@index([result])
-  @@index([ipAddress])
-  @@index([createdAt])
-}
-
-model NotificationLog {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  title     String
-  message   String
-  link      String?
-  read      Boolean  @default(false)
-  readAt    DateTime?
-  metadata  Json?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([userId, read])
-  @@index([userId, type])
-}
-
-model Group {
-  id          String      @id @default(uuid())
-  name        String      @unique
-  description String?
-  isSystem    Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  userGroups  UserGroup[]
-  groupRoles  GroupRole[]
-}
-
-model Role {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  description String?
-  isSystem    Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  userRoles   UserRole[]
-  groupRoles  GroupRole[]
-  rolePolicies RolePolicy[]
-}
-
-model Policy {
-  id          String         @id @default(uuid())
-  name        String         @unique
-  description String?
-  effect      PolicyEffect   // ALLOW or DENY
-  actions     String[]       // e.g. ["users:read", "users:write"]
-  resources   String[]       // e.g. ["*"] or ["users/*"]
-  conditions  Json?          // optional conditions
-  isSystem    Boolean        @default(false)
-  createdBy   String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  creator     User?          @relation(fields: [createdBy], references: [id])
-  rolePolicies RolePolicy[]
-}
-
 enum PolicyEffect {
   ALLOW
   DENY
-}
-
-model UserRole {
-  id        String   @id @default(uuid())
-  userId    String
-  roleId    String
-  assignedAt DateTime @default(now())
-  assignedBy String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId])
-}
-
-model GroupRole {
-  id        String   @id @default(uuid())
-  groupId   String
-  roleId    String
-  assignedAt DateTime @default(now())
-  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, roleId])
-}
-
-model UserGroup {
-  id        String   @id @default(uuid())
-  userId    String
-  groupId   String
-  joinedAt  DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, groupId])
-}
-
-model RolePolicy {
-  id        String   @id @default(uuid())
-  roleId    String
-  policyId  String
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, policyId])
 }

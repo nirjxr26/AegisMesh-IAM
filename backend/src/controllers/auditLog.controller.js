@@ -93,89 +93,88 @@ exports.getStats = async (req, res, next) => {
 
         async function getTimeStats(since) {
             const where = { createdAt: { gte: since } };
-            const [total, logins, failedLogins, newUsers, permDenied] = await Promise.all([
-                prisma.auditLog.count({ where }),
-                prisma.auditLog.count({ where: { ...where, action: 'LOGIN' } }),
-                prisma.auditLog.count({ where: { ...where, action: 'LOGIN_FAILED' } }),
-                prisma.auditLog.count({ where: { ...where, action: 'REGISTER' } }),
-                prisma.auditLog.count({ where: { ...where, action: 'PERMISSION_DENIED' } }),
-            ]);
-            return { totalEvents: total, loginAttempts: logins, failedLogins, newUsers, permissionDenied: permDenied };
+            const results = await prisma.auditLog.groupBy({
+                by: ['action'],
+                where,
+                _count: { _all: true }
+            });
+
+            const stats = {
+                totalEvents: results.reduce((sum, r) => sum + r._count._all, 0),
+                loginAttempts: results.find(r => r.action === 'LOGIN')?._count._all || 0,
+                failedLogins: results.find(r => r.action === 'LOGIN_FAILED')?._count._all || 0,
+                newUsers: results.find(r => r.action === 'REGISTER')?._count._all || 0,
+                permissionDenied: results.find(r => r.action === 'PERMISSION_DENIED')?._count._all || 0
+            };
+            return stats;
         }
 
-        const [last24h, last7d, last30d, totalUsers] = await Promise.all([
+        const [last24h, last7d, last30d, totalUsers, failedIPsRaw, topActionsRaw, catRaw, hourlyRaw, dailyRaw] = await Promise.all([
             getTimeStats(h24),
             getTimeStats(d7),
             getTimeStats(d30),
-            prisma.user.count()
+            prisma.user.count(),
+            prisma.auditLog.groupBy({
+                by: ['ipAddress'],
+                where: { result: { in: ['FAILURE', 'BLOCKED'] }, createdAt: { gte: d7 } },
+                _count: { ipAddress: true },
+                _max: { createdAt: true },
+                orderBy: { _count: { ipAddress: 'desc' } },
+                take: 10
+            }),
+            prisma.$queryRaw`
+                SELECT 
+                    action, 
+                    COUNT(*)::int as count,
+                    SUM(CASE WHEN result = 'SUCCESS' THEN 1 ELSE 0 END)::int as "successCount"
+                FROM "AuditLog"
+                WHERE "createdAt" >= ${d30}
+                GROUP BY action
+                ORDER BY count DESC
+                LIMIT 15`,
+            prisma.auditLog.groupBy({
+                by: ['category'],
+                where: { createdAt: { gte: d30 } },
+                _count: { category: true },
+                orderBy: { _count: { category: 'desc' } }
+            }),
+            prisma.$queryRaw`
+                SELECT EXTRACT(HOUR FROM "createdAt")::int as hour, COUNT(*)::int as count
+                FROM "AuditLog"
+                WHERE "createdAt" >= ${h24}
+                GROUP BY EXTRACT(HOUR FROM "createdAt")
+                ORDER BY hour`,
+            prisma.$queryRaw`
+                SELECT DATE("createdAt") as date, COUNT(*)::int as count
+                FROM "AuditLog"
+                WHERE "createdAt" >= ${d30}
+                GROUP BY DATE("createdAt")
+                ORDER BY date`
         ]);
 
-        // Top failed IPs
-        const failedIPsRaw = await prisma.auditLog.groupBy({
-            by: ['ipAddress'],
-            where: { result: { in: ['FAILURE', 'BLOCKED'] }, createdAt: { gte: d7 } },
-            _count: { ipAddress: true },
-            _max: { createdAt: true },
-            orderBy: { _count: { ipAddress: 'desc' } },
-            take: 10
-        });
         const topFailedIPs = failedIPsRaw
             .filter(i => i.ipAddress)
             .map(i => ({ ip: i.ipAddress, count: i._count.ipAddress, lastSeen: i._max.createdAt }));
 
-        // Top actions
-        const topActionsRaw = await prisma.auditLog.groupBy({
-            by: ['action'],
-            where: { createdAt: { gte: d30 } },
-            _count: { action: true },
-            orderBy: { _count: { action: 'desc' } },
-            take: 15
-        });
+        const topActions = topActionsRaw.map(a => ({
+            action: a.action,
+            count: a.count,
+            successRate: a.count > 0 ? Math.round((a.successCount / a.count) * 100) : 0
+        }));
 
-        const topActions = [];
-        for (const a of topActionsRaw) {
-            const successCount = await prisma.auditLog.count({
-                where: { action: a.action, result: 'SUCCESS', createdAt: { gte: d30 } }
-            });
-            topActions.push({
-                action: a.action, count: a._count.action,
-                successRate: a._count.action > 0 ? Math.round((successCount / a._count.action) * 100) : 0
-            });
-        }
-
-        // Category breakdown
-        const catRaw = await prisma.auditLog.groupBy({
-            by: ['category'],
-            where: { createdAt: { gte: d30 } },
-            _count: { category: true },
-            orderBy: { _count: { category: 'desc' } }
-        });
         const totalCat = catRaw.reduce((s, c) => s + c._count.category, 0);
         const categoryBreakdown = catRaw.map(c => ({
             category: c.category, count: c._count.category,
             percentage: totalCat > 0 ? Math.round((c._count.category / totalCat) * 100 * 100) / 100 : 0
         }));
 
-        // Hourly activity (last 24h)
-        const hourlyRaw = await prisma.$queryRaw`
-            SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(*)::int as count
-            FROM "AuditLog"
-            WHERE "createdAt" >= ${h24}
-            GROUP BY EXTRACT(HOUR FROM "createdAt")
-            ORDER BY hour`;
         const hourlyActivity = Array.from({ length: 24 }, (_, i) => {
-            const found = hourlyRaw.find(h => Number(h.hour) === i);
+            const found = hourlyRaw.find(h => h.hour === i);
             return { hour: i, count: found ? found.count : 0 };
         });
 
-        // Daily activity (last 30d)
-        const dailyRaw = await prisma.$queryRaw`
-            SELECT DATE("createdAt") as date, COUNT(*)::int as count
-            FROM "AuditLog"
-            WHERE "createdAt" >= ${d30}
-            GROUP BY DATE("createdAt")
-            ORDER BY date`;
         const dailyActivity = dailyRaw.map(d => ({ date: d.date, count: d.count }));
+
 
         res.json({
             success: true,

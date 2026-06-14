@@ -333,27 +333,6 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
         staleTime: 30 * 1000,
     });
 
-    const roleIds = useMemo(() => {
-        return (rolesQuery.data?.data || []).map((role) => role.id);
-    }, [rolesQuery.data]);
-
-    const roleDetailsQuery = useQuery({
-        queryKey: ['overview-role-details', roleIds.join(',')],
-        enabled: roleIds.length > 0,
-        queryFn: async () => {
-            const responses = await Promise.all(
-                roleIds.map((id) =>
-                    rbacAPI
-                        .getRole(id)
-                        .then((res) => res.data?.data)
-                        .catch(() => null)
-                )
-            );
-            return responses.filter(Boolean);
-        },
-        staleTime: 30 * 1000,
-    });
-
     const users = usersQuery.data?.data ?? EMPTY_ARRAY;
     const usersSummary = usersQuery.data?.summary ?? EMPTY_OBJECT;
     const roles = rolesQuery.data?.data ?? EMPTY_ARRAY;
@@ -363,7 +342,6 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
     const weeklyLogs = weeklyLogsQuery.data?.data ?? EMPTY_ARRAY;
     const alerts = alertsQuery.data?.data?.alerts ?? EMPTY_ARRAY;
     const totalAlerts = alertsQuery.data?.data?.totalAlerts || 0;
-    const roleDetails = roleDetailsQuery.data ?? EMPTY_ARRAY;
 
     const totalUsers = usersSummary.total ?? users.length;
     const activeSessions = sessions.length;
@@ -396,7 +374,7 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
 
     const unverifiedUsersCount = usersSummary.unverified ?? users.filter((u) => !u.emailVerified).length;
 
-    const overprivilegedRolesCount = roleDetails.filter((role) =>
+    const overprivilegedRolesCount = roles.filter((role) =>
         (role.rolePolicies || []).some(({ policy }) => {
             const actions = policy?.actions || [];
             const resources = policy?.resources || [];
