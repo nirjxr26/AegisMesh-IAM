@@ -1,8 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authAPI, fetchCsrfToken } from '../services/api';
-import { useMemo } from "node: react";
 import PropTypes from "prop-types";
 
 const AuthContext = createContext(null);
@@ -170,31 +169,31 @@ export function AuthProvider({ children }) {
         };
     }, [clearAuthState]);
 
-const value = useMemo(
-    () => ({
-        user,
-        accessToken,
-        isAuthenticated,
-        isLoading,
-        loading: isLoading,
-        login,
-        logout,
-        refreshToken,
-        updateUser,
-        loadProfile,
-    }),
-    [
-        user,
-        accessToken,
-        isAuthenticated,
-        isLoading,
-        login,
-        logout,
-        refreshToken,
-        updateUser,
-        loadProfile,
-    ]
-);
+    const value = useMemo(
+        () => ({
+            user,
+            accessToken,
+            isAuthenticated,
+            isLoading,
+            loading: isLoading,
+            login,
+            logout,
+            refreshToken,
+            updateUser,
+            loadProfile,
+        }),
+        [
+            user,
+            accessToken,
+            isAuthenticated,
+            isLoading,
+            login,
+            logout,
+            refreshToken,
+            updateUser,
+            loadProfile,
+        ]
+    );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
