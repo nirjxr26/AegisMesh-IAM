@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -99,7 +100,7 @@ export default function RoleDetail() {
     }
 
     async function handleRemoveUser(userId) {
-        if (!window.confirm('Remove this role from the selected user?')) return;
+        if (!globalThis.confirm('Remove this role from the selected user?')) return;
         try {
             await api.delete(`/users/${userId}/roles/${role.id}`);
             toast.success('User removed from role');
@@ -290,7 +291,7 @@ export default function RoleDetail() {
                                             type="button"
                                             title="Detach policy"
                                             onClick={() => {
-                                                if (window.confirm(`Detach ${policy.name}?`)) detachMutation.mutate(policy.id);
+                                                if (globalThis.confirm(`Detach ${policy.name}?`)) detachMutation.mutate(policy.id);
                                             }}
                                             className="inline-flex h-7 w-7 items-center justify-center rounded-[7px] border border-slate-200 bg-white text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500"
                                         >
@@ -446,5 +447,9 @@ export default function RoleDetail() {
         </div>
     );
 }
+
+RoleDetail.propTypes = {
+    // No direct props as it uses useParams
+};
 
 

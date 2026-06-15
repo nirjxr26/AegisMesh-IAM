@@ -43,8 +43,8 @@ class AnomalyDetector:
             if versions:
                 self.active_version = versions[0].version
                 logger.info(f"Active model version synced: {self.active_version}")
-        except Exception as e:
-            logger.warning(f"Could not sync version info from MLflow: {e}")
+        except Exception:
+            logger.exception("Could not sync version info from MLflow")
 
     def _load_model(self):
         if os.path.exists(self.model_path):

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { MoreHorizontal, Eye, Edit, CheckCircle, Lock, Mail, Key, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -82,5 +83,14 @@ export default function UserActionMenu({ user, onAction }) {
         </div>
     );
 }
+
+UserActionMenu.propTypes = {
+    user: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+        status: PropTypes.string,
+        emailVerified: PropTypes.bool,
+    }).isRequired,
+    onAction: PropTypes.func.isRequired,
+};
 
 

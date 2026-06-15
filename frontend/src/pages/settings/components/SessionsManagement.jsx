@@ -49,6 +49,35 @@ export default function SessionsManagement() {
         }
     };
 
+    let sessionsContent;
+    if (loading) {
+        sessionsContent = (
+            <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-2 border-aws-orange border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    } else if (sessions.length === 0) {
+        sessionsContent = (
+            <div className="p-8 text-center bg-aws-navy-light rounded-xl border border-aws-border">
+                <p className="text-aws-text-dim">No active sessions found.</p>
+            </div>
+        );
+    } else {
+        sessionsContent = (
+            <div className="grid gap-3 animate-fade-in-up">
+                {sessions.map((session, index) => (
+                    <SessionCard
+                        key={session.id}
+                        session={session}
+                        isCurrent={index === 0}
+                        onRevoke={handleRevokeSession}
+                        isRevoking={revokingSession === session.id}
+                    />
+                ))}
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div>
@@ -79,27 +108,7 @@ export default function SessionsManagement() {
                 </div>
 
                 <div className="space-y-4">
-                    {loading ? (
-                        <div className="flex justify-center py-12">
-                            <div className="w-8 h-8 border-2 border-aws-orange border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    ) : sessions.length === 0 ? (
-                        <div className="p-8 text-center bg-aws-navy-light rounded-xl border border-aws-border">
-                            <p className="text-aws-text-dim">No active sessions found.</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-3 animate-fade-in-up">
-                            {sessions.map((session, index) => (
-                                <SessionCard
-                                    key={session.id}
-                                    session={session}
-                                    isCurrent={index === 0}
-                                    onRevoke={handleRevokeSession}
-                                    isRevoking={revokingSession === session.id}
-                                />
-                            ))}
-                        </div>
-                    )}
+                    {sessionsContent}
                 </div>
             </div>
         </div>

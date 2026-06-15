@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export default function UserStatusBadge({ status }) {
     if (!status) return null;
@@ -33,5 +34,9 @@ export default function UserStatusBadge({ status }) {
         </div>
     );
 }
+
+UserStatusBadge.propTypes = {
+    status: PropTypes.oneOf(['ACTIVE', 'INACTIVE', 'LOCKED']).isRequired,
+};
 
 

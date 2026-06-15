@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rbacAPI } from '../services/api';
 
@@ -35,7 +36,7 @@ export default function RoleSelector({ userId }) {
 
     const handleAssign = () => {
         if (!selectedRole) return;
-        if (window.confirm('Assign this role to the user?')) {
+        if (globalThis.confirm('Assign this role to the user?')) {
             assignMutation.mutate(selectedRole);
         }
     };
@@ -77,7 +78,7 @@ export default function RoleSelector({ userId }) {
                             {r.isSystem && <span className="ml-2 text-xs bg-[#dde2f0] px-2 py-0.5 rounded text-[#3a4560]">System</span>}
                         </div>
                         <button
-                            onClick={() => window.confirm(`Remove ${r.name}?`) && removeMutation.mutate(r.id)}
+                            onClick={() => globalThis.confirm(`Remove ${r.name}?`) && removeMutation.mutate(r.id)}
                             className="text-red-400 hover:text-red-300 px-2 py-1 text-sm font-medium"
                         >
                             Remove
@@ -91,5 +92,9 @@ export default function RoleSelector({ userId }) {
         </div>
     );
 }
+
+RoleSelector.propTypes = {
+    userId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+};
 
 

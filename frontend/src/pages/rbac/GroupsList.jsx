@@ -244,7 +244,7 @@ export default function GroupsList() {
                                                 </Link>
                                                 <button
                                                     onClick={() => {
-                                                        if (window.confirm(`Are you sure you want to delete "${group.name}"?`)) {
+                                                        if (globalThis.confirm(`Are you sure you want to delete "${group.name}"?`)) {
                                                             deleteMutation.mutate(group.id);
                                                         }
                                                     }}

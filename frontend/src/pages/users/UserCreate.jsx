@@ -115,10 +115,12 @@ export default function UserCreate() {
                             {rolesContent}
                         </div>
 
-                        <label className="flex items-center gap-2 text-sm text-[#3a4560]">
-                            <input type="checkbox" name="sendWelcomeEmail" />
-                            Send welcome email
-                        </label>
+                        <div className="flex items-center gap-2">
+                            <input id="send-welcome-email" type="checkbox" name="sendWelcomeEmail" />
+                            <label htmlFor="send-welcome-email" className="text-sm text-[#3a4560] cursor-pointer">
+                                Send welcome email
+                            </label>
+                        </div>
 
                         <div className="flex justify-end gap-3 pt-2">
                             <button
@@ -154,6 +156,10 @@ function Field({ label, htmlFor, children }) {
 
 Field.propTypes = {
     label: PropTypes.string.isRequired,
+    htmlFor: PropTypes.string,
+    children: PropTypes.node,
+};
+pes.string.isRequired,
     htmlFor: PropTypes.string,
     children: PropTypes.node,
 };

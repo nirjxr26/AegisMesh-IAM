@@ -162,9 +162,9 @@ export function AuthProvider({ children }) {
             setIsLoading(false);
         };
 
-        window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+        globalThis.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
         return () => {
-            window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+            globalThis.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
         };
     }, [clearAuthState]);
 

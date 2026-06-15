@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { useQuery } from '@tanstack/react-query';
 import { rbacAPI } from '../services/api';
 
@@ -119,5 +120,9 @@ export default function PermissionTree({ userId }) {
         </div>
     );
 }
+
+PermissionTree.propTypes = {
+    userId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+};
 
 

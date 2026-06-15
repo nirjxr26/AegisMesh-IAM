@@ -196,24 +196,26 @@ export default function SecuritySettings() {
                                 )}
                                 <form onSubmit={handleDisableMFA} className="space-y-4 max-w-sm">
                                     <div>
-                                        <label className="block text-sm text-aws-text-dim mb-1">Password</label>
+                                        <label htmlFor="disable-password" xml:lang="en" className="block text-sm text-aws-text-dim mb-1">Password</label>
                                         <input
+                                            id="disable-password"
                                             type="password"
                                             value={disablePassword}
                                             onChange={(e) => setDisablePassword(e.target.value)}
-                                            className="w-full bg-aws-dark border border-aws-border rounded-lg px-4 py-2 text-[#0f1623] focus:outline-none focus:border-aws-red transition-colors"
+                                            className="w-full bg-aws-dark border border-aws-border rounded-xl px-4 py-2 text-[#0f1623] focus:outline-none focus:border-aws-red transition-colors"
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
+                                        <label htmlFor="disable-totp" xml:lang="en" className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
                                         <input
+                                            id="disable-totp"
                                             type="text"
                                             maxLength={6}
                                             value={disableTotp}
                                             onChange={(e) => setDisableTotp(e.target.value.replace(/\D/g, ''))}
                                             placeholder="000000"
-                                            className="w-full bg-aws-dark border border-aws-border rounded-lg px-4 py-2 text-[#0f1623] font-mono text-center tracking-widest focus:outline-none focus:border-aws-red transition-colors"
+                                            className="w-full bg-aws-dark border border-aws-border rounded-xl px-4 py-2 text-[#0f1623] font-mono text-center tracking-widest focus:outline-none focus:border-aws-red transition-colors"
                                             required
                                         />
                                     </div>
@@ -281,6 +283,11 @@ export default function SecuritySettings() {
                 )}
             </div>
         </div>
+    );
+}
+
+
+   </div>
     );
 }
 

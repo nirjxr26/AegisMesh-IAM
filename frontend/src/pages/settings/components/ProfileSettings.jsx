@@ -39,10 +39,11 @@ export default function ProfileSettings() {
                     <form onSubmit={handleSave} className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                                <label htmlFor="profile-first-name" className="block text-sm font-medium text-aws-text-dim mb-1">
                                     First Name
                                 </label>
                                 <input
+                                    id="profile-first-name"
                                     type="text"
                                     defaultValue={user?.firstName}
                                     disabled={!isEditing}
@@ -50,10 +51,11 @@ export default function ProfileSettings() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                                <label htmlFor="profile-last-name" className="block text-sm font-medium text-aws-text-dim mb-1">
                                     Last Name
                                 </label>
                                 <input
+                                    id="profile-last-name"
                                     type="text"
                                     defaultValue={user?.lastName}
                                     disabled={!isEditing}
@@ -63,10 +65,11 @@ export default function ProfileSettings() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                            <label htmlFor="profile-email" className="block text-sm font-medium text-aws-text-dim mb-1">
                                 Email Address
                             </label>
                             <input
+                                id="profile-email"
                                 type="email"
                                 defaultValue={user?.email}
                                 disabled

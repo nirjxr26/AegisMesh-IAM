@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, AppWindow, Calendar, Clock, Info, Key, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -51,6 +52,11 @@ function SummaryCard({ label, value }) {
     );
 }
 
+SummaryCard.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+};
+
 function ConnectedAppIcon({ app }) {
     if (app.type === 'api_token') {
         return (
@@ -82,6 +88,14 @@ function ConnectedAppIcon({ app }) {
         </div>
     );
 }
+
+ConnectedAppIcon.propTypes = {
+    app: PropTypes.shape({
+        type: PropTypes.string,
+        provider: PropTypes.string,
+        name: PropTypes.string,
+    }).isRequired,
+};
 
 export default function ConnectedApps() {
     const queryClient = useQueryClient();
@@ -305,3 +319,5 @@ export default function ConnectedApps() {
         </div>
     );
 }
+
+ConnectedApps.propTypes = {};

@@ -69,30 +69,24 @@ EmptyState.propTypes = {
 function LoadingState() {
     return (
         <div className="space-y-3">
-            {Array.from({
-                length: 3,
-            }).map((_, index) => {
-                const skeletonKey = `loading-${index}`;
+            {[1, 2, 3].map((id) => (
+                <div
+                    key={`loading-${id}`}
+                    className="animate-pulse rounded-2xl border border-[#e2e8f0] bg-white p-4"
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[#e2e8f0]" />
 
-                return (
-                    <div
-                        key={skeletonKey}
-                        className="animate-pulse rounded-2xl border border-[#e2e8f0] bg-white p-4"
-                    >
-                        <div className="flex items-start gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-[#e2e8f0]" />
+                        <div className="flex-1 space-y-2">
+                            <div className="h-4 w-40 rounded bg-[#e2e8f0]" />
 
-                            <div className="flex-1 space-y-2">
-                                <div className="h-4 w-40 rounded bg-[#e2e8f0]" />
+                            <div className="h-3 w-full rounded bg-[#edf2f7]" />
 
-                                <div className="h-3 w-full rounded bg-[#edf2f7]" />
-
-                                <div className="h-3 w-4/5 rounded bg-[#edf2f7]" />
-                            </div>
+                            <div className="h-3 w-4/5 rounded bg-[#edf2f7]" />
                         </div>
                     </div>
-                );
-            })}
+                </div>
+            ))}
         </div>
     );
 }
@@ -150,7 +144,12 @@ export default function NotificationCenter({
         notifications.length > 0;
 
     return (
-        <div className="absolute right-0 top-full z-50 mt-3 w-[min(26rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-[#dbe4f0] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.18)]">
+        <div 
+            role="region"
+            aria-live="polite"
+            aria-label="Notification Center"
+            className="absolute right-0 top-full z-50 mt-3 w-[min(26rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-[#dbe4f0] bg-white shadow-[0_30px_80px_rgba(15,23,42,0.18)]"
+        >
             <div className="border-b border-[#eef2f7] bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_65%)] px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
                     <div>

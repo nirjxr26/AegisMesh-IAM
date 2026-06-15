@@ -9,6 +9,38 @@ function readTextField(formData, fieldName, fallback = '') {
     return typeof value === 'string' ? value.trim() : fallback;
 }
 
+function RolesSelection({ loading, roles, currentRoleIds }) {
+    if (loading) return <p className="text-sm text-[#7a87a8]">Loading roles...</p>;
+    if (roles.length === 0) return <p className="text-sm text-[#7a87a8]">No roles found.</p>;
+
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {roles.map((role) => (
+                <div key={role.id} className="flex items-start gap-2 border border-[#e3e8f4] rounded-lg px-3 py-2">
+                    <input
+                        id={`role-${role.id}`}
+                        type="checkbox"
+                        name="roleIds"
+                        value={role.id}
+                        defaultChecked={currentRoleIds.has(role.id)}
+                        className="mt-1"
+                    />
+                    <label htmlFor={`role-${role.id}`} className="cursor-pointer">
+                        <span className="block text-sm font-medium text-[#0f1623]">{role.name}</span>
+                        <span className="block text-xs text-[#7a87a8]">{role.description || 'No description'}</span>
+                    </label>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+RolesSelection.propTypes = {
+    loading: PropTypes.bool,
+    roles: PropTypes.array,
+    currentRoleIds: PropTypes.instanceOf(Set),
+};
+
 export default function UserEdit() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -148,9 +180,21 @@ export default function UserEdit() {
     );
 }
 
-function Field({ label, children }) {
+function Field({ label, htmlFor, children }) {
     return (
-        <label className="block text-sm font-medium text-[#3a4560]">
+        <div>
+            <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-[#3a4560]">{label}</label>
+            {children}
+        </div>
+    );
+}
+
+Field.propTypes = {
+    label: PropTypes.string.isRequired,
+    htmlFor: PropTypes.string,
+    children: PropTypes.node,
+};
+lock text-sm font-medium text-[#3a4560]">
             <span className="mb-1.5 block">{label}</span>
             {children}
         </label>

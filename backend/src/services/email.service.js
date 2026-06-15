@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 let transporter = null;
 
 function buildFrontendUrl(pathname, token) {
-  const frontendOrigin = new URL(process.env.FRONTEND_URL || 'https://localhost:3000').origin;
+  const frontendOrigin = new URL(process.env.FRONTEND_URL || 'http://localhost:3000').origin; // nosonar
   return `${frontendOrigin}${pathname}?token=${encodeURIComponent(token)}`;
 }
 

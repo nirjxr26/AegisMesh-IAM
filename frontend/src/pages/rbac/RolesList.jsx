@@ -105,7 +105,7 @@ export default function RolesList() {
             return;
         }
 
-        if (window.confirm(`Are you sure you want to delete "${role.name}"?`)) {
+        if (globalThis.confirm(`Are you sure you want to delete "${role.name}"?`)) {
             deleteMutation.mutate(role.id);
         }
     };
@@ -306,7 +306,13 @@ export default function RolesList() {
                 <div
                     className="fixed inset-0 z-50 flex items-end justify-center bg-[#0f1623]/40 backdrop-blur-sm p-0 sm:items-center sm:p-4"
                     onClick={handleCloseCreateModal}
-                    onKeyDown={(e) => { if (e.key === 'Escape') handleCloseCreateModal(); }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Escape') handleCloseCreateModal();
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleCloseCreateModal();
+                        }
+                    }}
                     role="button"
                     tabIndex={0}
                     aria-label="Close modal overlay"
@@ -337,10 +343,11 @@ export default function RolesList() {
                         <form onSubmit={handleCreate} noValidate>
                             <div className="px-6 py-5 space-y-4">
                                 <div>
-                                    <label className="block text-xs font-semibold text-[#3a4560] uppercase tracking-wide mb-1.5">
+                                    <label htmlFor="role-name" className="block text-xs font-semibold text-[#3a4560] uppercase tracking-wide mb-1.5">
                                         Role Name
                                     </label>
                                     <input
+                                        id="role-name"
                                         type="text"
                                         value={name}
                                         onChange={(e) => {
@@ -358,10 +365,11 @@ export default function RolesList() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-semibold text-[#3a4560] uppercase tracking-wide mb-1.5">
+                                    <label htmlFor="role-description" className="block text-xs font-semibold text-[#3a4560] uppercase tracking-wide mb-1.5">
                                         Description
                                     </label>
                                     <textarea
+                                        id="role-description"
                                         rows={3}
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
