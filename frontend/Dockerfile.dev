@@ -10,17 +10,17 @@ WORKDIR /app
 RUN chown node:node /app
 
 # Copy package files first
-COPY --chown=node:node --chmod=555 package*.json ./
+COPY --chown=root:root --chmod=555 package*.json ./
 
 # Use cache mount for faster dev installs
 RUN --mount=type=cache,target=/root/.npm \
     npm install --no-audit --no-fund --ignore-scripts
 
 # Explicitly copy needed directories to prevent recursive sensitive data copy
-COPY --chown=node:node --chmod=555 index.html vite.config.js tailwind.config.js eslint.config.js ./
-COPY --chown=node:node --chmod=555 src/ ./src/
-COPY --chown=node:node --chmod=555 public/ ./public/
-COPY --chown=node:node --chmod=555 scripts/ ./scripts/
+COPY --chown=root:root --chmod=555 index.html vite.config.js tailwind.config.js eslint.config.js ./
+COPY --chown=root:root --chmod=555 src/ ./src/
+COPY --chown=root:root --chmod=555 public/ ./public/
+COPY --chown=root:root --chmod=555 scripts/ ./scripts/
 
 # EXPOSE 5173
 ENV BIND_ADDR=0.0.0.0
