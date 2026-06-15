@@ -27,6 +27,7 @@ import UsersList from './users/UsersList';
 import RolesList from './rbac/RolesList';
 import PoliciesList from './rbac/PoliciesList';
 import GroupsList from './rbac/GroupsList';
+import { formatDate, formatRelativeTime, toTitleCase as toTitleCaseAction } from '../utils/formatters';
 
 function NavItem({
     icon: Icon,
@@ -127,54 +128,6 @@ SectionHeader.propTypes = {
     title: PropTypes.string.isRequired,
     description: PropTypes.string.isRequired,
 };
-
-function toTitleCaseAction(action = '') {
-    return action
-        .toLowerCase()
-        .split('_')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-}
-
-function formatRelativeTime(value) {
-    if (!value) return 'N/A';
-
-    const timestamp = new Date(value).getTime();
-    if (Number.isNaN(timestamp)) return 'N/A';
-
-    const diff = Date.now() - timestamp;
-    const seconds = Math.floor(diff / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} min ago`;
-
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hr ago`;
-
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
-
-    const months = Math.floor(days / 30);
-    if (months < 12) return `${months} mo ago`;
-
-    const years = Math.floor(months / 12);
-    return `${years} yr ago`;
-}
-
-function formatDate(value) {
-    if (!value) return 'N/A';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'N/A';
-
-    return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-    });
-}
 
 function getSystemHealth(criticalAlertsCount, totalAlerts) {
     if (criticalAlertsCount > 0) {
@@ -333,27 +286,6 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
         staleTime: 30 * 1000,
     });
 
-    const roleIds = useMemo(() => {
-        return (rolesQuery.data?.data || []).map((role) => role.id);
-    }, [rolesQuery.data]);
-
-    const roleDetailsQuery = useQuery({
-        queryKey: ['overview-role-details', roleIds.join(',')],
-        enabled: roleIds.length > 0,
-        queryFn: async () => {
-            const responses = await Promise.all(
-                roleIds.map((id) =>
-                    rbacAPI
-                        .getRole(id)
-                        .then((res) => res.data?.data)
-                        .catch(() => null)
-                )
-            );
-            return responses.filter(Boolean);
-        },
-        staleTime: 30 * 1000,
-    });
-
     const users = usersQuery.data?.data ?? EMPTY_ARRAY;
     const usersSummary = usersQuery.data?.summary ?? EMPTY_OBJECT;
     const roles = rolesQuery.data?.data ?? EMPTY_ARRAY;
@@ -363,7 +295,6 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
     const weeklyLogs = weeklyLogsQuery.data?.data ?? EMPTY_ARRAY;
     const alerts = alertsQuery.data?.data?.alerts ?? EMPTY_ARRAY;
     const totalAlerts = alertsQuery.data?.data?.totalAlerts || 0;
-    const roleDetails = roleDetailsQuery.data ?? EMPTY_ARRAY;
 
     const totalUsers = usersSummary.total ?? users.length;
     const activeSessions = sessions.length;
@@ -396,7 +327,7 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
 
     const unverifiedUsersCount = usersSummary.unverified ?? users.filter((u) => !u.emailVerified).length;
 
-    const overprivilegedRolesCount = roleDetails.filter((role) =>
+    const overprivilegedRolesCount = roles.filter((role) =>
         (role.rolePolicies || []).some(({ policy }) => {
             const actions = policy?.actions || [];
             const resources = policy?.resources || [];
@@ -1194,6 +1125,3 @@ export default function Dashboard() {
 
     return <div>{renderSectionContent()}</div>;
 }
-
-
-

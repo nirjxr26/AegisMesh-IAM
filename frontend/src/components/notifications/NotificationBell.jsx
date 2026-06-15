@@ -262,6 +262,11 @@ export default function NotificationBell() {
     const unreadCount = countQuery.data ?? inboxQuery.data?.unreadCount ?? 0;
 
     const handleOpenNotification = async (notification) => {
+        if (!notification) {
+            setIsOpen(false);
+            return;
+        }
+
         if (!notification.read) {
             try {
                 await markReadMutation.mutateAsync(notification.id);
@@ -307,26 +312,24 @@ export default function NotificationBell() {
             </button>
 
             {isOpen ? (
-                <div className="relative">
-                    <NotificationCenter
-                        notifications={notifications}
-                        allNotifications={inboxQuery.data?.items || []}
-                        unreadCount={unreadCount}
-                        activeFilter={activeFilter}
-                        connectionMode={sseDisabled ? 'Polling' : 'Live'}
-                        isLoading={inboxQuery.isLoading}
-                        isMarkingAllRead={markAllReadMutation.isPending}
-                        pendingReadId={markReadMutation.variables}
-                        pendingDeleteId={deleteMutation.variables}
-                        onFilterChange={setActiveFilter}
-                        onMarkAllRead={() => markAllReadMutation.mutate()}
-                        onMarkRead={(notification) => markReadMutation.mutate(notification.id)}
-                        onDelete={(notification) => deleteMutation.mutate(notification.id)}
-                        onOpen={handleOpenNotification}
-                        onOpenPreferences={handleOpenPreferences}
-                        onOpenSecurity={handleOpenSecurity}
-                    />
-                </div>
+                <NotificationCenter
+                    notifications={notifications}
+                    allNotifications={inboxQuery.data?.items || []}
+                    unreadCount={unreadCount}
+                    activeFilter={activeFilter}
+                    connectionMode={sseDisabled ? 'Polling' : 'Live'}
+                    isLoading={inboxQuery.isLoading}
+                    isMarkingAllRead={markAllReadMutation.isPending}
+                    pendingReadId={markReadMutation.variables}
+                    pendingDeleteId={deleteMutation.variables}
+                    onFilterChange={setActiveFilter}
+                    onMarkAllRead={() => markAllReadMutation.mutate()}
+                    onMarkRead={(notification) => markReadMutation.mutate(notification.id)}
+                    onDelete={(notification) => deleteMutation.mutate(notification.id)}
+                    onOpen={handleOpenNotification}
+                    onOpenPreferences={handleOpenPreferences}
+                    onOpenSecurity={handleOpenSecurity}
+                />
             ) : null}
         </div>
     );

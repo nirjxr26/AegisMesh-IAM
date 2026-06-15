@@ -4,7 +4,7 @@ const { auditSecurity } = require('../utils/auditLog');
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 10 : 1000,
+    max: process.env.NODE_ENV === 'production' ? 50 : 1000,
     message: {
         success: false,
         error: { code: 'RATE_LIMIT', message: 'Too many login attempts. Please try again in 15 minutes.' },
@@ -20,7 +20,7 @@ const loginLimiter = rateLimit({
 
 const registerLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 5 : 1000,
+    max: process.env.NODE_ENV === 'production' ? 20 : 1000,
     message: {
         success: false,
         error: { code: 'RATE_LIMIT', message: 'Too many registration attempts. Please try again later.' },
@@ -36,7 +36,7 @@ const registerLimiter = rateLimit({
 
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 100 : 5000,
+    max: process.env.NODE_ENV === 'production' ? 1000 : 5000,
     message: {
         success: false,
         error: { code: 'RATE_LIMIT', message: 'Too many requests. Please try again later.' },

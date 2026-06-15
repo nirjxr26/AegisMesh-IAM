@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Layers, Copy, Check, Edit2, Trash2, X, ChevronDown, KeyRound } from 'lucide-react';
+import { ChevronLeft, Layers, Copy, Check, Edit2, X, ChevronDown, KeyRound } from 'lucide-react';
 import { rbacAPI, userAPI } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -212,7 +212,7 @@ export default function GroupDetail() {
                             <button
                                 onClick={() => {
                                     if (globalThis.confirm(`Are you sure you want to delete "${group.name}"?`)) {
-                                        deleteMutation.mutate();
+                                        deleteGroupMutation.mutate();
                                     }
                                 }}
                                 disabled={deleteGroupMutation.isPending}
@@ -436,5 +436,3 @@ export default function GroupDetail() {
 GroupDetail.propTypes = {
     // No direct props as it uses useParams
 };
-
-

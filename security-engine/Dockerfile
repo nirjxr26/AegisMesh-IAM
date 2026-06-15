@@ -1,4 +1,4 @@
-# Build stage: Install dependencies
+# Build stage
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
@@ -9,9 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies into a virtual environment or just to a local path
+# Install python dependencies using cache mount
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
 # Final Production stage
@@ -19,7 +20,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies only
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     curl \
@@ -27,17 +28,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && addgroup --system --gid 10001 securitygroup \
     && adduser --system --uid 10001 --gid 10001 securityuser
 
-# Copy installed dependencies from builder
-COPY --from=builder /install /usr/local
+# Prevent Python from writing pyc files to read-only filesystem
+ENV PYTHONDONTWRITEBYTECODE=1
 
-# Copy application code
-COPY src/ ./src/
-COPY models/ ./models/
+# Copy installed dependencies and source code with read-only permissions
+COPY --from=builder --chown=root:root --chmod=555 /install /usr/local
+COPY --chown=root:root --chmod=555 src/ ./src/
+COPY --chown=root:root --chmod=555 models/ ./models/
 
-# Security Hardening: Ensure files are read-only for the user
-RUN chmod -R 555 ./src ./models
-
-# Add HEALTHCHECK (Datadog finding)
+# Add HEALTHCHECK
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 

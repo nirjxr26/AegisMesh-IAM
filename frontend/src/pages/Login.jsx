@@ -107,10 +107,19 @@ const onSubmit = async (event) => {
             return;
         }
 
-        setError(
-            errorData?.message ||
-            'Login failed. Please check your credentials.',
-        );
+        let displayError = errorData?.message || 'Login failed. Please check your credentials.';
+        const lowerError = String(displayError).toLowerCase();
+        if (
+            lowerError.includes('prisma') ||
+            lowerError.includes('database credentials') ||
+            lowerError.includes('authentication failed') ||
+            lowerError.includes('findfirst') ||
+            lowerError.includes('ensureorganizationsettings')
+        ) {
+            displayError = 'Database connection or authentication failed. Please verify credentials and database availability.';
+        }
+
+        setError(displayError);
     } finally {
         setLoading(false);
     }

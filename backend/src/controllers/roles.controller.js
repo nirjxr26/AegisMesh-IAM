@@ -15,7 +15,14 @@ exports.getRoles = async (req, res, next) => {
                 where,
                 skip: Number.parseInt(skip),
                 take: Number.parseInt(limit),
-                include: { _count: { select: { userRoles: true, rolePolicies: true } } },
+                include: {
+                    _count: { select: { userRoles: true, rolePolicies: true } },
+                    rolePolicies: {
+                        include: {
+                            policy: true
+                        }
+                    }
+                },
                 orderBy: { createdAt: 'desc' }
             }),
             prisma.role.count({ where })

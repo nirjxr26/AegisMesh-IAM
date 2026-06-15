@@ -79,6 +79,29 @@ describe('errorHandler', () => {
         expect(body.error.code).toBe('NOT_FOUND');
     });
 
+    it('handles Prisma P1000 database connection or authentication error with 503', () => {
+        const err = Object.assign(new Error('Authentication failed against database server'), { code: 'P1000' });
+        const res = mockRes();
+
+        errorHandler(err, mockReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(503);
+        const body = res.json.mock.calls[0][0];
+        expect(body.error.code).toBe('DATABASE_ERROR');
+        expect(body.error.message).toContain('Database connection or authentication failed');
+    });
+
+    it('handles database credential errors in error message with 503', () => {
+        const err = new Error('Invalid prisma.organizationSettings.findFirst() invocation... database credentials...');
+        const res = mockRes();
+
+        errorHandler(err, mockReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(503);
+        const body = res.json.mock.calls[0][0];
+        expect(body.error.code).toBe('DATABASE_ERROR');
+    });
+
     it('handles JsonWebTokenError with 401', () => {
         const err = Object.assign(new Error('jwt malformed'), { name: 'JsonWebTokenError' });
         const res = mockRes();
