@@ -98,10 +98,11 @@ export default function SecuritySettings() {
 
                 <form onSubmit={handlePasswordChange} className="space-y-4 max-w-xl">
                     <div>
-                        <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                        <label htmlFor="current-password" xmlLang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                             Current Password
                         </label>
                         <input
+                            id="current-password"
                             type="password"
                             value={passwordData.currentPassword}
                             onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
@@ -111,10 +112,11 @@ export default function SecuritySettings() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                            <label htmlFor="new-password" xmlLang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                                 New Password
                             </label>
                             <input
+                                id="new-password"
                                 type="password"
                                 value={passwordData.newPassword}
                                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
@@ -123,10 +125,11 @@ export default function SecuritySettings() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                            <label htmlFor="confirm-password" xmlLang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                                 Confirm New Password
                             </label>
                             <input
+                                id="confirm-password"
                                 type="password"
                                 value={passwordData.confirmPassword}
                                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
@@ -196,24 +199,26 @@ export default function SecuritySettings() {
                                 )}
                                 <form onSubmit={handleDisableMFA} className="space-y-4 max-w-sm">
                                     <div>
-                                        <label className="block text-sm text-aws-text-dim mb-1">Password</label>
+                                        <label htmlFor="disable-password" xmlLang="en" className="block text-sm text-aws-text-dim mb-1">Password</label>
                                         <input
+                                            id="disable-password"
                                             type="password"
                                             value={disablePassword}
                                             onChange={(e) => setDisablePassword(e.target.value)}
-                                            className="w-full bg-aws-dark border border-aws-border rounded-lg px-4 py-2 text-[#0f1623] focus:outline-none focus:border-aws-red transition-colors"
+                                            className="w-full bg-aws-dark border border-aws-border rounded-xl px-4 py-2 text-[#0f1623] focus:outline-none focus:border-aws-red transition-colors"
                                             required
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
+                                        <label htmlFor="disable-totp" xmlLang="en" className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
                                         <input
+                                            id="disable-totp"
                                             type="text"
                                             maxLength={6}
                                             value={disableTotp}
                                             onChange={(e) => setDisableTotp(e.target.value.replace(/\D/g, ''))}
                                             placeholder="000000"
-                                            className="w-full bg-aws-dark border border-aws-border rounded-lg px-4 py-2 text-[#0f1623] font-mono text-center tracking-widest focus:outline-none focus:border-aws-red transition-colors"
+                                            className="w-full bg-aws-dark border border-aws-border rounded-xl px-4 py-2 text-[#0f1623] font-mono text-center tracking-widest focus:outline-none focus:border-aws-red transition-colors"
                                             required
                                         />
                                     </div>
@@ -283,5 +288,3 @@ export default function SecuritySettings() {
         </div>
     );
 }
-
-

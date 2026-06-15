@@ -74,8 +74,8 @@ export default function RolesList() {
                 handleCloseCreateModal();
             }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        globalThis.addEventListener('keydown', handleKeyDown);
+        return () => globalThis.removeEventListener('keydown', handleKeyDown);
     }, [isCreateOpen, handleCloseCreateModal]);
 
     const { data: usersData } = useQuery({
@@ -335,6 +335,12 @@ export default function RolesList() {
                         type="button"
                         className="fixed inset-0 bg-[#0f1623]/40 backdrop-blur-sm animate-in fade-in duration-200 cursor-default"
                         onClick={handleCloseCreateModal}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleCloseCreateModal();
+                            }
+                        }}
                         aria-label="Close modal"
                     />
                     <div
@@ -362,7 +368,7 @@ export default function RolesList() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                        <form onSubmit={handleCreate} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto" noValidate>
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                 <div className="col-span-2 sm:col-span-1">
                                     <label htmlFor="role-name" className="block text-xs font-bold uppercase tracking-wider text-[#64748b] mb-2">

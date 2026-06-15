@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
+import PropTypes from 'prop-types';
 
 const strengthLevels = [
     { label: 'Very Weak', color: 'bg-red-500', textColor: 'text-red-400', minScore: 0 },
@@ -74,5 +75,9 @@ export default function PasswordStrengthMeter({ password = '' }) {
         </div>
     );
 }
+
+PasswordStrengthMeter.propTypes = {
+    password: PropTypes.string,
+};
 
 

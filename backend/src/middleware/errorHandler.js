@@ -13,17 +13,14 @@ function errorHandler(err, req, res, _next) {
         ip: req.ip,
     });
 
-    // If error is our custom AppError
-    if (err.isOperational) {
-        return res.status(err.statusCode).json({
-            success: false,
-            error: {
-                code: err.errorCode,
-                message: err.message,
-                details: err.details || undefined,
-            },
-        });
-    }
+    let status = err.statusCode || 500;
+    let body = {
+        success: false,
+        error: {
+            code: 'INTERNAL_ERROR',
+            message: process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : err.message,
+        },
+    };
 
     // Prisma connection / credential / authentication errors
     const errMsgLower = err.message ? String(err.message).toLowerCase() : '';
@@ -40,81 +37,37 @@ function errorHandler(err, req, res, _next) {
             errMsgLower.includes('failed')
         ));
 
-    if (isPrismaDbConnError) {
-        return res.status(503).json({
-            success: false,
-            error: {
-                code: 'DATABASE_ERROR',
-                message: 'Database connection or authentication failed. Please verify credentials and database availability.',
-            },
-        });
+    if (err.isOperational) {
+        status = err.statusCode;
+        body.error = { 
+            code: err.errorCode, 
+            message: err.message, 
+            details: err.details || undefined 
+        };
+    } else if (isPrismaDbConnError) {
+        status = 503;
+        body.error = { 
+            code: 'DATABASE_ERROR', 
+            message: 'Database connection or authentication failed. Please verify credentials and database availability.' 
+        };
+    } else if (err.code === 'P2002') {
+        status = 409;
+        body.error = { code: 'CONFLICT', message: 'A record with this data already exists', details: err.meta };
+    } else if (err.code === 'P2025') {
+        status = 404;
+        body.error = { code: 'NOT_FOUND', message: 'Record not found' };
+    } else if (err.name === 'JsonWebTokenError') {
+        status = 401;
+        body.error = { code: 'AUTH_007', message: 'Token invalid' };
+    } else if (err.name === 'TokenExpiredError') {
+        status = 401;
+        body.error = { code: 'AUTH_006', message: 'Token expired' };
+    } else if (err.code === 'EBADCSRFTOKEN') {
+        status = 403;
+        body.error = { code: 'CSRF_ERROR', message: 'Invalid or missing CSRF token' };
     }
 
-    // Prisma errors
-    if (err.code === 'P2002') {
-        return res.status(409).json({
-            success: false,
-            error: {
-                code: 'CONFLICT',
-                message: 'A record with this data already exists',
-                details: err.meta,
-            },
-        });
-    }
-
-    if (err.code === 'P2025') {
-        return res.status(404).json({
-            success: false,
-            error: {
-                code: 'NOT_FOUND',
-                message: 'Record not found',
-            },
-        });
-    }
-
-    // JWT errors
-    if (err.name === 'JsonWebTokenError') {
-        return res.status(401).json({
-            success: false,
-            error: {
-                code: 'AUTH_007',
-                message: 'Token invalid',
-            },
-        });
-    }
-
-    if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({
-            success: false,
-            error: {
-                code: 'AUTH_006',
-                message: 'Token expired',
-            },
-        });
-    }
-
-    // CSRF errors
-    if (err.code === 'EBADCSRFTOKEN') {
-        return res.status(403).json({
-            success: false,
-            error: {
-                code: 'CSRF_ERROR',
-                message: 'Invalid or missing CSRF token',
-            },
-        });
-    }
-
-    // Default 500 error
-    const statusCode = err.statusCode || 500;
-    res.status(statusCode).json({
-        success: false,
-        error: {
-            code: 'INTERNAL_ERROR',
-            message: process.env.NODE_ENV === 'production'
-                ? 'An unexpected error occurred'
-                : err.message,
-        },
-    });
+    return res.status(status).json(body);
 }
 
 /**

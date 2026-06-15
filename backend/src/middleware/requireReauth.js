@@ -120,6 +120,51 @@ function issueReauthToken(userId, sessionId, method) {
     );
 }
 
+async function verifyCredentials(user, password, mfaToken) {
+    if (password) {
+        if (!user.passwordHash) {
+            return {
+                status: 400,
+                code: 'NO_PASSWORD',
+                message: 'Account uses OAuth login only. Use MFA to verify.',
+                reason: 'no_password',
+            };
+        }
+        const validPassword = await bcrypt.compare(password, user.passwordHash);
+        if (validPassword) return { method: 'password' };
+
+        return {
+            status: 401,
+            code: 'INVALID_PASSWORD',
+            message: 'Incorrect password',
+            reason: 'invalid_password',
+        };
+    }
+
+    if (mfaToken) {
+        if (!user.mfaEnabled || !user.mfaSecret) {
+            return {
+                status: 400,
+                code: 'MFA_NOT_ENABLED',
+                message: 'MFA not enabled',
+                reason: 'mfa_not_enabled',
+            };
+        }
+        const secret = decryptText(user.mfaSecret) || user.mfaSecret;
+        const validMfaToken = authenticator.verify({ token: mfaToken, secret });
+        if (validMfaToken) return { method: 'mfa' };
+
+        return {
+            status: 401,
+            code: 'INVALID_MFA_TOKEN',
+            message: 'Invalid authenticator code',
+            reason: 'invalid_mfa_token',
+        };
+    }
+
+    return null;
+}
+
 function requireReauth(action) {
     return async (req, res, next) => {
         try {
@@ -129,9 +174,7 @@ function requireReauth(action) {
 
             if (existingToken) {
                 const payload = getReauthPayload(existingToken);
-                const tokenSessionId = payload?.sessionId || null;
-
-                if (payload?.sub === userId && tokenSessionId === sessionId) {
+                if (payload?.sub === userId && (payload?.sessionId || null) === sessionId) {
                     req.reauthed = true;
                     req.reauthedAt = payload?.reauthAt ? new Date(payload.reauthAt) : new Date();
                     req.reauthMethod = payload?.method || null;
@@ -146,100 +189,44 @@ function requireReauth(action) {
 
             const user = await prisma.user.findUnique({
                 where: { id: userId },
-                select: {
-                    passwordHash: true,
-                    mfaEnabled: true,
-                    mfaSecret: true,
-                },
+                select: { passwordHash: true, mfaEnabled: true, mfaSecret: true },
             });
 
             if (!user) {
                 return res.status(404).json({
                     success: false,
-                    error: {
-                        code: 'USER_001',
-                        message: 'User not found',
-                    },
+                    error: { code: 'USER_001', message: 'User not found' },
                 });
             }
 
-            let method = null;
-            let failure = null;
+            const verification = await verifyCredentials(user, password, mfaToken);
 
-            if (password) {
-                if (!user.passwordHash) {
-                    failure = {
-                        status: 400,
-                        code: 'NO_PASSWORD',
-                        message: 'Account uses OAuth login only. Use MFA to verify.',
-                        reason: 'no_password',
-                    };
-                } else {
-                    const validPassword = await bcrypt.compare(password, user.passwordHash);
-                    if (validPassword) {
-                        method = 'password';
-                    } else {
-                        failure = {
-                            status: 401,
-                            code: 'INVALID_PASSWORD',
-                            message: 'Incorrect password',
-                            reason: 'invalid_password',
-                        };
-                    }
-                }
-            }
-
-            if (!method && mfaToken) {
-                if (!user.mfaEnabled || !user.mfaSecret) {
-                    failure = {
-                        status: 400,
-                        code: 'MFA_NOT_ENABLED',
-                        message: 'MFA not enabled',
-                        reason: 'mfa_not_enabled',
-                    };
-                } else {
-                    const secret = decryptText(user.mfaSecret) || user.mfaSecret;
-                    const validMfaToken = authenticator.verify({ token: mfaToken, secret });
-                    if (validMfaToken) {
-                        method = 'mfa';
-                        failure = null;
-                    } else if (!failure || failure.code === 'NO_PASSWORD') {
-                        failure = {
-                            status: 401,
-                            code: 'INVALID_MFA_TOKEN',
-                            message: 'Invalid authenticator code',
-                            reason: 'invalid_mfa_token',
-                        };
-                    }
-                }
-            }
-
-            if (!method) {
+            if (!verification || verification.status) {
                 await logFailure({
                     req,
                     userId,
                     sessionId,
                     action,
-                    reason: failure?.reason || 'invalid_credentials',
-                    errorCode: failure?.code || 'REAUTH_FAILED',
+                    reason: verification?.reason || 'invalid_credentials',
+                    errorCode: verification?.code || 'REAUTH_FAILED',
                 });
 
-                return res.status(failure?.status || 401).json({
+                return res.status(verification?.status || 401).json({
                     success: false,
-                    code: failure?.code || 'REAUTH_FAILED',
-                    message: failure?.message || 'Verification failed',
+                    code: verification?.code || 'REAUTH_FAILED',
+                    message: verification?.message || 'Verification failed',
                     error: {
-                        code: failure?.code || 'REAUTH_FAILED',
-                        message: failure?.message || 'Verification failed',
+                        code: verification?.code || 'REAUTH_FAILED',
+                        message: verification?.message || 'Verification failed',
                     },
                 });
             }
 
+            const { method } = verification;
             const issuedAt = new Date();
             const reauthToken = issueReauthToken(userId, sessionId, method);
 
             attachReauthHeader(res, reauthToken);
-
             req.reauthed = true;
             req.reauthedAt = issuedAt;
             req.reauthMethod = method;
@@ -252,10 +239,7 @@ function requireReauth(action) {
                 category: 'SECURITY',
                 resource: 'reauth',
                 result: 'SUCCESS',
-                metadata: {
-                    action,
-                    method,
-                },
+                metadata: { action, method },
             });
 
             return next();

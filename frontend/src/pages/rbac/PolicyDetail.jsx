@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { rbacAPI } from '../../services/api';
@@ -16,6 +17,54 @@ import {
     XCircle,
     Zap,
 } from 'lucide-react';
+
+function JsonHighlighter({ jsonObject }) {
+    if (!jsonObject) return null;
+
+    const jsonString = JSON.stringify(jsonObject, null, 4);
+    const lines = jsonString.split('\n');
+
+    return lines.map((line, index) => {
+        const keyMatch = line.match(/^(\s*)"([^"]+)":/);
+        const valueMatch = line.match(/: "([^"]*)"(,?)$/);
+        const punctuationMatch = line.match(/^(\s*)([{}[\]],?)$/);
+
+        if (keyMatch) {
+            const indent = keyMatch[1];
+            const key = keyMatch[2];
+            const rest = line.substring(keyMatch[0].length);
+
+            return (
+                <div key={index}>
+                    <span>{indent}</span>
+                    <span style={{ color: '#7dd3fc' }}>"{key}"</span>
+                    <span>:</span>
+                    {valueMatch ? (
+                        <>
+                            <span style={{ color: '#86efac' }}> "{valueMatch[1]}"</span>
+                            <span>{valueMatch[2]}</span>
+                        </>
+                    ) : rest}
+                </div>
+            );
+        }
+
+        if (punctuationMatch) {
+            return (
+                <div key={index}>
+                    <span>{punctuationMatch[1]}</span>
+                    <span style={{ color: '#f8fafc' }}>{punctuationMatch[2]}</span>
+                </div>
+            );
+        }
+
+        return <div key={index}>{line}</div>;
+    });
+}
+
+JsonHighlighter.propTypes = {
+    jsonObject: PropTypes.object
+};
 
 export default function PolicyDetail() {
     const { id } = useParams();
@@ -41,51 +90,6 @@ export default function PolicyDetail() {
 
     const policyCode = policyJson ? JSON.stringify(policyJson, null, 4) : '';
 
-    const renderHighlightedJson = (jsonObject) => {
-        if (!jsonObject) return null;
-        
-        const jsonString = JSON.stringify(jsonObject, null, 4);
-        const lines = jsonString.split('\n');
-
-        return lines.map((line, index) => {
-            // Match "key": "value" or "key": [ or "key": {
-            const keyMatch = line.match(/^(\s*)"([^"]+)":/);
-            const valueMatch = line.match(/: "([^"]*)"(,?)$/);
-            const punctuationMatch = line.match(/^(\s*)([{}[\]],?)$/);
-
-            if (keyMatch) {
-                const indent = keyMatch[1];
-                const key = keyMatch[2];
-                const rest = line.substring(keyMatch[0].length);
-                
-                return (
-                    <div key={index}>
-                        <span>{indent}</span>
-                        <span style={{ color: '#7dd3fc' }}>"{key}"</span>
-                        <span>:</span>
-                        {valueMatch ? (
-                            <>
-                                <span style={{ color: '#86efac' }}> "{valueMatch[1]}"</span>
-                                <span>{valueMatch[2]}</span>
-                            </>
-                        ) : rest}
-                    </div>
-                );
-            }
-
-            if (punctuationMatch) {
-                return (
-                    <div key={index}>
-                        <span>{punctuationMatch[1]}</span>
-                        <span style={{ color: '#f8fafc' }}>{punctuationMatch[2]}</span>
-                    </div>
-                );
-            }
-
-            return <div key={index}>{line}</div>;
-        });
-    };
-
     const formatDate = (value) => {
         if (!value) return 'Unknown';
         return new Date(value).toLocaleString();
@@ -97,7 +101,7 @@ export default function PolicyDetail() {
         try {
             await navigator.clipboard.writeText(policyCode);
             setCopied(true);
-            window.setTimeout(() => setCopied(false), 2000);
+            globalThis.setTimeout(() => setCopied(false), 2000);
         } catch {
             setCopied(false);
         }
@@ -257,7 +261,7 @@ export default function PolicyDetail() {
                                     className="m-0 text-[13px] leading-[1.7] text-slate-200"
                                     style={{ fontFamily: "JetBrains Mono, Fira Code, monospace" }}
                                 >
-                                    {renderHighlightedJson(policyJson)}
+                                    <JsonHighlighter jsonObject={policyJson} />
                                 </pre>
                             </div>
                         )}

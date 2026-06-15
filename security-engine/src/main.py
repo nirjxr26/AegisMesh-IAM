@@ -105,7 +105,7 @@ async def analyze(request: Request):
     }
 
 
-@app.post("/train")
+@app.post("/train", responses={500: {"description": "Internal Server Error"}})
 def train():
     try:
         detector.train()

@@ -59,13 +59,19 @@ export default function UserCreate() {
         rolesContent = (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {roles.map((role) => (
-                    <label key={role.id} className="flex items-start gap-2 border border-[#e3e8f4] rounded-lg px-3 py-2">
-                        <input type="checkbox" name="roleIds" value={role.id} className="mt-1" />
-                        <span>
+                    <div key={role.id} className="flex items-start gap-2 border border-[#e3e8f4] rounded-lg px-3 py-2">
+                        <input
+                            id={`role-${role.id}`}
+                            type="checkbox"
+                            name="roleIds"
+                            value={role.id}
+                            className="mt-1"
+                        />
+                        <label htmlFor={`role-${role.id}`} className="cursor-pointer">
                             <span className="block text-sm font-medium text-[#0f1623]">{role.name}</span>
                             <span className="block text-xs text-[#7a87a8]">{role.description || 'No description'}</span>
-                        </span>
-                    </label>
+                        </label>
+                    </div>
                 ))}
             </div>
         );
@@ -102,8 +108,8 @@ export default function UserCreate() {
                             <input id="user-password" name="password" type="password" required minLength={8} className={inputClass} />
                         </Field>
 
-                        <Field label="Status">
-                            <select name="status" defaultValue="ACTIVE" className={inputClass}>
+                        <Field label="Status" htmlFor="user-status">
+                            <select id="user-status" name="status" defaultValue="ACTIVE" className={inputClass}>
                                 <option value="ACTIVE">Active</option>
                                 <option value="INACTIVE">Inactive</option>
                                 <option value="LOCKED">Locked</option>
@@ -115,10 +121,12 @@ export default function UserCreate() {
                             {rolesContent}
                         </div>
 
-                        <label className="flex items-center gap-2 text-sm text-[#3a4560]">
-                            <input type="checkbox" name="sendWelcomeEmail" />
-                            Send welcome email
-                        </label>
+                        <div className="flex items-center gap-2">
+                            <input id="send-welcome-email" type="checkbox" name="sendWelcomeEmail" />
+                            <label htmlFor="send-welcome-email" className="text-sm text-[#3a4560] cursor-pointer">
+                                Send welcome email
+                            </label>
+                        </div>
 
                         <div className="flex justify-end gap-3 pt-2">
                             <button

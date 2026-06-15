@@ -71,30 +71,24 @@ EmptyState.propTypes = {
 function LoadingState() {
     return (
         <div className="space-y-3">
-            {Array.from({
-                length: 3,
-            }).map((_, index) => {
-                const skeletonKey = `loading-${index}`;
+            {[1, 2, 3].map((id) => (
+                <div
+                    key={`loading-${id}`}
+                    className="animate-pulse rounded-2xl border border-white/5 bg-[#161B26] p-4"
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-white/5" />
 
-                return (
-                    <div
-                        key={skeletonKey}
-                        className="animate-pulse rounded-2xl border border-white/5 bg-[#161B26] p-4"
-                    >
-                        <div className="flex items-start gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-white/5" />
+                        <div className="flex-1 space-y-2">
+                            <div className="h-4 w-40 rounded bg-white/5" />
 
-                            <div className="flex-1 space-y-2">
-                                <div className="h-4 w-40 rounded bg-white/5" />
+                            <div className="h-3 w-full rounded bg-white/[0.02]" />
 
-                                <div className="h-3 w-full rounded bg-white/[0.02]" />
-
-                                <div className="h-3 w-4/5 rounded bg-white/[0.02]" />
-                            </div>
+                            <div className="h-3 w-4/5 rounded bg-white/[0.02]" />
                         </div>
                     </div>
-                );
-            })}
+                </div>
+            ))}
         </div>
     );
 }
@@ -123,8 +117,8 @@ export default function NotificationCenter({
                 onOpen?.(null);
             }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        globalThis.addEventListener('keydown', handleKeyDown);
+        return () => globalThis.removeEventListener('keydown', handleKeyDown);
     }, [onOpen]);
 
     const sourceNotifications =
@@ -175,6 +169,7 @@ export default function NotificationCenter({
             <div 
                 className="fixed left-1/2 top-1/2 z-[70] w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2.5rem] border border-[#dbe4f0] bg-white shadow-[0_40px_100px_rgba(15,23,42,0.25)] animate-in fade-in zoom-in duration-200"
                 role="dialog"
+                aria-live="polite"
                 aria-modal="true"
                 aria-labelledby="notification-center-title"
             >

@@ -507,7 +507,8 @@ exports.createUser = async (req, res, next) => {
 
         await auditUser.created(req, newUser.id, email);
 
-        const { passwordHash: _, ...safeUser } = newUser;
+        const safeUser = { ...newUser };
+        delete safeUser.passwordHash;
         res.status(201).json({ success: true, data: safeUser });
     } catch (error) {
         next(error);

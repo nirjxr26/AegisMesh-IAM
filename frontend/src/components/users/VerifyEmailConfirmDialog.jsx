@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Mail, X } from 'lucide-react';
 
 export default function VerifyEmailConfirmDialog({ user, onConfirm, onCancel }) {
@@ -37,5 +38,13 @@ export default function VerifyEmailConfirmDialog({ user, onConfirm, onCancel }) 
         </div>
     );
 }
+
+VerifyEmailConfirmDialog.propTypes = {
+    user: PropTypes.shape({
+        email: PropTypes.string.isRequired,
+    }).isRequired,
+    onConfirm: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
+};
 
 

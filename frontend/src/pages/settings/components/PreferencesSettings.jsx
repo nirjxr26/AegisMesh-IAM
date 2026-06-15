@@ -75,13 +75,14 @@ export default function PreferencesSettings() {
                     </h2>
                     <div className="space-y-4">
 
-                        <label className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
+                        <label htmlFor="email-alerts" aria-label="Security Alerts Notifications" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
                             <div>
                                 <h3 className="text-[#0f1623] font-medium mb-1">Security Alerts</h3>
                                 <p className="text-xs text-aws-text-dim">Get notified about important security events</p>
                             </div>
                             <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifications.emailAlerts ? 'bg-aws-orange' : 'bg-gray-600'}`}>
                                 <input
+                                    id="email-alerts"
                                     type="checkbox"
                                     className="sr-only"
                                     checked={notifications.emailAlerts}
@@ -91,13 +92,14 @@ export default function PreferencesSettings() {
                             </div>
                         </label>
 
-                        <label className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
+                        <label htmlFor="session-activity" aria-label="Session Activity Notifications" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
                             <div>
                                 <h3 className="text-[#0f1623] font-medium mb-1">Session Activity</h3>
                                 <p className="text-xs text-aws-text-dim">Emails when a new device logs into your account</p>
                             </div>
                             <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifications.sessionChanges ? 'bg-aws-orange' : 'bg-gray-600'}`}>
                                 <input
+                                    id="session-activity"
                                     type="checkbox"
                                     className="sr-only"
                                     checked={notifications.sessionChanges}
@@ -107,13 +109,14 @@ export default function PreferencesSettings() {
                             </div>
                         </label>
 
-                        <label className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
+                        <label htmlFor="marketing-emails" aria-label="Marketing Emails Notifications" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
                             <div>
                                 <h3 className="text-[#0f1623] font-medium mb-1">Marketing Emails</h3>
                                 <p className="text-xs text-aws-text-dim">Receive updates, tips, and promotional content</p>
                             </div>
                             <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifications.marketing ? 'bg-aws-orange' : 'bg-gray-600'}`}>
                                 <input
+                                    id="marketing-emails"
                                     type="checkbox"
                                     className="sr-only"
                                     checked={notifications.marketing}
@@ -135,5 +138,3 @@ export default function PreferencesSettings() {
         </div>
     );
 }
-
-

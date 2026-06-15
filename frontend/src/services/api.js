@@ -17,7 +17,7 @@ const PUBLIC_AUTH_PATHS = [
 let csrfToken = null;
 let csrfPromise = null;
 
-const getSessionStorage = () => (typeof window !== 'undefined' ? window.sessionStorage : null);
+const getSessionStorage = () => (typeof globalThis !== 'undefined' ? globalThis.sessionStorage : null);
 
 const api = axios.create({
     baseURL: '/api',
@@ -67,14 +67,14 @@ const clearStoredReauthToken = () => {
 };
 
 const notifyAuthExpired = () => {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    if (typeof globalThis !== 'undefined') {
+        globalThis.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
     }
 };
 
 const redirectToLoginIfNeeded = () => {
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    if (typeof globalThis !== 'undefined' && globalThis.location.pathname !== '/login') {
+        globalThis.location.href = '/login';
     }
 };
 
@@ -138,27 +138,26 @@ api.interceptors.response.use(
             return api(originalRequest);
         }
 
-        if (
-            error.response?.status === 401
+        const shouldRetry = error.response?.status === 401
             && originalRequest
             && !originalRequest._retry
             && !isRefreshRequest(originalRequest.url || '')
-            && !isPublicAuthRequest(originalRequest.url || '')
-        ) {
+            && !isPublicAuthRequest(originalRequest.url || '');
+
+        if (shouldRetry) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
-                }).then(() => api(originalRequest)).catch((err) => Promise.reject(err));
+                }).then(() => api(originalRequest));
             }
 
             originalRequest._retry = true;
             isRefreshing = true;
 
             try {
-                // Tokens are in cookies, so we just call the endpoint
                 await axios.post('/api/auth/refresh-token', {}, { withCredentials: true });
                 processQueue(null);
-                return api(originalRequest);
+                return await api(originalRequest);
             } catch (refreshError) {
                 processQueue(refreshError);
                 notifyAuthExpired();

@@ -432,4 +432,6 @@ export default function GroupDetail() {
     );
 }
 
-
+GroupDetail.propTypes = {
+    // No direct props as it uses useParams
+};

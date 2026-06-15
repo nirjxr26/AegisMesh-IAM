@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const colors = [
     'bg-red-500', 'bg-orange-500', 'bg-amber-500',
@@ -34,5 +35,14 @@ export default function UserAvatar({ user, size = 'md' }) {
         </div>
     );
 }
+
+UserAvatar.propTypes = {
+    user: PropTypes.shape({
+        id: PropTypes.string,
+        firstName: PropTypes.string,
+        lastName: PropTypes.string,
+    }),
+    size: PropTypes.oneOf(['sm', 'md', 'lg']),
+};
 
 

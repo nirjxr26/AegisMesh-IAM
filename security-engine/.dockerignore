@@ -22,3 +22,6 @@ coverage.xml
 .vscode
 .idea
 README.md
+models/*.joblib
+.env
+.github/
