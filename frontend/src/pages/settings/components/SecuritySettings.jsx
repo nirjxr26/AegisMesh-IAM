@@ -98,10 +98,11 @@ export default function SecuritySettings() {
 
                 <form onSubmit={handlePasswordChange} className="space-y-4 max-w-xl">
                     <div>
-                        <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                        <label htmlFor="current-password" xml:lang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                             Current Password
                         </label>
                         <input
+                            id="current-password"
                             type="password"
                             value={passwordData.currentPassword}
                             onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
@@ -111,10 +112,11 @@ export default function SecuritySettings() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                            <label htmlFor="new-password" xml:lang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                                 New Password
                             </label>
                             <input
+                                id="new-password"
                                 type="password"
                                 value={passwordData.newPassword}
                                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
@@ -123,10 +125,11 @@ export default function SecuritySettings() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-aws-text-dim mb-1">
+                            <label htmlFor="confirm-password" xml:lang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                                 Confirm New Password
                             </label>
                             <input
+                                id="confirm-password"
                                 type="password"
                                 value={passwordData.confirmPassword}
                                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
@@ -285,10 +288,3 @@ export default function SecuritySettings() {
         </div>
     );
 }
-
-
-   </div>
-    );
-}
-
-

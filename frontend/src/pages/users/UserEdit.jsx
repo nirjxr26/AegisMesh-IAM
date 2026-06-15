@@ -110,20 +110,20 @@ export default function UserEdit() {
 
                     <form key={userData.id} onSubmit={handleSubmit} className="p-6 space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Field label="First Name">
-                                <input name="firstName" required defaultValue={userData.firstName || ''} className={inputClass} />
+                            <Field label="First Name" htmlFor="user-first-name">
+                                <input id="user-first-name" name="firstName" required defaultValue={userData.firstName || ''} className={inputClass} />
                             </Field>
-                            <Field label="Last Name">
-                                <input name="lastName" required defaultValue={userData.lastName || ''} className={inputClass} />
+                            <Field label="Last Name" htmlFor="user-last-name">
+                                <input id="user-last-name" name="lastName" required defaultValue={userData.lastName || ''} className={inputClass} />
                             </Field>
                         </div>
 
-                        <Field label="Email">
-                            <input name="email" type="email" required defaultValue={userData.email || ''} className={inputClass} />
+                        <Field label="Email" htmlFor="user-email">
+                            <input id="user-email" name="email" type="email" required defaultValue={userData.email || ''} className={inputClass} />
                         </Field>
 
-                        <Field label="Status">
-                            <select name="status" defaultValue={userData.status || 'ACTIVE'} className={inputClass}>
+                        <Field label="Status" htmlFor="user-status">
+                            <select id="user-status" name="status" defaultValue={userData.status || 'ACTIVE'} className={inputClass}>
                                 <option value="ACTIVE">Active</option>
                                 <option value="INACTIVE">Inactive</option>
                                 <option value="LOCKED">Locked</option>
@@ -132,29 +132,11 @@ export default function UserEdit() {
 
                         <div>
                             <p className="text-sm font-medium text-[#3a4560] mb-2">Assigned Roles</p>
-                            {rolesLoading ? (
-                                <p className="text-sm text-[#7a87a8]">Loading roles...</p>
-                            ) : roles.length === 0 ? (
-                                <p className="text-sm text-[#7a87a8]">No roles found.</p>
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {roles.map((role) => (
-                                        <label key={role.id} className="flex items-start gap-2 border border-[#e3e8f4] rounded-lg px-3 py-2">
-                                            <input
-                                                type="checkbox"
-                                                name="roleIds"
-                                                value={role.id}
-                                                defaultChecked={currentRoleIds.has(role.id)}
-                                                className="mt-1"
-                                            />
-                                            <span>
-                                                <span className="block text-sm font-medium text-[#0f1623]">{role.name}</span>
-                                                <span className="block text-xs text-[#7a87a8]">{role.description || 'No description'}</span>
-                                            </span>
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
+                            <RolesSelection
+                                loading={rolesLoading}
+                                roles={roles}
+                                currentRoleIds={currentRoleIds}
+                            />
                         </div>
 
                         <div className="flex justify-end gap-3 pt-2">
@@ -192,16 +174,5 @@ function Field({ label, htmlFor, children }) {
 Field.propTypes = {
     label: PropTypes.string.isRequired,
     htmlFor: PropTypes.string,
-    children: PropTypes.node,
-};
-lock text-sm font-medium text-[#3a4560]">
-            <span className="mb-1.5 block">{label}</span>
-            {children}
-        </label>
-    );
-}
-
-Field.propTypes = {
-    label: PropTypes.string.isRequired,
     children: PropTypes.node,
 };

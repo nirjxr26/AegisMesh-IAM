@@ -39,7 +39,11 @@ function errorHandler(err, req, res, _next) {
 
     if (err.isOperational) {
         status = err.statusCode;
-        body.error = { code: err.errorCode, message: err.message, details: err.details };
+        body.error = { 
+            code: err.errorCode, 
+            message: err.message, 
+            details: err.details || undefined 
+        };
     } else if (isPrismaDbConnError) {
         status = 503;
         body.error = { 
