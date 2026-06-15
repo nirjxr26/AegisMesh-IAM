@@ -20,10 +20,17 @@ spec:
     spec:
       automountServiceAccountToken: false
 
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+
       initContainers:
         - name: wait-for-db
-          image: postgres:17-alpine
-          imagePullPolicy: IfNotPresent
+          image: postgres@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+          imagePullPolicy: Always
 
           command:
             - sh
@@ -40,9 +47,16 @@ spec:
             - secretRef:
                 name: aegismesh-secrets
 
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
         - name: prisma-migrate
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           command:
             - sh
@@ -96,10 +110,17 @@ spec:
               memory: "512Mi"
               ephemeral-storage: "512Mi"
 
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
       containers:
         - name: backend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 5000
@@ -155,3 +176,24 @@ spec:
 
             initialDelaySeconds: 20
             periodSeconds: 10
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            appArmorProfile:
+              type: RuntimeDefault
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: logs
+              mountPath: /app/logs
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}

@@ -45,9 +45,15 @@ spec:
         app: crowdsec
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: crowdsec
         image: crowdsecurity/crowdsec:v1.6.0
+        imagePullPolicy: Always
         env:
         - name: DISABLE_ONLINE_API
           value: "true"
@@ -62,6 +68,14 @@ spec:
             cpu: 300m
             memory: 256Mi
             ephemeral-storage: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          appArmorProfile:
+            type: RuntimeDefault
         volumeMounts:
         - name: crowdsec-config
           mountPath: /etc/crowdsec/acquis.yaml
@@ -71,6 +85,10 @@ spec:
         - name: varlog
           mountPath: /var/log
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: config-dir
+          mountPath: /etc/crowdsec
       volumes:
       - name: crowdsec-config
         configMap:
@@ -81,3 +99,7 @@ spec:
       - name: varlog
         hostPath:
           path: /var/log
+      - name: tmp
+        emptyDir: {}
+      - name: config-dir
+        emptyDir: {}

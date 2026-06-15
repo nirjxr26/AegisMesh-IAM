@@ -27,7 +27,7 @@ FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 USER root
 # Install curl for healthcheck
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl=8.12.1-r1
 USER nginx
 
 # Copy only the built assets and configuration with read-only permissions

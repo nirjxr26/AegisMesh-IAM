@@ -36,32 +36,16 @@ spec:
     spec:
       automountServiceAccountToken: false
 
-      initContainers:
-        - name: fix-permissions
-          image: busybox:1.36
-          imagePullPolicy: IfNotPresent
-
-          command:
-            - sh
-            - -c
-            - |
-              chown -R 999:999 /var/lib/postgresql/data
-              chmod 700 /var/lib/postgresql/data
-
-          securityContext:
-            runAsUser: 0
-
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-
       securityContext:
-        fsGroup: 999
+        fsGroup: 70
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
         - name: postgres
-          image: postgres:17-alpine
-          imagePullPolicy: IfNotPresent
+          image: postgres@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 5432
@@ -88,6 +72,9 @@ spec:
 
             - name: POSTGRES_INITDB_ARGS
               value: --encoding=UTF8 --locale=C
+
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
 
           resources:
             requests:
@@ -128,8 +115,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             runAsNonRoot: true
-            runAsUser: 999
-
+            runAsUser: 70
             capabilities:
               drop:
                 - ALL
@@ -137,11 +123,19 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+            - name: run-postgresql
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
 
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
             claimName: postgres-data
+        - name: run-postgresql
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 
 ---
 apiVersion: v1

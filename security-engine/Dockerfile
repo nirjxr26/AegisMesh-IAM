@@ -5,8 +5,8 @@ WORKDIR /app
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
+    build-essential=12.12 \
+    libpq-dev=17.10-0+deb13u1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies using cache mount
@@ -22,8 +22,8 @@ WORKDIR /app
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
-    curl \
+    libpq-dev=17.10-0+deb13u1 \
+    curl=8.14.1-2+deb13u3 \
     && rm -rf /var/lib/apt/lists/* \
     && addgroup --system --gid 10001 securitygroup \
     && adduser --system --uid 10001 --gid 10001 securityuser

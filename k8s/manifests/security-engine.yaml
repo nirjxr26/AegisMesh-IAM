@@ -26,21 +26,24 @@ spec:
       labels:
         app: security-engine
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: security-engine
-        image: aegismesh-security-engine:latest
-        imagePullPolicy: IfNotPresent
+        image: aegismesh-security-engine:1.0.0
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
-              - ALL
-          readOnlyRootFilesystem: false
+            - ALL
+          readOnlyRootFilesystem: true
         ports:
         - containerPort: 8000
         resources:
@@ -82,3 +85,13 @@ spec:
           value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
         - name: MLFLOW_TRACKING_URI
           value: "http://mlflow.monitoring:5000" # nosonar
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: models
+          mountPath: /app/models
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: models
+        emptyDir: {}
