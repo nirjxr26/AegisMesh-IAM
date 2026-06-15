@@ -128,7 +128,7 @@ api.interceptors.response.use(
 
         if (responseCode === 'REAUTH_REQUIRED') {
             clearStoredReauthToken();
-            return Promise.reject(error);
+            throw error;
         }
 
         // Handle expired CSRF token

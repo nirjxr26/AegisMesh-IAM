@@ -4,20 +4,20 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Optimize caching by copying package files first
-COPY package*.json ./
+COPY --chmod=555 package*.json ./
 
 # Use npm ci with cache mount for faster builds
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --ignore-scripts --no-audit --no-fund
 
 # Copy config and source code
-COPY eslint.config.js ./
-COPY index.html ./
-COPY nginx.conf ./
-COPY tailwind.config.js ./
-COPY vite.config.js ./
-COPY public ./public
-COPY src ./src
+COPY --chmod=555 eslint.config.js ./
+COPY --chmod=555 index.html ./
+COPY --chmod=555 nginx.conf ./
+COPY --chmod=555 tailwind.config.js ./
+COPY --chmod=555 vite.config.js ./
+COPY --chmod=555 public ./public
+COPY --chmod=555 src ./src
 
 # Build the application
 RUN npm run build

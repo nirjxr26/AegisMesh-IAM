@@ -4,18 +4,18 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Optimize cache by copying package files first
-COPY package*.json ./
+COPY --chmod=555 package*.json ./
 
 # Use npm ci with cache mount for faster, reproducible builds
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --ignore-scripts --no-audit --no-fund
 
 # Copy Prisma schema and generate client
-COPY prisma ./prisma
+COPY --chmod=555 prisma ./prisma
 RUN npm run prisma:generate
 
 # Copy source code
-COPY src ./src
+COPY --chmod=555 src ./src
 
 # Production stage
 FROM node:22-alpine

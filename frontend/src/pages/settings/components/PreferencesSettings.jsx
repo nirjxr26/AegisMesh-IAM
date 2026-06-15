@@ -75,7 +75,7 @@ export default function PreferencesSettings() {
                     </h2>
                     <div className="space-y-4">
 
-                        <label htmlFor="email-alerts" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
+                        <label htmlFor="email-alerts" aria-label="Security Alerts Notifications" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
                             <div>
                                 <h3 className="text-[#0f1623] font-medium mb-1">Security Alerts</h3>
                                 <p className="text-xs text-aws-text-dim">Get notified about important security events</p>
@@ -92,7 +92,7 @@ export default function PreferencesSettings() {
                             </div>
                         </label>
 
-                        <label htmlFor="session-activity" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
+                        <label htmlFor="session-activity" aria-label="Session Activity Notifications" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
                             <div>
                                 <h3 className="text-[#0f1623] font-medium mb-1">Session Activity</h3>
                                 <p className="text-xs text-aws-text-dim">Emails when a new device logs into your account</p>
@@ -109,7 +109,7 @@ export default function PreferencesSettings() {
                             </div>
                         </label>
 
-                        <label htmlFor="marketing-emails" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
+                        <label htmlFor="marketing-emails" aria-label="Marketing Emails Notifications" className="flex items-center justify-between p-4 bg-aws-navy-light rounded-lg border border-transparent hover:border-aws-border/50 cursor-pointer transition-colors group">
                             <div>
                                 <h3 className="text-[#0f1623] font-medium mb-1">Marketing Emails</h3>
                                 <p className="text-xs text-aws-text-dim">Receive updates, tips, and promotional content</p>

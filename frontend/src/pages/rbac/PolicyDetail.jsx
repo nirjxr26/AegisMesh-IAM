@@ -61,6 +61,10 @@ function JsonHighlighter({ jsonObject }) {
     });
 }
 
+JsonHighlighter.propTypes = {
+    jsonObject: PropTypes.object
+};
+
 export default function PolicyDetail() {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('visual');

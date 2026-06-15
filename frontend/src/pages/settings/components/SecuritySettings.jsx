@@ -98,7 +98,7 @@ export default function SecuritySettings() {
 
                 <form onSubmit={handlePasswordChange} className="space-y-4 max-w-xl">
                     <div>
-                        <label htmlFor="current-password" xml:lang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
+                        <label htmlFor="current-password" xmlLang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                             Current Password
                         </label>
                         <input
@@ -112,7 +112,7 @@ export default function SecuritySettings() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="new-password" xml:lang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
+                            <label htmlFor="new-password" xmlLang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                                 New Password
                             </label>
                             <input
@@ -125,7 +125,7 @@ export default function SecuritySettings() {
                             />
                         </div>
                         <div>
-                            <label htmlFor="confirm-password" xml:lang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
+                            <label htmlFor="confirm-password" xmlLang="en" className="block text-sm font-medium text-aws-text-dim mb-1">
                                 Confirm New Password
                             </label>
                             <input
@@ -199,7 +199,7 @@ export default function SecuritySettings() {
                                 )}
                                 <form onSubmit={handleDisableMFA} className="space-y-4 max-w-sm">
                                     <div>
-                                        <label htmlFor="disable-password" xml:lang="en" className="block text-sm text-aws-text-dim mb-1">Password</label>
+                                        <label htmlFor="disable-password" xmlLang="en" className="block text-sm text-aws-text-dim mb-1">Password</label>
                                         <input
                                             id="disable-password"
                                             type="password"
@@ -210,7 +210,7 @@ export default function SecuritySettings() {
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="disable-totp" xml:lang="en" className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
+                                        <label htmlFor="disable-totp" xmlLang="en" className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
                                         <input
                                             id="disable-totp"
                                             type="text"

@@ -168,7 +168,7 @@ export default function NotificationCenter({
             {/* Centered Modal */}
             <div 
                 className="fixed left-1/2 top-1/2 z-[70] w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2.5rem] border border-[#dbe4f0] bg-white shadow-[0_40px_100px_rgba(15,23,42,0.25)] animate-in fade-in zoom-in duration-200"
-                role="region"
+                role="dialog"
                 aria-live="polite"
                 aria-modal="true"
                 aria-labelledby="notification-center-title"
