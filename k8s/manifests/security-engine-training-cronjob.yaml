@@ -5,15 +5,38 @@ metadata:
   namespace: aegismesh
 spec:
   schedule: "0 0 * * *" # Every day at midnight
+  startingDeadlineSeconds: 300
   jobTemplate:
     spec:
       template:
         spec:
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile:
+              type: RuntimeDefault
           containers:
           - name: retrainer
-            image: curlimages/curl:latest
+            image: curlimages/curl:8.12.1
+            imagePullPolicy: Always
             command:
             - /bin/sh
             - -c
             - "curl -X POST http://security-engine:8000/train"
+            resources:
+              requests:
+                cpu: "50m"
+                memory: "64Mi"
+              limits:
+                cpu: "100m"
+                memory: "128Mi"
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+              appArmorProfile:
+                type: RuntimeDefault
           restartPolicy: OnFailure

@@ -26,7 +26,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install runtime utilities and setup user
-RUN apk add --no-cache dumb-init curl \
+RUN apk add --no-cache dumb-init=1.2.5-r4 curl=8.20.0-r1 \
     && addgroup -g 1001 -S nodejs \
     && adduser -S nodejs -u 1001 -G nodejs \
     && mkdir -p /app/logs \

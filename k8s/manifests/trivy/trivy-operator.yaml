@@ -15,9 +15,15 @@ spec:
     spec:
       serviceAccountName: trivy-operator
       automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: trivy-operator
         image: ghcr.io/aquasecurity/trivy-operator:0.22.0
+        imagePullPolicy: Always
         resources:
           requests:
             cpu: 100m
@@ -27,6 +33,14 @@ spec:
             cpu: 500m
             memory: 512Mi
             ephemeral-storage: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          appArmorProfile:
+            type: RuntimeDefault
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
@@ -40,3 +54,9 @@ spec:
           value: "Trivy"
         - name: OPERATOR_CONFIG_AUDIT_REPORTS_SCANNER
           value: "Trivy"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

@@ -8,6 +8,11 @@ spec:
   template:
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
         - name: backend
@@ -39,6 +44,15 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
 
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            appArmorProfile:
+              type: RuntimeDefault
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,6 +64,11 @@ spec:
   template:
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
         - name: frontend
@@ -80,3 +99,12 @@ spec:
 
             initialDelaySeconds: 5
             periodSeconds: 10
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            appArmorProfile:
+              type: RuntimeDefault

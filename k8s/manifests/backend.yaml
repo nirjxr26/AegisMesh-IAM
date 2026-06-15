@@ -22,6 +22,8 @@ spec:
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
 
       initContainers:
         - name: wait-for-db
@@ -32,7 +34,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
 
           command:
             - sh
@@ -76,6 +78,9 @@ spec:
               cpu: "200m"
               memory: "128Mi"
               ephemeral-storage: "256Mi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
 
         - name: prisma-migrate
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
@@ -85,7 +90,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
 
           command:
             - sh
@@ -139,6 +144,9 @@ spec:
               cpu: "300m"
               memory: "256Mi"
               ephemeral-storage: "512Mi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
 
       containers:
         - name: backend
@@ -149,8 +157,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false
-
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 5000
               name: http
@@ -215,9 +222,13 @@ spec:
           volumeMounts:
             - name: logs
               mountPath: /app/logs
+            - name: tmp
+              mountPath: /tmp
 
       volumes:
         - name: logs
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
 
 ---

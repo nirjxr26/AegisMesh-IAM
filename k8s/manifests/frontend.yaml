@@ -24,6 +24,8 @@ spec:
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
         - name: frontend
@@ -34,10 +36,14 @@ spec:
             capabilities:
               drop:
                 - ALL
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
           volumeMounts:
             - name: nginx-conf-d
               mountPath: /etc/nginx/conf.d
+            - name: tmp
+              mountPath: /tmp
+            - name: run
+              mountPath: /var/run
 
           env:
             - name: BACKEND_UPSTREAM
@@ -62,11 +68,6 @@ spec:
               path: /
               port: 3000
 
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 3000
-
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
@@ -84,6 +85,10 @@ spec:
 
       volumes:
         - name: nginx-conf-d
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: run
           emptyDir: {}
 
 ---

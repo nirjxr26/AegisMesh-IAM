@@ -7,10 +7,15 @@ spec:
   template:
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: frontend
           image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend:b11f3991228702265ef848d95b626b06444d4a64
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: "50m"
@@ -20,3 +25,21 @@ spec:
               cpu: "250m"
               memory: "256Mi"
               ephemeral-storage: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            appArmorProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: run
+              mountPath: /var/run
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
