@@ -7,12 +7,18 @@ const { createAuditLog } = require('../utils/auditLog');
 
 const REAUTH_HEADER = 'x-reauth-token';
 const REAUTH_WINDOW_SECONDS = 10 * 60;
-const REAUTH_TOKEN_SECRET = process.env.JWT_REAUTH_SECRET || process.env.JWT_ACCESS_SECRET;
 
-if (!REAUTH_TOKEN_SECRET) {
-    throw new Error(
-        'Missing required authentication secret configuration'
-    );
+/**
+ * Lazily resolve the secret so the module can be required without env vars
+ * (e.g. in test suites that mock the auth layer). The actual secret is
+ * validated on first middleware invocation, not at import time.
+ */
+function getReauthSecret() {
+    const secret = process.env.JWT_REAUTH_SECRET || process.env.JWT_ACCESS_SECRET;
+    if (!secret) {
+        throw new Error('Missing required authentication secret configuration');
+    }
+    return secret;
 }
 
 const SENSITIVE_ACTIONS = Object.freeze({
@@ -58,7 +64,7 @@ function getProvidedCredentials(body = {}) {
 
 function getReauthPayload(token) {
     try {
-        const payload = jwt.verify(token, REAUTH_TOKEN_SECRET);
+        const payload = jwt.verify(token, getReauthSecret());
         if (payload?.type !== 'reauth') {
             return null;
         }
@@ -115,7 +121,7 @@ function issueReauthToken(userId, sessionId, method) {
             method,
             reauthAt: new Date().toISOString(),
         },
-        REAUTH_TOKEN_SECRET,
+        getReauthSecret(),
         { expiresIn: REAUTH_WINDOW_SECONDS }
     );
 }
