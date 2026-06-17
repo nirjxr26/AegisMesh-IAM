@@ -48,12 +48,13 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
       - name: crowdsec
         image: crowdsecurity/crowdsec:v1.6.0
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
         - name: DISABLE_ONLINE_API
           value: "true"
@@ -70,12 +71,10 @@ spec:
             ephemeral-storage: 512Mi
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false
           capabilities:
             drop:
             - ALL
-          appArmorProfile:
-            type: RuntimeDefault
         volumeMounts:
         - name: crowdsec-config
           mountPath: /etc/crowdsec/acquis.yaml

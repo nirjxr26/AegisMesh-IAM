@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 if os.getenv("DD_APM_ENABLED") == "true":
     from ddtrace import patch_all; patch_all()
 from fastapi import FastAPI, HTTPException, Request
@@ -6,7 +7,15 @@ from .anomaly_detector import AnomalyDetector
 from prometheus_client import Counter, Histogram, Gauge, make_asgi_app
 import time
 
-app = FastAPI(title="AegisMesh Security Engine")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Application lifespan handler — runs startup logic then yields."""
+    sync_metrics()
+    yield
+
+
+app = FastAPI(title="AegisMesh Security Engine", lifespan=lifespan)
 
 # Metrics
 RISK_SCORE = Histogram(
@@ -66,10 +75,6 @@ metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
 
-@app.on_event("startup")
-def startup_event():
-    sync_metrics()
-
 
 @app.get("/health")
 def health():
@@ -117,5 +122,9 @@ def train():
 
 if __name__ == "__main__":
     import uvicorn
-    # Bind to localhost to fix SonarCloud Blocker (kubernetes handles external exposure)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Host is configurable via DD_BIND_HOST; defaults to 127.0.0.1 for local dev.
+    # In Kubernetes, the Deployment sets DD_BIND_HOST=0.0.0.0 so the pod is
+    # reachable through the Service — external exposure is handled by the Service,
+    # not by this process directly.
+    _host = os.getenv("DD_BIND_HOST", "127.0.0.1")
+    uvicorn.run(app, host=_host, port=int(os.getenv("PORT", "8000")))

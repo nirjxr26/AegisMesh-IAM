@@ -2,8 +2,18 @@ const crypto = require('node:crypto');
 
 const ALGO = 'aes-256-gcm';
 
+let mfaFallbackKey;
 function buildKey() {
-    const seed = process.env.MFA_SECRET_ENCRYPTION_KEY || process.env.JWT_REFRESH_SECRET || 'dev-mfa-secret-key';
+    let seed = process.env.MFA_SECRET_ENCRYPTION_KEY || process.env.JWT_REFRESH_SECRET;
+    if (!seed) {
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('MFA_SECRET_ENCRYPTION_KEY or JWT_REFRESH_SECRET must be configured');
+        }
+        if (!mfaFallbackKey) {
+            mfaFallbackKey = crypto.randomBytes(32).toString('hex');
+        }
+        seed = mfaFallbackKey;
+    }
     return crypto.createHash('sha256').update(seed).digest();
 }
 

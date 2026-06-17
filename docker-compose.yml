@@ -158,6 +158,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mlflow:
+        condition: service_healthy
       datadog-agent:
         condition: service_started
     environment:

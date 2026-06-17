@@ -10,6 +10,11 @@ jest.mock('../../src/config/database', () => ({
         updateMany: jest.fn(),
         findMany: jest.fn(),
     },
+    revokedToken: {
+        upsert: jest.fn(),
+        findUnique: jest.fn(),
+        deleteMany: jest.fn(),
+    },
 }));
 
 jest.mock('../../src/utils/auditLog', () => ({
@@ -145,6 +150,84 @@ describe('getUserSessions', () => {
         expect(prisma.session.findMany).toHaveBeenCalledWith(
             expect.objectContaining({ where: { userId: 'user-1' } })
         );
+    });
+});
+
+describe('blacklistToken', () => {
+    afterEach(() => jest.clearAllMocks());
+
+    it('returns true and upserts token when valid token is provided', async () => {
+        const token = tokenService.generateAccessToken(MOCK_USER);
+        const payload = jwt.decode(token);
+        prisma.revokedToken.upsert.mockResolvedValue({});
+
+        const result = await tokenService.blacklistToken(token);
+        expect(result).toBe(true);
+        expect(prisma.revokedToken.upsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { jti: payload.jti },
+                create: expect.objectContaining({
+                    jti: payload.jti,
+                }),
+            })
+        );
+    });
+
+    it('returns false for invalid token', async () => {
+        const result = await tokenService.blacklistToken('invalid.token');
+        expect(result).toBe(false);
+    });
+
+    it('returns false when prisma throws', async () => {
+        const token = tokenService.generateAccessToken(MOCK_USER);
+        prisma.revokedToken.upsert.mockRejectedValue(new Error('DB error'));
+
+        const result = await tokenService.blacklistToken(token);
+        expect(result).toBe(false);
+    });
+});
+
+describe('isTokenBlacklisted', () => {
+    afterEach(() => jest.clearAllMocks());
+
+    it('returns true if token is in database', async () => {
+        prisma.revokedToken.findUnique.mockResolvedValue({ jti: 'test-jti' });
+        const result = await tokenService.isTokenBlacklisted('test-jti');
+        expect(result).toBe(true);
+    });
+
+    it('returns false if token is not in database', async () => {
+        prisma.revokedToken.findUnique.mockResolvedValue(null);
+        const result = await tokenService.isTokenBlacklisted('other-jti');
+        expect(result).toBe(false);
+    });
+
+    it('returns false if jti is null', async () => {
+        const result = await tokenService.isTokenBlacklisted(null);
+        expect(result).toBe(false);
+    });
+});
+
+describe('cleanupRevokedTokens', () => {
+    afterEach(() => jest.clearAllMocks());
+
+    it('deletes expired tokens and returns count', async () => {
+        prisma.revokedToken.deleteMany.mockResolvedValue({ count: 5 });
+        const result = await tokenService.cleanupRevokedTokens();
+        expect(result).toBe(5);
+        expect(prisma.revokedToken.deleteMany).toHaveBeenCalledWith({
+            where: {
+                expiresAt: {
+                    lt: expect.any(Date),
+                },
+            },
+        });
+    });
+
+    it('returns 0 if prisma throws', async () => {
+        prisma.revokedToken.deleteMany.mockRejectedValue(new Error('DB error'));
+        const result = await tokenService.cleanupRevokedTokens();
+        expect(result).toBe(0);
     });
 });
 

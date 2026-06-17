@@ -11,6 +11,7 @@ jest.mock('../../src/config/database', () => ({
 
 jest.mock('../../src/services/token.service', () => ({
     verifyAccessToken: jest.fn(),
+    isTokenBlacklisted: jest.fn(),
 }));
 
 jest.mock('../../src/middleware/apiKeyAuth', () => ({
@@ -216,6 +217,38 @@ describe('authenticate middleware', () => {
         await authenticate(req, res, jest.fn());
 
         expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it('returns 401 when the token is blacklisted', async () => {
+        tokenService.verifyAccessToken.mockReturnValue({ sub: 'user-1', jti: 'blacklisted-jti' });
+        tokenService.isTokenBlacklisted.mockResolvedValue(true);
+
+        const req = mockReq({ headers: { authorization: 'Bearer blacklisted-token' } });
+        const res = mockRes();
+
+        await authenticate(req, res, jest.fn());
+
+        expect(tokenService.isTokenBlacklisted).toHaveBeenCalledWith('blacklisted-jti');
+        expect(res.status).toHaveBeenCalledWith(401);
+        const body = res.json.mock.calls[0][0];
+        expect(body.error.message).toContain('revoked');
+    });
+
+    it('returns 401 when the session has been revoked', async () => {
+        tokenService.verifyAccessToken.mockReturnValue({ sub: 'user-1', sessionId: 'revoked-sess' });
+        tokenService.isTokenBlacklisted.mockResolvedValue(false);
+        prisma.user.findUnique.mockResolvedValue(ACTIVE_USER);
+        prisma.session.updateMany.mockResolvedValue({ count: 0 });
+
+        const req = mockReq({ headers: { authorization: 'Bearer token-with-revoked-session' } });
+        const res = mockRes();
+
+        await authenticate(req, res, jest.fn());
+
+        expect(prisma.session.updateMany).toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(401);
+        const body = res.json.mock.calls[0][0];
+        expect(body.error.message).toContain('Session has been revoked');
     });
 
     it('ignores tokens via query string on /stream path', async () => {

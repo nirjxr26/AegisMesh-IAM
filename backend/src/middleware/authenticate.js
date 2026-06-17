@@ -81,6 +81,14 @@ async function authenticateJwtRequest(req, token) {
         throw createError('AUTH_006');
     }
 
+    // Check if token is blacklisted
+    if (payload.jti) {
+        const isBlacklisted = await tokenService.isTokenBlacklisted(payload.jti);
+        if (isBlacklisted) {
+            throw createError('AUTH_006', { message: 'Token has been revoked' });
+        }
+    }
+
     const user = await prisma.user.findUnique({
         where: { id: payload.sub },
         select: {
@@ -117,7 +125,7 @@ async function authenticateJwtRequest(req, token) {
         payload.sessionId || null;
 
     if (sessionId) {
-        await prisma.session.updateMany({
+        const sessionUpdate = await prisma.session.updateMany({
             where: {
                 id: sessionId,
                 userId: user.id,
@@ -126,6 +134,11 @@ async function authenticateJwtRequest(req, token) {
                 lastActiveAt: new Date(),
             },
         });
+
+        // If the session no longer exists (revoked), the access token is also invalid
+        if (sessionUpdate.count === 0) {
+            throw createError('AUTH_006', { message: 'Session has been revoked' });
+        }
     }
 
     const authUser = {

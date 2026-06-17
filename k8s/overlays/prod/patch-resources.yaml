@@ -50,8 +50,6 @@ spec:
             capabilities:
               drop:
                 - ALL
-            appArmorProfile:
-              type: RuntimeDefault
 
 ---
 apiVersion: apps/v1
@@ -106,5 +104,3 @@ spec:
             capabilities:
               drop:
                 - ALL
-            appArmorProfile:
-              type: RuntimeDefault

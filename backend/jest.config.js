@@ -1,5 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/tests/setup/env.js'],
   testMatch: ['**/tests/**/*.test.js', '**/?(*.)+(spec|test).js'],
   collectCoverageFrom: [
     'src/**/*.js',
@@ -10,7 +11,7 @@ module.exports = {
   verbose: true,
   forceExit: true,
   clearMocks: true,
-  resetMocks: true,
+  resetMocks: false,
   testTimeout: 10000,
   transformIgnorePatterns: [
     'node_modules/(?!(uuid)/)',

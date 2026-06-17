@@ -27,7 +27,7 @@ class AnomalyDetector:
         self.active_version = "unknown"
 
         # MLflow Setup
-        self.mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000") # nosonar
+        self.mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000") # NOSONAR
         mlflow.set_tracking_uri(self.mlflow_uri)
         self.mlflow_client = mlflow.tracking.MlflowClient()
         
@@ -47,8 +47,12 @@ class AnomalyDetector:
             if versions:
                 self.active_version = versions[0].version
                 logger.info(f"Active model version synced: {self.active_version}")
-        except Exception:
-            logger.exception("Could not sync version info from MLflow")
+        except Exception as e:
+            # Check if Registered Model does not exist yet
+            if "RESOURCE_DOES_NOT_EXIST" in str(e) or "not found" in str(e).lower():
+                logger.info("No registered model version found in MLflow registry yet (model not yet trained).")
+            else:
+                logger.warning(f"Could not sync version info from MLflow: {e}")
 
     def _load_model(self):
         if os.path.exists(self.model_path):
@@ -78,11 +82,24 @@ class AnomalyDetector:
                 ('cat', categorical_transformer, self.categorical_features)
             ])
 
-        # Create the full pipeline
-        return Pipeline(steps=[
+        # Create the full pipeline (memory=None disables step caching; set to a
+        # directory path in production to cache expensive preprocessing steps)
+        pipeline = Pipeline(steps=[
             ('preprocessor', preprocessor),
             ('classifier', IsolationForest(contamination=self.contamination, random_state=self.random_state))
-        ])
+        ], memory=None)
+
+
+        # Pre-fit the default pipeline with a dummy event so it can accept prediction queries immediately without throwing errors
+        dummy_df = pd.DataFrame([{
+            'action': 'LOGIN',
+            'category': 'AUTHENTICATION',
+            'result': 'SUCCESS',
+            'duration': 100.0
+        }])
+        pipeline.fit(dummy_df)
+
+        return pipeline
 
     def train(self):
         if not self.db_url:

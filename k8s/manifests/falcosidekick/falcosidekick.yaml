@@ -40,11 +40,9 @@ spec:
           capabilities:
             drop:
             - ALL
-          appArmorProfile:
-            type: RuntimeDefault
         env:
         - name: WEBHOOK_ADDRESS
-          value: "http://security-engine.aegismesh:8000/analyze" # nosonar
+          value: "http://security-engine.aegismesh:8000/analyze" # NOSONAR
         - name: DATADOG_APIKEY
           valueFrom:
             secretKeyRef:

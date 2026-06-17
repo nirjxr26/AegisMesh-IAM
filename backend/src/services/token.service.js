@@ -40,11 +40,53 @@ function generateAccessToken(user, sessionId = null) {
             sub: user.id,
             email: user.email,
             type: 'access',
+            jti: uuidv4(),
             ...(sessionId ? { sessionId } : {}),
         },
         ACCESS_SECRET,
         { expiresIn: ACCESS_EXPIRY }
     );
+}
+
+/**
+ * Blacklist an access token
+ */
+async function blacklistToken(token) {
+    try {
+        const decoded = jwt.decode(token);
+        if (!decoded?.jti || !decoded?.exp) {
+            return false;
+        }
+
+        // Add to database
+        await prisma.revokedToken.upsert({
+            where: { jti: decoded.jti },
+            update: {},
+            create: {
+                jti: decoded.jti,
+                expiresAt: new Date(decoded.exp * 1000),
+            },
+        });
+
+        logger.info(`Token blacklisted: ${decoded.jti}`);
+        return true;
+    } catch (error) {
+        logger.error('Error blacklisting token', { error: error.message });
+        return false;
+    }
+}
+
+/**
+ * Check if a token is blacklisted
+ */
+async function isTokenBlacklisted(jti) {
+    if (!jti) return false;
+
+    const revokedToken = await prisma.revokedToken.findUnique({
+        where: { jti },
+    });
+
+    return !!revokedToken;
 }
 
 /**
@@ -210,6 +252,26 @@ async function rotateRefreshToken(oldRefreshToken, userId, deviceInfo, ipAddress
     return { refreshToken: newRefreshToken, session };
 }
 
+/**
+ * Clean up expired revoked tokens
+ */
+async function cleanupRevokedTokens() {
+    try {
+        const result = await prisma.revokedToken.deleteMany({
+            where: {
+                expiresAt: {
+                    lt: new Date(),
+                },
+            },
+        });
+        logger.info(`Cleaned up ${result.count} expired revoked tokens`);
+        return result.count;
+    } catch (error) {
+        logger.error('Error cleaning up revoked tokens', { error: error.message });
+        return 0;
+    }
+}
+
 module.exports = {
     generateAccessToken,
     generateRefreshToken,
@@ -224,4 +286,7 @@ module.exports = {
     revokeAllOtherSessions,
     touchSession,
     rotateRefreshToken,
+    blacklistToken,
+    isTokenBlacklisted,
+    cleanupRevokedTokens,
 };

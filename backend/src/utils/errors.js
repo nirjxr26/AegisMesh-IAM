@@ -42,7 +42,13 @@ function createError(errorCode, details = null) {
     if (!err) {
         return new AppError('Unknown error', 500, 'UNKNOWN');
     }
-    return new AppError(err.message, err.status, err.code, details);
+    
+    // Support message override if provided in details
+    const message = (details && typeof details === 'object' && details.message) 
+        ? details.message 
+        : err.message;
+        
+    return new AppError(message, err.status, err.code, details);
 }
 
 module.exports = { AppError, ErrorCodes, createError };

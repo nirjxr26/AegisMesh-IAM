@@ -39,8 +39,6 @@ spec:
           capabilities:
             drop:
             - ALL
-          appArmorProfile:
-            type: RuntimeDefault
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:

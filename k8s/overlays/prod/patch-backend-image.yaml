@@ -183,8 +183,6 @@ spec:
             capabilities:
               drop:
                 - ALL
-            appArmorProfile:
-              type: RuntimeDefault
 
           volumeMounts:
             - name: tmp
