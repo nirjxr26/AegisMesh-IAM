@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: datadog-api-key
+  namespace: aegismesh
+type: Opaque
+stringData:
+  # Set DD_API_KEY in your CI/CD secrets and run:
+  # kubectl create secret generic datadog-api-key \
+  #   --from-literal=api-key=<YOUR_DD_API_KEY> -n aegismesh --dry-run=client -o yaml | kubectl apply -f -
+  api-key: "REPLACE_WITH_REAL_KEY_VIA_CI"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,11 +24,29 @@ spec:
     metadata:
       labels:
         app: datadog-agent
+      annotations:
+        # Docker socket access is intentional: Datadog agent requires it for
+        # container-level metrics and log collection. The socket is mounted
+        # read-only and the agent runs with a restricted security context.
+        container.apparmor.security.beta.kubernetes.io/datadog-agent: runtime/default
     spec:
+      # Disable automounting — agent uses explicit RBAC via ClusterRole
+      automountServiceAccountToken: false
+      serviceAccountName: datadog-agent
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: datadog-agent
-        image: gcr.io/datadoghq/agent:7
+        image: gcr.io/datadoghq/agent:7.56.2
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+              - ALL
         ports:
         - containerPort: 8126
           name: traceport
@@ -24,9 +54,19 @@ spec:
         - containerPort: 8125
           name: statsdport
           protocol: UDP
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
         - name: DD_API_KEY
-          value: "72bfe50a1a12bb5476ec8287e47c06a3"
+          valueFrom:
+            secretKeyRef:
+              name: datadog-api-key
+              key: api-key
         - name: DD_SITE
           value: "us5.datadoghq.com"
         - name: DD_ENV
@@ -59,12 +99,54 @@ spec:
       - name: dockersocket
         hostPath:
           path: /var/run/docker.sock
+          type: Socket
       - name: procdir
         hostPath:
           path: /proc
+          type: Directory
       - name: cgroupdir
         hostPath:
           path: /sys/fs/cgroup
+          type: Directory
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datadog-agent
+  namespace: aegismesh
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datadog-agent
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods", "namespaces", "componentstatuses", "endpoints", "events", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["datadog-leader-election"]
+  verbs: ["get", "update"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create"]
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+  verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: datadog-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: datadog-agent
+subjects:
+- kind: ServiceAccount
+  name: datadog-agent
+  namespace: aegismesh
 ---
 apiVersion: v1
 kind: Service

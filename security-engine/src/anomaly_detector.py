@@ -82,11 +82,13 @@ class AnomalyDetector:
                 ('cat', categorical_transformer, self.categorical_features)
             ])
 
-        # Create the full pipeline
+        # Create the full pipeline (memory=None disables step caching; set to a
+        # directory path in production to cache expensive preprocessing steps)
         pipeline = Pipeline(steps=[
             ('preprocessor', preprocessor),
             ('classifier', IsolationForest(contamination=self.contamination, random_state=self.random_state))
-        ])
+        ], memory=None)
+
 
         # Pre-fit the default pipeline with a dummy event so it can accept prediction queries immediately without throwing errors
         dummy_df = pd.DataFrame([{

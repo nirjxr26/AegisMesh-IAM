@@ -54,7 +54,7 @@ function generateAccessToken(user, sessionId = null) {
 async function blacklistToken(token) {
     try {
         const decoded = jwt.decode(token);
-        if (!decoded || !decoded.jti || !decoded.exp) {
+        if (!decoded?.jti || !decoded?.exp) {
             return false;
         }
 

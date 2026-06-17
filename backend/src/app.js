@@ -108,9 +108,13 @@ initializePassport();
 // REQUEST LOGGING
 // ═══════════════════════════════════════
 app.use((req, res, next) => {
-    logger.info(`${req.method} ${req.path}`, {
+    // Sanitize user-controlled inputs before logging to prevent log injection
+    const safeMethod = /^[A-Z]{1,10}$/.test(req.method) ? req.method : 'UNKNOWN';
+    const safePath = req.path.replace(/[^\w\-/.]/g, '').substring(0, 200);
+    const safeAgent = (req.headers['user-agent'] ?? '').replace(/[\r\n]/g, '').substring(0, 100);
+    logger.info(`${safeMethod} ${safePath}`, {
         ip: req.ip,
-        userAgent: req.headers['user-agent']?.substring(0, 100),
+        userAgent: safeAgent,
     });
     next();
 });

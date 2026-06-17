@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 if os.getenv("DD_APM_ENABLED") == "true":
     from ddtrace import patch_all; patch_all()
 from fastapi import FastAPI, HTTPException, Request
@@ -6,7 +7,15 @@ from .anomaly_detector import AnomalyDetector
 from prometheus_client import Counter, Histogram, Gauge, make_asgi_app
 import time
 
-app = FastAPI(title="AegisMesh Security Engine")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Application lifespan handler — runs startup logic then yields."""
+    sync_metrics()
+    yield
+
+
+app = FastAPI(title="AegisMesh Security Engine", lifespan=lifespan)
 
 # Metrics
 RISK_SCORE = Histogram(
@@ -65,10 +74,6 @@ def sync_metrics():
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
-
-@app.on_event("startup")
-def startup_event():
-    sync_metrics()
 
 
 @app.get("/health")

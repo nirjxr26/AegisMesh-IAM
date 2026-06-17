@@ -13,13 +13,13 @@ Set-Location $ProjectRoot
 
 # Helper to log messages
 function Log-Info ($msg) {
-    Write-Host "[INFO] $msg" -ForegroundColor Green
+    Write-Output "[INFO] $msg"
 }
 function Log-Warn ($msg) {
-    Write-Host "[WARN] $msg" -ForegroundColor Yellow
+    Write-Output "[WARN] $msg"
 }
 function Log-Error ($msg) {
-    Write-Host "[ERROR] $msg" -ForegroundColor Red
+    Write-Output "[ERROR] $msg"
 }
 
 if ($Mode -eq "Backup") {
@@ -72,7 +72,6 @@ elseif ($Mode -eq "Restore") {
         }
         $BackupPath = $latest.FullName
     }
-    
     if (-not (Test-Path $BackupPath)) {
         Log-Error "Backup path $BackupPath does not exist!"
         exit 1
@@ -123,7 +122,6 @@ elseif ($Mode -eq "Restore") {
         Log-Info "Restoring iam_auth database data..."
         Get-Content -Raw $iamAuthBackup | kubectl exec -i $postgresPod -n aegismesh -- psql -U iam_user -d iam_auth
     }
-    
     $mlflowDbBackup = Join-Path $BackupPath "mlflow_db_backup.sql"
     if (Test-Path $mlflowDbBackup) {
         Log-Info "Restoring mlflow_db database data..."
