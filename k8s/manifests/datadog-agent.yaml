@@ -5,9 +5,11 @@ metadata:
   namespace: aegismesh
 type: Opaque
 stringData:
-  # Set DD_API_KEY in your CI/CD secrets and run:
-  # kubectl create secret generic datadog-api-key \
-  #   --from-literal=api-key=<YOUR_DD_API_KEY> -n aegismesh --dry-run=client -o yaml | kubectl apply -f -
+  # NEVER commit a real API key here.
+  # Inject via CI/CD:
+  #   kubectl create secret generic datadog-api-key \
+  #     --from-literal=api-key=$DD_API_KEY \
+  #     -n aegismesh --dry-run=client -o yaml | kubectl apply -f -
   api-key: "REPLACE_WITH_REAL_KEY_VIA_CI"
 ---
 apiVersion: apps/v1
@@ -25,12 +27,9 @@ spec:
       labels:
         app: datadog-agent
       annotations:
-        # Docker socket access is intentional: Datadog agent requires it for
-        # container-level metrics and log collection. The socket is mounted
-        # read-only and the agent runs with a restricted security context.
         container.apparmor.security.beta.kubernetes.io/datadog-agent: runtime/default
     spec:
-      # Disable automounting — agent uses explicit RBAC via ClusterRole
+      # Disable service-account token automount — agent uses explicit RBAC
       automountServiceAccountToken: false
       serviceAccountName: datadog-agent
       securityContext:
@@ -85,9 +84,16 @@ spec:
           value: "true"
         - name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
           value: "true"
+        # Use containerd socket instead of Docker socket to avoid host socket
+        # exposure (ISSUE-002 / CWE-269). Datadog agent supports containerd
+        # natively via DD_CRI_SOCKET_PATH.
+        - name: DD_CRI_SOCKET_PATH
+          value: /host/run/containerd/containerd.sock
+        - name: DOCKER_HOST
+          value: "unix:///host/run/containerd/containerd.sock"
         volumeMounts:
-        - name: dockersocket
-          mountPath: /var/run/docker.sock
+        - name: containerd-socket
+          mountPath: /host/run/containerd/containerd.sock
           readOnly: true
         - name: procdir
           mountPath: /host/proc
@@ -96,9 +102,11 @@ spec:
           mountPath: /host/sys/fs/cgroup
           readOnly: true
       volumes:
-      - name: dockersocket
+      # containerd socket — safe alternative to /var/run/docker.sock
+      # Does not expose the Docker daemon; read-only mount
+      - name: containerd-socket
         hostPath:
-          path: /var/run/docker.sock
+          path: /run/containerd/containerd.sock
           type: Socket
       - name: procdir
         hostPath:

@@ -122,5 +122,9 @@ def train():
 
 if __name__ == "__main__":
     import uvicorn
-    # Bind to localhost to fix SonarCloud Blocker (kubernetes handles external exposure)
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # nosonar
+    # Host is configurable via DD_BIND_HOST; defaults to 127.0.0.1 for local dev.
+    # In Kubernetes, the Deployment sets DD_BIND_HOST=0.0.0.0 so the pod is
+    # reachable through the Service — external exposure is handled by the Service,
+    # not by this process directly.
+    _host = os.getenv("DD_BIND_HOST", "127.0.0.1")
+    uvicorn.run(app, host=_host, port=int(os.getenv("PORT", "8000")))

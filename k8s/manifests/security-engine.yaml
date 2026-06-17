@@ -101,6 +101,8 @@ spec:
           value: "true"
         - name: DD_APM_ENABLED
           value: "true"
+        - name: DD_BIND_HOST
+          value: "0.0.0.0"
         volumeMounts:
         - name: tmp
           mountPath: /tmp
