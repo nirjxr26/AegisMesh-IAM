@@ -37,7 +37,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "tailwindcss": "^4.2.1",
-    "vite": "7.3.2"
+    "vite": "^7.3.5"
   },
   "overrides": {
     "esbuild": "0.28.1"

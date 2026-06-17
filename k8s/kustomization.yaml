@@ -17,5 +17,19 @@ resources:
   - networkpolicies/security-engine-policies.yaml
   - networkpolicies/allow-crowdsec-egress.yaml
   - networkpolicies/allow-falcosidekick-egress.yaml
+  - networkpolicies/allow-postgres-from-monitoring.yaml
+  - manifests/datadog-agent.yaml
+  - networkpolicies/allow-datadog-agent-traffic.yaml
+
+images:
+  - name: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend
+    newName: aegismesh-backend
+    newTag: local-v2
+  - name: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-frontend
+    newName: aegismesh-frontend
+    newTag: local
+  - name: aegismesh-security-engine
+    newName: aegismesh-security-engine
+    newTag: latest
 
 

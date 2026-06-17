@@ -41,7 +41,7 @@ export default function AppLayout() {
     };
 
     return (
-        <div className={`flex h-screen overflow-hidden ${isDashboard ? 'bg-[#0F1117]' : 'bg-[#F8FAFC]'} text-aws-text font-sans`}>
+        <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-aws-text font-sans">
             {sidebarOpen && (
                 <button
                     type="button"
@@ -68,7 +68,7 @@ export default function AppLayout() {
                     onSignOut={handleSignOut}
                 />
 
-                <main className={`flex-1 overflow-y-auto p-4 md:p-6 ${isDashboard ? 'bg-[#0F1117] text-white dashboard-scrollbar-hidden' : ''}`}>
+                <main className={`flex-1 overflow-y-auto p-4 md:p-6 ${isDashboard ? 'dashboard-scrollbar-hidden' : ''}`}>
                     <Outlet />
                 </main>
             </div>

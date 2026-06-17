@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const prisma = require('../config/database');
+const tokenService = require('../services/token.service');
 const logger = require('./logger');
 const { audit } = require('./auditLog');
 
@@ -10,6 +11,7 @@ async function runCleanup() {
     try {
         const now = new Date();
 
+        // 1. Audit log cleanup
         // Security logs: longer retention
         const securityCutoff = new Date(now);
         securityCutoff.setDate(securityCutoff.getDate() - SECURITY_RETENTION_DAYS);
@@ -26,12 +28,16 @@ async function runCleanup() {
             where: { category: { not: 'SECURITY' }, createdAt: { lt: generalCutoff } }
         });
 
+        // 2. Revoked token cleanup
+        const tokensDeleted = await tokenService.cleanupRevokedTokens();
+
         const totalDeleted = securityDeleted.count + generalDeleted.count;
         const totalKept = await prisma.auditLog.count();
 
         logger.info('Audit log cleanup completed', {
             securityDeleted: securityDeleted.count,
             generalDeleted: generalDeleted.count,
+            tokensDeleted,
             totalDeleted,
             totalKept,
             securityCutoff,

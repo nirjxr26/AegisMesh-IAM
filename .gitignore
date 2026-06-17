@@ -108,3 +108,4 @@ pg_dumpall*
 .agents/
 .claude/    
 .sonarqube_report/
+.code-quality/

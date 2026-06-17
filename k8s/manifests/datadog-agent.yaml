@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datadog-agent
+  namespace: aegismesh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: datadog-agent
+  template:
+    metadata:
+      labels:
+        app: datadog-agent
+    spec:
+      containers:
+      - name: datadog-agent
+        image: gcr.io/datadoghq/agent:7
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8126
+          name: traceport
+          protocol: TCP
+        - containerPort: 8125
+          name: statsdport
+          protocol: UDP
+        env:
+        - name: DD_API_KEY
+          value: "72bfe50a1a12bb5476ec8287e47c06a3"
+        - name: DD_SITE
+          value: "us5.datadoghq.com"
+        - name: DD_ENV
+          value: "development"
+        - name: DD_HOSTNAME
+          value: "aegismesh-local"
+        - name: DD_LOGS_ENABLED
+          value: "true"
+        - name: DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL
+          value: "true"
+        - name: DD_PROCESS_AGENT_ENABLED
+          value: "true"
+        - name: DD_APM_ENABLED
+          value: "true"
+        - name: DD_APM_NON_LOCAL_TRAFFIC
+          value: "true"
+        - name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
+          value: "true"
+        volumeMounts:
+        - name: dockersocket
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        - name: procdir
+          mountPath: /host/proc
+          readOnly: true
+        - name: cgroupdir
+          mountPath: /host/sys/fs/cgroup
+          readOnly: true
+      volumes:
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock
+      - name: procdir
+        hostPath:
+          path: /proc
+      - name: cgroupdir
+        hostPath:
+          path: /sys/fs/cgroup
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datadog-agent
+  namespace: aegismesh
+spec:
+  selector:
+    app: datadog-agent
+  ports:
+  - name: traceport
+    protocol: TCP
+    port: 8126
+    targetPort: 8126
+  - name: statsdport
+    protocol: UDP
+    port: 8125
+    targetPort: 8125

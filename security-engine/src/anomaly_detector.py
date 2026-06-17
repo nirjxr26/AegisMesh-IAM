@@ -47,8 +47,12 @@ class AnomalyDetector:
             if versions:
                 self.active_version = versions[0].version
                 logger.info(f"Active model version synced: {self.active_version}")
-        except Exception:
-            logger.exception("Could not sync version info from MLflow")
+        except Exception as e:
+            # Check if Registered Model does not exist yet
+            if "RESOURCE_DOES_NOT_EXIST" in str(e) or "not found" in str(e).lower():
+                logger.info("No registered model version found in MLflow registry yet (model not yet trained).")
+            else:
+                logger.warning(f"Could not sync version info from MLflow: {e}")
 
     def _load_model(self):
         if os.path.exists(self.model_path):
@@ -79,10 +83,21 @@ class AnomalyDetector:
             ])
 
         # Create the full pipeline
-        return Pipeline(steps=[
+        pipeline = Pipeline(steps=[
             ('preprocessor', preprocessor),
             ('classifier', IsolationForest(contamination=self.contamination, random_state=self.random_state))
         ])
+
+        # Pre-fit the default pipeline with a dummy event so it can accept prediction queries immediately without throwing errors
+        dummy_df = pd.DataFrame([{
+            'action': 'LOGIN',
+            'category': 'AUTHENTICATION',
+            'result': 'SUCCESS',
+            'duration': 100.0
+        }])
+        pipeline.fit(dummy_df)
+
+        return pipeline
 
     def train(self):
         if not self.db_url:

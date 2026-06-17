@@ -265,3 +265,10 @@ enum PolicyEffect {
   ALLOW
   DENY
 }
+
+model RevokedToken {
+  jti       String   @id
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

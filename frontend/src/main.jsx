@@ -1,5 +1,6 @@
-import { StrictMode, createElement } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import App from './App.jsx'
 import './index.css'
 
 const rootElement = document.getElementById('root')
@@ -9,13 +10,10 @@ if (!rootElement) {
 const root = createRoot(rootElement)
 
 try {
-  const { default: App } = await import('./App.jsx')
   root.render(
-    createElement(
-      StrictMode,
-      null,
-      createElement(App),
-    ),
+    <StrictMode>
+      <App />
+    </StrictMode>
   )
 } catch (error) {
   const message = error?.message || 'Unknown startup error'
@@ -30,5 +28,6 @@ try {
   `
   console.error('Fatal startup error:', error)
 }
+
 
 

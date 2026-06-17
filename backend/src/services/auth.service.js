@@ -358,13 +358,17 @@ async function createLoginResponse({ user, req }) {
 /**
  * Logout
  */
-async function logout({ refreshToken, userId, req }) {
+async function logout({ refreshToken, accessToken, userId, req }) {
     let sessionId = req?.user?.sessionId || null;
 
     if (refreshToken) {
         const session = await tokenService.findSessionByToken(refreshToken);
         sessionId = session?.id || sessionId;
         await tokenService.deleteSession(refreshToken);
+    }
+
+    if (accessToken) {
+        await tokenService.blacklistToken(accessToken);
     }
 
     await auditAuth.logout(req, userId, sessionId);

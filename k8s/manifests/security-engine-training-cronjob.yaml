@@ -37,6 +37,4 @@ spec:
               capabilities:
                 drop:
                 - ALL
-              appArmorProfile:
-                type: RuntimeDefault
           restartPolicy: OnFailure

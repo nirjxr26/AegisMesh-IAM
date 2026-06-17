@@ -37,7 +37,7 @@ spec:
       containers:
       - name: security-engine
         image: aegismesh-security-engine:1.0.0
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -85,6 +85,22 @@ spec:
           value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
         - name: MLFLOW_TRACKING_URI
           value: "http://mlflow.monitoring:5000" # nosonar
+        - name: DD_AGENT_HOST
+          value: "datadog-agent"
+        - name: DD_ENV
+          value: "development"
+        - name: DD_SERVICE
+          value: "aegismesh-security-engine"
+        - name: DD_VERSION
+          value: "1.0.0"
+        - name: DD_LOGS_INJECTION
+          value: "true"
+        - name: DD_TRACE_ENABLED
+          value: "true"
+        - name: DD_PROFILING_ENABLED
+          value: "true"
+        - name: DD_APM_ENABLED
+          value: "true"
         volumeMounts:
         - name: tmp
           mountPath: /tmp

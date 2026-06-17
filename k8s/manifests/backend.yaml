@@ -187,6 +187,22 @@ spec:
                   key: DB_PASSWORD
             - name: DATABASE_URL
               value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
+            - name: DD_AGENT_HOST
+              value: "datadog-agent"
+            - name: DD_ENV
+              value: "development"
+            - name: DD_SERVICE
+              value: "aegismesh-backend"
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_LOGS_INJECTION
+              value: "true"
+            - name: DD_TRACE_ENABLED
+              value: "true"
+            - name: DD_PROFILING_ENABLED
+              value: "true"
+            - name: DD_APM_ENABLED
+              value: "true"
 
           resources:
             requests:

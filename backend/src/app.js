@@ -4,8 +4,26 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const csurf = require('csurf');
+const crypto = require('node:crypto');
+const { doubleCsrf } = require('csrf-csrf');
 const passport = require('passport');
+
+const csrfSecret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+
+const {
+    generateCsrfToken,
+    doubleCsrfProtection,
+} = doubleCsrf({
+    getSecret: (_req) => csrfSecret,
+    getSessionIdentifier: (req) => req.ip + (req.headers['user-agent'] || ''),
+    cookieName: 'x-csrf-token',
+    cookieOptions: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+    },
+    getTokenFromRequest: (req) => req.headers['x-csrf-token'],
+});
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const { initializePassport } = require('./config/passport');
@@ -47,14 +65,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(metricsMiddleware);
 
-const csrfProtection = csurf({
-    cookie: {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-    },
-});
-
 const csrfExemptPaths = new Set([
     '/api/health',
     '/api/csrf-token',
@@ -75,7 +85,7 @@ app.use((req, res, next) => {
     if (!isMutating || csrfExemptPaths.has(req.path)) {
         return next();
     }
-    return csrfProtection(req, res, next);
+    return doubleCsrfProtection(req, res, next);
 });
 
 // ═══════════════════════════════════════
@@ -121,11 +131,11 @@ app.get('/api/health', (req, res) => {
 
 app.get('/metrics', metricsHandler);
 
-app.get('/api/csrf-token', csrfProtection, (req, res) => {
+app.get('/api/csrf-token', (req, res) => {
     res.json({
         success: true,
         data: {
-            csrfToken: req.csrfToken(),
+            csrfToken: generateCsrfToken(req, res),
         },
     });
 });

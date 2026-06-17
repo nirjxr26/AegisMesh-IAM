@@ -27,6 +27,9 @@ const UserEdit = lazy(() => import('./pages/users/UserEdit'));
 const SecurityPage = lazy(() => import('./pages/security/SecurityPage'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AuditLogsPage = lazy(() => import('./pages/audit/AuditLogsPage'));
+const AuditStatsPage = lazy(() => import('./pages/audit/AuditStatsPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -124,6 +127,9 @@ export default function App() {
               {/* Protected Shell + Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
+                  {/* Overview Dashboard Route */}
+                  <Route path="/dashboard" element={<LazyRoute><Dashboard /></LazyRoute>} />
+
                   {/* RBAC Dashboard Routes */}
                   <Route path="/dashboard/users" element={<LazyRoute><UsersList /></LazyRoute>} />
                   <Route path="/dashboard/users/new" element={<LazyRoute><UserCreate /></LazyRoute>} />
@@ -137,6 +143,10 @@ export default function App() {
                   <Route path="/dashboard/groups/:id" element={<LazyRoute><GroupDetail /></LazyRoute>} />
                   <Route path="/dashboard/users/:id/permissions" element={<LazyRoute><UserPermissions /></LazyRoute>} />
                   <Route path="/dashboard/security" element={<LazyRoute><SecurityPage /></LazyRoute>} />
+
+                  {/* Audit Logs Routes */}
+                  <Route path="/dashboard/audit-logs" element={<LazyRoute><AuditLogsPage /></LazyRoute>} />
+                  <Route path="/dashboard/audit-logs/stats" element={<LazyRoute><AuditStatsPage /></LazyRoute>} />
 
                   {/* Settings Routes */}
                   <Route path="/settings" element={<LazyRoute><SettingsPage /></LazyRoute>} />

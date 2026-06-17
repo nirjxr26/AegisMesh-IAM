@@ -10,7 +10,7 @@ module.exports = {
   verbose: true,
   forceExit: true,
   clearMocks: true,
-  resetMocks: true,
+  resetMocks: false,
   testTimeout: 10000,
   transformIgnorePatterns: [
     'node_modules/(?!(uuid)/)',
