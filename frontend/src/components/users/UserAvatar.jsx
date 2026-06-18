@@ -17,9 +17,10 @@ export default function UserAvatar({ user, size = 'md' }) {
     // Hash based on UUID or simple string to pick color
     let hash = 0;
     const id = user.id || '';
-    for (let i = 0; i < id.length; i++) {
-        // use codePointAt for full unicode code points, fallback to charCodeAt
-        hash = (id.codePointAt(i) || id.charCodeAt(i) || 0) + ((hash << 5) - hash);
+    for (const ch of id) {
+        // iterate over code points safely; codePointAt on the character returns full code point
+        const cp = ch.codePointAt(0) || 0;
+        hash = cp + ((hash << 5) - hash);
     }
     const colorIndex = Math.abs(hash) % colors.length;
     const colorClass = colors[colorIndex];

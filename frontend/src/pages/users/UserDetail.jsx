@@ -14,6 +14,13 @@ import UserStatusBadge from '../../components/users/UserStatusBadge';
 import PermissionChecker from '../../components/users/PermissionChecker';
 import SessionCard from '../../components/users/SessionCard';
 
+// Utility: normalize various API response shapes into a plain array
+const ensureArray = (res) => {
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.data)) return res.data;
+    return [];
+};
+
 function OverviewTab({ user, groups, userId }) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-up">
@@ -346,12 +353,6 @@ export default function UserDetail() {
         userRes?.data ??
         null
     );
-
-    function ensureArray(res) {
-        if (Array.isArray(res)) return res;
-        if (Array.isArray(res?.data)) return res.data;
-        return [];
-    }
 
     const roles = ensureArray(rolesRes);
     const groups = ensureArray(groupRes);
