@@ -29,13 +29,15 @@ function JsonHighlighter({ jsonObject }) {
         const valueMatch = line.match(/: "([^"]*)"(,?)$/);
         const punctuationMatch = line.match(/^(\s*)([{}[\]],?)$/);
 
+        const safeKey = keyMatch ? `${index}-${keyMatch[2]}` : `${index}-${line.slice(0, 20).replace(/\s+/g, '_')}`;
+
         if (keyMatch) {
             const indent = keyMatch[1];
             const key = keyMatch[2];
             const rest = line.substring(keyMatch[0].length);
 
             return (
-                <div key={index}>
+                <div key={safeKey}>
                     <span>{indent}</span>
                     <span style={{ color: '#7dd3fc' }}>"{key}"</span>
                     <span>:</span>
@@ -51,14 +53,14 @@ function JsonHighlighter({ jsonObject }) {
 
         if (punctuationMatch) {
             return (
-                <div key={index}>
+                <div key={safeKey}>
                     <span>{punctuationMatch[1]}</span>
                     <span style={{ color: '#f8fafc' }}>{punctuationMatch[2]}</span>
                 </div>
             );
         }
 
-        return <div key={index}>{line}</div>;
+        return <div key={safeKey}>{line}</div>;
     });
 }
 

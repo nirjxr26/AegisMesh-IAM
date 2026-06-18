@@ -347,11 +347,17 @@ export default function UserDetail() {
         null
     );
 
-    const roles = Array.isArray(rolesRes) ? rolesRes : (Array.isArray(rolesRes?.data) ? rolesRes.data : []);
-    const groups = Array.isArray(groupRes) ? groupRes : (Array.isArray(groupRes?.data) ? groupRes.data : []);
-    const permissions = Array.isArray(permissionsRes) ? permissionsRes : (Array.isArray(permissionsRes?.data) ? permissionsRes.data : []);
-    const sessions = Array.isArray(sessionsRes) ? sessionsRes : (Array.isArray(sessionsRes?.data) ? sessionsRes.data : []);
-    const auditLogs = Array.isArray(auditRes) ? auditRes : (Array.isArray(auditRes?.data) ? auditRes.data : []);
+    function ensureArray(res) {
+        if (Array.isArray(res)) return res;
+        if (Array.isArray(res?.data)) return res.data;
+        return [];
+    }
+
+    const roles = ensureArray(rolesRes);
+    const groups = ensureArray(groupRes);
+    const permissions = ensureArray(permissionsRes);
+    const sessions = ensureArray(sessionsRes);
+    const auditLogs = ensureArray(auditRes);
 
     if (!userId) return null;
 

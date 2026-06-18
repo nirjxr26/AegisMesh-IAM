@@ -2,6 +2,85 @@ const prisma = require('../config/database');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
 
+// Helper: seed audit logs when database is sparse to make dashboards meaningful
+async function seedAuditLogsIfSparse(auditLogsAll, now) {
+    if (!(auditLogsAll && auditLogsAll.length < 20)) return auditLogsAll;
+
+    const dbUsers = await prisma.user.findMany({ select: { id: true, email: true }, take: 10 });
+    if (dbUsers.length === 0) return auditLogsAll;
+
+    const IP_POOL = [
+        { ip: [203, 45, 112, 88].join('.'), country: 'United States', city: 'Austin' },
+        { ip: [91, 220, 101, 45].join('.'), country: 'United Kingdom', city: 'London' },
+        { ip: [172, 16, 254, 1].join('.'), country: 'India', city: 'Bengaluru' },
+        { ip: [10, 0, 0, 42].join('.'), country: 'Germany', city: 'Berlin' },
+        { ip: [185, 220, 101, 7].join('.'), country: 'France', city: 'Paris' },
+        { ip: [64, 233, 160, 0].join('.'), country: 'Japan', city: 'Tokyo' },
+        { ip: [34, 77, 102, 18].join('.'), country: 'Brazil', city: 'Sao Paulo' }
+    ];
+    const ACTIONS = [
+        { action: 'LOGIN', category: 'AUTHENTICATION', result: 'SUCCESS' },
+        { action: 'LOGIN_FAILED', category: 'AUTHENTICATION', result: 'FAILURE' },
+        { action: 'PERMISSION_CHECKED', category: 'AUTHORIZATION', result: 'SUCCESS' },
+        { action: 'PERMISSION_CHECKED', category: 'AUTHORIZATION', result: 'BLOCKED' },
+        { action: 'SESSION_REVOKED', category: 'SESSION_MANAGEMENT', result: 'SUCCESS' },
+        { action: 'POLICY_ATTACHED', category: 'POLICY_MANAGEMENT', result: 'SUCCESS' }
+    ];
+
+    const logsToCreate = [];
+    for (let m = 0; m < 12; m++) {
+        const logCount = crypto.randomInt(4, 10); // 4 to 9 logs per month
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
+        for (let l = 0; l < logCount; l++) {
+            const user = dbUsers[(m + l) % dbUsers.length];
+            const ipInfo = IP_POOL[(m + l) % IP_POOL.length];
+            const actionInfo = ACTIONS[(m + l) % ACTIONS.length];
+
+            const day = crypto.randomInt(1, 29); // 1 to 28
+            const logTime = new Date(monthDate.getFullYear(), monthDate.getMonth(), day, 12, 0, 0);
+
+            const isFailureOrBlocked = actionInfo.result === 'FAILURE' || actionInfo.result === 'BLOCKED';
+            const randomFloat = () => crypto.randomInt(0, 100000) / 100000;
+            const riskScore = isFailureOrBlocked ? 0.6 + randomFloat() * 0.35 : 0.05 + randomFloat() * 0.2;
+
+            logsToCreate.push({
+                userId: user.id,
+                action: actionInfo.action,
+                category: actionInfo.category,
+                result: actionInfo.result,
+                ipAddress: ipInfo.ip,
+                country: ipInfo.country,
+                city: ipInfo.city,
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0',
+                metadata: {
+                    risk_score: riskScore,
+                    actorEmail: user.email
+                },
+                createdAt: logTime
+            });
+        }
+    }
+
+    await prisma.auditLog.createMany({ data: logsToCreate });
+
+    // Re-fetch populated logs
+    auditLogsAll = await prisma.auditLog.findMany({
+        where: { createdAt: { gte: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) } },
+        select: {
+            id: true,
+            createdAt: true,
+            metadata: true,
+            ipAddress: true,
+            result: true,
+            action: true,
+            category: true,
+            user: { select: { email: true } }
+        }
+    });
+
+    return auditLogsAll;
+}
+
 /**
  * GET /api/analytics/overview
  * Aggregates high-depth metrics for the 'War Room' dashboard over various timeframes (24h, 30d, 1y).
@@ -30,94 +109,23 @@ exports.getOverviewMetrics = async (req, res, next) => {
         // 1b. Fetch all logs in the last 1 year to ensure we have seeded logs if empty
         const lastYear = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         let auditLogsAll = await prisma.auditLog.findMany({
-            where: { createdAt: { gte: lastYear } },
-            select: {
-                id: true,
-                createdAt: true,
-                metadata: true,
-                ipAddress: true,
-                result: true,
-                action: true,
-                category: true,
-                user: { select: { email: true } }
-            }
-        });
-
-        // Dynamic log generator: seed exactly 4-9 logs per month for the last 12 months if sparse
-        if (auditLogsAll.length < 20) {
-            const dbUsers = await prisma.user.findMany({ select: { id: true, email: true }, take: 10 });
-            if (dbUsers.length > 0) {
-                const IP_POOL = [
-                    { ip: [203, 45, 112, 88].join('.'), country: 'United States', city: 'Austin' },
-                    { ip: [91, 220, 101, 45].join('.'), country: 'United Kingdom', city: 'London' },
-                    { ip: [172, 16, 254, 1].join('.'), country: 'India', city: 'Bengaluru' },
-                    { ip: [10, 0, 0, 42].join('.'), country: 'Germany', city: 'Berlin' },
-                    { ip: [185, 220, 101, 7].join('.'), country: 'France', city: 'Paris' },
-                    { ip: [64, 233, 160, 0].join('.'), country: 'Japan', city: 'Tokyo' },
-                    { ip: [34, 77, 102, 18].join('.'), country: 'Brazil', city: 'Sao Paulo' }
-                ];
-                const ACTIONS = [
-                    { action: 'LOGIN', category: 'AUTHENTICATION', result: 'SUCCESS' },
-                    { action: 'LOGIN_FAILED', category: 'AUTHENTICATION', result: 'FAILURE' },
-                    { action: 'PERMISSION_CHECKED', category: 'AUTHORIZATION', result: 'SUCCESS' },
-                    { action: 'PERMISSION_CHECKED', category: 'AUTHORIZATION', result: 'BLOCKED' },
-                    { action: 'SESSION_REVOKED', category: 'SESSION_MANAGEMENT', result: 'SUCCESS' },
-                    { action: 'POLICY_ATTACHED', category: 'POLICY_MANAGEMENT', result: 'SUCCESS' }
-                ];
-
-                const logsToCreate = [];
-                for (let m = 0; m < 12; m++) {
-                    const logCount = crypto.randomInt(4, 10); // 4 to 9 logs per month
-                    const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
-                    
-                    for (let l = 0; l < logCount; l++) {
-                        const user = dbUsers[(m + l) % dbUsers.length];
-                        const ipInfo = IP_POOL[(m + l) % IP_POOL.length];
-                        const actionInfo = ACTIONS[(m + l) % ACTIONS.length];
-                        
-                        const day = crypto.randomInt(1, 29); // 1 to 28
-                        const logTime = new Date(monthDate.getFullYear(), monthDate.getMonth(), day, 12, 0, 0);
-                        
-                        const isFailureOrBlocked = actionInfo.result === 'FAILURE' || actionInfo.result === 'BLOCKED';
-                        const randomFloat = () => crypto.randomInt(0, 100000) / 100000;
-                        const riskScore = isFailureOrBlocked ? 0.6 + randomFloat() * 0.35 : 0.05 + randomFloat() * 0.2;
-
-                        logsToCreate.push({
-                            userId: user.id,
-                            action: actionInfo.action,
-                            category: actionInfo.category,
-                            result: actionInfo.result,
-                            ipAddress: ipInfo.ip,
-                            country: ipInfo.country,
-                            city: ipInfo.city,
-                            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0',
-                            metadata: {
-                                risk_score: riskScore,
-                                actorEmail: user.email
-                            },
-                            createdAt: logTime
-                        });
-                    }
+                where: { createdAt: { gte: lastYear } },
+                select: {
+                    id: true,
+                    createdAt: true,
+                    metadata: true,
+                    ipAddress: true,
+                    result: true,
+                    action: true,
+                    category: true,
+                    user: { select: { email: true } }
                 }
-                
-                await prisma.auditLog.createMany({ data: logsToCreate });
+            });
 
-                // Re-fetch populated logs
-                auditLogsAll = await prisma.auditLog.findMany({
-                    where: { createdAt: { gte: lastYear } },
-                    select: {
-                        id: true,
-                        createdAt: true,
-                        metadata: true,
-                        ipAddress: true,
-                        result: true,
-                        action: true,
-                        category: true,
-                        user: { select: { email: true } }
-                    }
-                });
-            }
-        }
+            // Seed sparse DB if needed (kept in helper for readability)
+            auditLogsAll = await seedAuditLogsIfSparse(auditLogsAll, now);
+
+
 
         // 2. Set up buckets based on requested range
         const buckets = [];
