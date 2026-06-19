@@ -74,10 +74,6 @@
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2"
   },
-  "optionalDependencies": {
-    "@openfeature/server-sdk": "^1.22.0",
-    "@openfeature/core": "^1.11.0"
-  },
   "overrides": {
     "defu": "6.1.5",
     "hono": "4.12.12",
