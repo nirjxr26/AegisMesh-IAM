@@ -525,7 +525,7 @@ for (const entry of actionPlan) {
                 actorRole: role.name,
                 correlationKey: `evt-${(auditIdx + i + 1).toString().padStart(3, '0')}`,
             },
-            createdAt: toIso(hoursAgo(((auditIdx * 3 + i * 2) % (7 * 24)) + 1)),
+            createdAt: toIso(hoursAgo(((auditIdx * 3 + i * 2) % (10 * 24)) + 1)),
             country: region.country,
             city: region.city,
         });
@@ -765,12 +765,132 @@ async function seedDatabase() {
         })),
     });
 
+    // Custom security-triggering audit logs to populate alerts
+    const alertLogs = [];
+    const seedUser = users[0];
+    const targetUser = users[1] || seedUser;
+
+    // 1. Brute Force Alert (12 failed logins from 198.51.100.42 in last 15 minutes)
+    for (let i = 0; i < 12; i++) {
+        alertLogs.push({
+            id: uuidv4(),
+            userId: null,
+            action: 'LOGIN_FAILED',
+            category: 'AUTHENTICATION',
+            resource: '/api/auth/login',
+            result: 'FAILURE',
+            ipAddress: '198.51.100.42',
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            country: 'United States',
+            city: 'New York',
+            createdAt: new Date(now.getTime() - i * 60 * 1000), // last 15 mins
+            duration: 45,
+            errorCode: 'AUTH_INVALID_CREDENTIALS',
+        });
+    }
+
+    // 2. Account Lockout Alert (ACCOUNT_LOCKED in last 24h)
+    alertLogs.push({
+        id: uuidv4(),
+        userId: targetUser.id,
+        action: 'ACCOUNT_LOCKED',
+        category: 'AUTHENTICATION',
+        resource: `/api/users/${targetUser.id}`,
+        result: 'FAILURE',
+        ipAddress: '198.51.100.42',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        country: 'United States',
+        city: 'New York',
+        createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2h ago
+        duration: 20,
+    });
+
+    // 3. Permission Abuse Alert (7 permission denied for users[2] in last 30 minutes)
+    const abuseUser = users[2] || seedUser;
+    for (let i = 0; i < 7; i++) {
+        alertLogs.push({
+            id: uuidv4(),
+            userId: abuseUser.id,
+            action: 'PERMISSION_DENIED',
+            category: 'AUTHORIZATION',
+            resource: '/api/settings',
+            result: 'BLOCKED',
+            ipAddress: '203.0.113.15',
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            country: 'Canada',
+            city: 'Toronto',
+            createdAt: new Date(now.getTime() - i * 2 * 60 * 1000), // last 14 mins
+            duration: 15,
+            errorCode: 'RBAC_001',
+        });
+    }
+
+    // 4. Rate Limit Alert (15 rate limit logs from 203.0.113.88 in last 24h)
+    for (let i = 0; i < 15; i++) {
+        alertLogs.push({
+            id: uuidv4(),
+            userId: null,
+            action: 'RATE_LIMIT_EXCEEDED',
+            category: 'SYSTEM',
+            resource: '/api/auth/login',
+            result: 'BLOCKED',
+            ipAddress: '203.0.113.88',
+            userAgent: 'curl/8.19.0',
+            country: 'Ukraine',
+            city: 'Kyiv',
+            createdAt: new Date(now.getTime() - i * 30 * 60 * 1000), // over last 7.5 hours
+            duration: 5,
+        });
+    }
+
+    await prisma.auditLog.createMany({ data: alertLogs });
+
+    // Generate 4-5 random logs for each of the past 30 days to guarantee volume
+    const dailyLogs = [];
+    const ACTIONS = [
+        { action: 'LOGIN', category: 'Authentication', result: 'success' },
+        { action: 'LOGOUT', category: 'Authentication', result: 'success' },
+        { action: 'PERMISSION_CHECKED', category: 'Authorization', result: 'success' },
+        { action: 'USER_UPDATED', category: 'UserMgmt', result: 'success' },
+        { action: 'GROUP_MEMBER_ADDED', category: 'GroupMgmt', result: 'success' },
+    ];
+
+    for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+        const logsCount = 4 + randomInt(0, 2); // 4 or 5 logs per day
+        for (let i = 0; i < logsCount; i++) {
+            const actor = users[randomInt(0, users.length)];
+            const actionInfo = ACTIONS[randomInt(0, ACTIONS.length)];
+            const ip = IP_POOL[randomInt(0, IP_POOL.length)];
+            const region = COUNTRY_CITY[randomInt(0, COUNTRY_CITY.length)];
+
+            const logDate = new Date(now.getTime() - dayOffset * 24 * 60 * 60 * 1000);
+            logDate.setHours(randomInt(0, 24), randomInt(0, 60), randomInt(0, 60));
+
+            dailyLogs.push({
+                id: uuidv4(),
+                userId: actor.id,
+                action: actionInfo.action,
+                category: toPrismaAuditCategory(actionInfo.category),
+                resource: actionInfo.action === 'PERMISSION_CHECKED' ? 'arn:aws:iam::987654321098:policy/ReadOnlyAccess' : '/api/system/health',
+                result: toPrismaAuditResult(actionInfo.result),
+                ipAddress: ip,
+                userAgent: USER_AGENTS[randomInt(0, USER_AGENTS.length)],
+                country: region.country,
+                city: region.city,
+                createdAt: logDate,
+                duration: 30 + randomInt(0, 300),
+            });
+        }
+    }
+
+    await prisma.auditLog.createMany({ data: dailyLogs });
+
     const summary = {
         users: users.length,
         roles: roleSeeds.length,
         policies: policies.length,
         groups: groups.length,
-        auditLogs: auditLogs.length,
+        auditLogs: auditLogs.length + alertLogs.length + dailyLogs.length,
         sessions: sessions.length,
         userRoles: userRoleRows.length,
         rolePolicies: rolePolicyRows.length,
