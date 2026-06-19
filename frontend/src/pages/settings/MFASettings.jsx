@@ -85,8 +85,9 @@ export default function MFASettings() {
                                 )}
                                 <form onSubmit={handleDisableMFA} className="space-y-4">
                                     <div>
-                                        <label className="block text-sm text-aws-text-dim mb-1">Password</label>
+                                        <label htmlFor="disable-password" className="block text-sm text-aws-text-dim mb-1">Password</label>
                                         <input
+                                            id="disable-password"
                                             type="password"
                                             value={disablePassword}
                                             onChange={(e) => setDisablePassword(e.target.value)}
@@ -95,8 +96,9 @@ export default function MFASettings() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
+                                        <label htmlFor="disable-totp" className="block text-sm text-aws-text-dim mb-1">TOTP Code</label>
                                         <input
+                                            id="disable-totp"
                                             type="text"
                                             maxLength={6}
                                             value={disableTotp}

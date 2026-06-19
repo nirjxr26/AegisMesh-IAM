@@ -43,6 +43,12 @@ function getRiskBadgeClasses(level) {
     return 'bg-emerald-50 text-emerald-700 border-emerald-200';
 }
 
+function getRiskLabel(level) {
+    if (level === 'high') return 'High Risk';
+    if (level === 'medium') return 'Medium Risk';
+    return 'Low Risk';
+}
+
 function SummaryCard({ label, value }) {
     return (
         <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 text-center shadow-sm">
@@ -252,7 +258,7 @@ export default function ConnectedApps() {
 
                                 <div className="xl:w-[150px] xl:text-right">
                                     <span className={classNames('inline-flex items-center px-3 py-1 rounded-full border text-xs font-medium', getRiskBadgeClasses(app.riskLevel))}>
-                                        {app.riskLevel === 'high' ? 'High Risk' : app.riskLevel === 'medium' ? 'Medium Risk' : 'Low Risk'}
+                                        {getRiskLabel(app.riskLevel)}
                                     </span>
                                     <div className="mt-3">
                                         <button

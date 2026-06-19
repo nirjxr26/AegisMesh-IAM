@@ -101,7 +101,7 @@ api.interceptors.request.use(
 
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => { throw error; }
 );
 
 // Response interceptor
@@ -162,13 +162,13 @@ api.interceptors.response.use(
                 processQueue(refreshError);
                 notifyAuthExpired();
                 redirectToLoginIfNeeded();
-                return Promise.reject(refreshError);
+                throw refreshError;
             } finally {
                 isRefreshing = false;
             }
         }
 
-        return Promise.reject(error);
+        throw error;
     }
 );
 

@@ -15,7 +15,7 @@ export default function PasswordStrengthMeter({ password = '' }) {
             minLength: password.length >= 8,
             hasUpper: /[A-Z]/.test(password),
             hasLower: /[a-z]/.test(password),
-            hasNumber: /[0-9]/.test(password),
+            hasNumber: /\d/.test(password),
             hasSpecial: /[@$!%*?&]/.test(password),
         };
 

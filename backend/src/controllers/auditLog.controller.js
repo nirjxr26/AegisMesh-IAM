@@ -89,6 +89,7 @@ exports.getStats = async (req, res, next) => {
         const now = new Date();
         const h24 = new Date(now - 24 * 60 * 60 * 1000);
         const d7 = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        const d9 = new Date(now - 9 * 24 * 60 * 60 * 1000);
         const d30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
         async function getTimeStats(since) {
@@ -109,9 +110,10 @@ exports.getStats = async (req, res, next) => {
             return stats;
         }
 
-        const [last24h, last7d, last30d, totalUsers, failedIPsRaw, topActionsRaw, catRaw, hourlyRaw, dailyRaw] = await Promise.all([
+        const [last24h, last7d, last9d, last30d, totalUsers, failedIPsRaw, topActionsRaw, catRaw, hourlyRaw, dailyRaw] = await Promise.all([
             getTimeStats(h24),
             getTimeStats(d7),
+            getTimeStats(d9),
             getTimeStats(d30),
             prisma.user.count(),
             prisma.auditLog.groupBy({
@@ -173,12 +175,29 @@ exports.getStats = async (req, res, next) => {
             return { hour: i, count: found ? found.count : 0 };
         });
 
-        const dailyActivity = dailyRaw.map(d => ({ date: d.date, count: d.count }));
+        const dailyActivity = [];
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
 
+            const found = dailyRaw.find(r => {
+                const rawDate = r.date instanceof Date 
+                    ? `${r.date.getFullYear()}-${String(r.date.getMonth() + 1).padStart(2, '0')}-${String(r.date.getDate()).padStart(2, '0')}`
+                    : String(r.date).split('T')[0];
+                return rawDate === dateStr;
+            });
+            dailyActivity.push({
+                date: dateStr,
+                count: found ? found.count : 0
+            });
+        }
 
         res.json({
             success: true,
-            data: { last24h, last7d, last30d, totalUsers, topFailedIPs, topActions, categoryBreakdown, hourlyActivity, dailyActivity }
+            data: { last24h, last7d, last9d, last30d, totalUsers, topFailedIPs, topActions, categoryBreakdown, hourlyActivity, dailyActivity }
         });
     } catch (error) { next(error); }
 };

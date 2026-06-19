@@ -129,6 +129,5 @@ jobs:
 
       - name: Run smoke tests
         id: smoke
-        shell: bash
-        run: ./scripts/ci/smoke-test.sh
-
+        shell: pwsh
+        run: ./scripts/ci/smoke-test.ps1

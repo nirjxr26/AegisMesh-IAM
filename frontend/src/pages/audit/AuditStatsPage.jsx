@@ -74,16 +74,24 @@ function getTimeRangeLabel(range) {
         return 'Last 7 Days';
     }
 
+    if (range === '9d') {
+        return 'Last 9 Days';
+    }
+
     return 'Last 30 Days';
 }
 
-function getCurrentStats(range, last24h, last7d, last30d) {
+function getCurrentStats(range, last24h, last7d, last9d, last30d) {
     if (range === '24h') {
         return last24h;
     }
 
     if (range === '7d') {
         return last7d;
+    }
+
+    if (range === '9d') {
+        return last9d;
     }
 
     return last30d;
@@ -121,6 +129,7 @@ export default function AuditStatsPage() {
     const {
         last24h = {},
         last7d = {},
+        last9d = {},
         last30d = {},
         topFailedIPs = EMPTY_ARRAY,
         topActions = EMPTY_ARRAY,
@@ -136,6 +145,7 @@ export default function AuditStatsPage() {
         timeRange,
         last24h,
         last7d,
+        last9d,
         last30d,
     );
 
@@ -147,13 +157,18 @@ export default function AuditStatsPage() {
                 label: `${String(row.hour).padStart(2, '0')}:00`,
                 count: row.count,
             }))
-            : dailyActivity.map((row) => ({
+            : (timeRange === '7d'
+                ? dailyActivity.slice(-7)
+                : timeRange === '9d'
+                    ? dailyActivity.slice(-9)
+                    : dailyActivity
+              ).map((row) => ({
                 label: new Date(row.date).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                 }),
                 count: row.count,
-            }));
+              }));
 
     const donutData = categoryBreakdown.map((item, index) => ({
         id: `${item.category}-${index}`,
@@ -185,7 +200,7 @@ export default function AuditStatsPage() {
                     </div>
 
                     <div className="flex gap-1 rounded-xl border border-[#d0d7e8] bg-white p-1 shadow-sm">
-                        {['24h', '7d', '30d'].map((range) => {
+                        {['24h', '7d', '9d', '30d'].map((range) => {
                             const active = timeRange === range;
 
                             return (
