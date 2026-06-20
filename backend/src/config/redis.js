@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'test') {
     logger.info('Using mock Redis client for testing');
 } else {
     const host = process.env.REDIS_HOST || 'localhost';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const port = Number.parseInt(process.env.REDIS_PORT || '6379', 10);
     const password = process.env.REDIS_PASSWORD || undefined;
 
     redis = new Redis({

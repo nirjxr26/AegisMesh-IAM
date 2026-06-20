@@ -19,6 +19,36 @@ basePrisma.$on('error', (e) => {
     logger.error('Prisma error', { message: e.message });
 });
 
+async function handleCacheInvalidation(model, operation, args) {
+    const writeOperations = ['create', 'update', 'delete', 'upsert', 'createMany', 'updateMany', 'deleteMany'];
+    if (!writeOperations.includes(operation)) {
+        return;
+    }
+
+    const redis = require('./redis');
+    if (redis.status !== 'ready') {
+        return;
+    }
+
+    const permissionModels = ['UserRole', 'UserGroup', 'GroupRole', 'RolePolicy', 'Policy', 'Role', 'Group'];
+    if (permissionModels.includes(model)) {
+        redis.incr('user:permissions:version').catch(() => {});
+    }
+    if (model === 'OrganizationSettings') {
+        redis.del('org:settings').catch(() => {});
+    }
+    if (model === 'User') {
+        const userId = args?.where?.id;
+        if (userId && typeof userId === 'string') {
+            // Invalidating specific user cache
+            redis.del(`user:profile:${userId}`).catch(() => {});
+        } else {
+            // Invalidate all user profiles on bulk changes
+            redis.incr('user:profile:version').catch(() => {});
+        }
+    }
+}
+
 const prisma = globalForPrisma.prismaExtended || basePrisma.$extends({
     query: {
         $allModels: {
@@ -29,29 +59,7 @@ const prisma = globalForPrisma.prismaExtended || basePrisma.$extends({
                     const result = await query(args);
 
                     // Auto cache invalidation on successful database modifications
-                    const writeOperations = ['create', 'update', 'delete', 'upsert', 'createMany', 'updateMany', 'deleteMany'];
-                    if (writeOperations.includes(operation)) {
-                        const redis = require('./redis');
-                        if (redis.status === 'ready') {
-                            const permissionModels = ['UserRole', 'UserGroup', 'GroupRole', 'RolePolicy', 'Policy', 'Role', 'Group'];
-                            if (permissionModels.includes(model)) {
-                                redis.incr('user:permissions:version').catch(() => {});
-                            }
-                            if (model === 'OrganizationSettings') {
-                                redis.del('org:settings').catch(() => {});
-                            }
-                            if (model === 'User') {
-                                const userId = args?.where?.id;
-                                if (userId && typeof userId === 'string') {
-                                    // Invalidating specific user cache
-                                    redis.del(`user:profile:${userId}`).catch(() => {});
-                                } else {
-                                    // Invalidate all user profiles on bulk changes
-                                    redis.incr('user:profile:version').catch(() => {});
-                                }
-                            }
-                        }
-                    }
+                    await handleCacheInvalidation(model, operation, args);
 
                     return result;
                 } finally {
