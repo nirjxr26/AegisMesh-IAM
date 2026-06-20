@@ -112,6 +112,19 @@ jest.mock('../../src/utils/auditLog', () => ({
     sseClients: new Set()
 }));
 
+// Mock Redis Config
+jest.mock('../../src/config/redis', () => ({
+    status: 'ready',
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    setex: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    exists: jest.fn().mockResolvedValue(0),
+    incr: jest.fn().mockResolvedValue(1),
+    on: jest.fn(),
+    quit: jest.fn().mockResolvedValue('OK'),
+}));
+
 // Mock Risk Engine
 jest.mock('../../src/utils/riskEngine', () => ({
     getRiskScore: jest.fn().mockResolvedValue({ is_anomaly: false, risk_score: 0.1 }),

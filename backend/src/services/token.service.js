@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../config/database');
+const redis = require('../config/redis');
 const logger = require('../utils/logger');
 const { auditSession } = require('../utils/auditLog');
 const { getOrganizationSettings } = require('./organizationSettings.service');
@@ -68,6 +69,12 @@ async function blacklistToken(token) {
             },
         });
 
+        // Also add to Redis with TTL
+        const remainingTtl = Math.max(0, decoded.exp - Math.floor(Date.now() / 1000));
+        if (remainingTtl > 0 && redis.status === 'ready') {
+            await redis.setex(`token:blacklist:${decoded.jti}`, remainingTtl, '1');
+        }
+
         logger.info(`Token blacklisted: ${decoded.jti}`);
         return true;
     } catch (error) {
@@ -82,11 +89,38 @@ async function blacklistToken(token) {
 async function isTokenBlacklisted(jti) {
     if (!jti) return false;
 
+    // 1. Check Redis first
+    if (redis.status === 'ready') {
+        try {
+            const isCached = await redis.exists(`token:blacklist:${jti}`);
+            if (isCached) {
+                return true;
+            }
+        } catch (err) {
+            logger.error('Redis error checking blacklisted token, falling back to DB', { error: err.message });
+        }
+    }
+
+    // 2. Fallback to DB
     const revokedToken = await prisma.revokedToken.findUnique({
         where: { jti },
     });
 
-    return !!revokedToken;
+    const exists = !!revokedToken;
+
+    // 3. If found in DB but not in Redis, write to Redis to heal the cache
+    if (exists && redis.status === 'ready') {
+        try {
+            const remainingTtl = Math.max(0, Math.floor((new Date(revokedToken.expiresAt).getTime() - Date.now()) / 1000));
+            if (remainingTtl > 0) {
+                await redis.setex(`token:blacklist:${jti}`, remainingTtl, '1');
+            }
+        } catch (err) {
+            logger.error('Redis error writing to blacklist cache', { error: err.message });
+        }
+    }
+
+    return exists;
 }
 
 /**
@@ -166,6 +200,13 @@ async function findSessionByToken(refreshToken) {
  */
 async function deleteSession(refreshToken) {
     try {
+        const session = await prisma.session.findUnique({
+            where: { refreshToken },
+            select: { id: true }
+        });
+        if (session && redis.status === 'ready') {
+            await redis.del(`session:valid:${session.id}`);
+        }
         await prisma.session.delete({
             where: { refreshToken },
         });
@@ -184,6 +225,10 @@ async function revokeSession(sessionId, { actorUserId = null, req = null } = {})
         return null;
     }
 
+    if (redis.status === 'ready') {
+        await redis.del(`session:valid:${sessionId}`);
+    }
+
     await prisma.session.delete({
         where: { id: sessionId },
     });
@@ -196,6 +241,19 @@ async function revokeSession(sessionId, { actorUserId = null, req = null } = {})
  * Delete all sessions for a user
  */
 async function deleteAllUserSessions(userId) {
+    try {
+        const sessions = await prisma.session.findMany({
+            where: { userId },
+            select: { id: true }
+        });
+        if (sessions.length > 0 && redis.status === 'ready') {
+            const keys = sessions.map(s => `session:valid:${s.id}`);
+            await redis.del(...keys);
+        }
+    } catch (err) {
+        logger.error('Redis error invalidating sessions on deleteAllUserSessions', { error: err.message });
+    }
+
     const result = await prisma.session.deleteMany({
         where: { userId },
     });
@@ -225,6 +283,19 @@ async function revokeAllOtherSessions(userId, currentSessionId) {
     const where = currentSessionId
         ? { userId, id: { not: currentSessionId } }
         : { userId };
+
+    try {
+        const sessions = await prisma.session.findMany({
+            where,
+            select: { id: true }
+        });
+        if (sessions.length > 0 && redis.status === 'ready') {
+            const keys = sessions.map(s => `session:valid:${s.id}`);
+            await redis.del(...keys);
+        }
+    } catch (err) {
+        logger.error('Redis error invalidating sessions on revokeAllOtherSessions', { error: err.message });
+    }
 
     const result = await prisma.session.deleteMany({ where });
     return result.count;

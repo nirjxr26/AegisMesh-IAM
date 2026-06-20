@@ -8,3 +8,9 @@ resources:
   - backend.yaml
   - frontend.yaml
   - backend-hpa.yaml
+  - redis.yaml
+  - security-engine.yaml
+  - security-engine-training-cronjob.yaml
+  - datadog-agent.yaml
+  - crowdsec/crowdsec.yaml
+  - falcosidekick/falcosidekick.yaml

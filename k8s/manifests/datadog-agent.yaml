@@ -26,26 +26,14 @@ spec:
     metadata:
       labels:
         app: datadog-agent
-      annotations:
-        container.apparmor.security.beta.kubernetes.io/datadog-agent: runtime/default
     spec:
       # Disable service-account token automount — agent uses explicit RBAC
       automountServiceAccountToken: false
       serviceAccountName: datadog-agent
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
       containers:
       - name: datadog-agent
         image: gcr.io/datadoghq/agent:7.56.2
         imagePullPolicy: IfNotPresent
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-              - ALL
         ports:
         - containerPort: 8126
           name: traceport

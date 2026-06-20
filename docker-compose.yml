@@ -31,6 +31,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       datadog-agent:
         condition: service_started
     environment:
@@ -40,6 +42,8 @@ services:
       FRONTEND_PORT: ${FRONTEND_PORT:-3000}
       DB_PORT: ${DB_PORT:-5432}
       DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       FRONTEND_URL: http://localhost:${FRONTEND_PORT:-3000}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET must be set}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set}
@@ -223,6 +227,23 @@ services:
       - aegismesh-network
     restart: unless-stopped
 
+  # Redis Cache Server
+  redis:
+    image: redis:7-alpine
+    container_name: aegismesh-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aegismesh-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   aegismesh-network:
     driver: bridge
@@ -235,4 +256,6 @@ volumes:
   grafana_data:
     driver: local
   mlflow_data:
+    driver: local
+  redis_data:
     driver: local

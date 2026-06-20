@@ -1,5 +1,17 @@
 'use strict';
 
+jest.mock('../../src/config/redis', () => ({
+    status: 'ready',
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    setex: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    exists: jest.fn().mockResolvedValue(0),
+    incr: jest.fn().mockResolvedValue(1),
+    on: jest.fn(),
+    quit: jest.fn().mockResolvedValue('OK'),
+}));
+
 // Mock prisma before the module is loaded
 jest.mock('../../src/config/database', () => ({
     userRole: { findMany: jest.fn() },

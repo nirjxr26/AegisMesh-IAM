@@ -2,6 +2,8 @@ const crypto = require('node:crypto');
 const net = require('node:net');
 
 const prisma = require('../config/database');
+const redis = require('../config/redis');
+const logger = require('../utils/logger');
 const { LOOPBACK_IP, LOOPBACK_V6, IPV4_MAPPED_PREFIX } = require('../config/constants');
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
@@ -77,7 +79,46 @@ async function ensureOrganizationSettings() {
 }
 
 async function getOrganizationSettings() {
-    return ensureOrganizationSettings();
+    const cacheKey = 'org:settings';
+    
+    // 1. Try Redis first
+    if (redis.status === 'ready') {
+        try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.createdAt) parsed.createdAt = new Date(parsed.createdAt);
+                if (parsed.updatedAt) parsed.updatedAt = new Date(parsed.updatedAt);
+                return parsed;
+            }
+        } catch (err) {
+            logger.error('Redis error fetching org settings cache', { error: err.message });
+        }
+    }
+
+    // 2. Fetch/Ensure from DB
+    const settings = await ensureOrganizationSettings();
+
+    // 3. Cache it in Redis
+    if (redis.status === 'ready') {
+        try {
+            await redis.setex(cacheKey, 86400, JSON.stringify(settings));
+        } catch (err) {
+            logger.error('Redis error caching org settings', { error: err.message });
+        }
+    }
+
+    return settings;
+}
+
+async function clearOrganizationSettingsCache() {
+    if (redis.status === 'ready') {
+        try {
+            await redis.del('org:settings');
+        } catch (err) {
+            logger.error('Redis error clearing org settings cache', { error: err.message });
+        }
+    }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -360,6 +401,7 @@ module.exports = {
 
     ensureOrganizationSettings,
     getOrganizationSettings,
+    clearOrganizationSettingsCache,
 
     isValidIpOrCidr,
     isValidTimezone,

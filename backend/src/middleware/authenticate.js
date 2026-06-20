@@ -1,5 +1,7 @@
 const tokenService = require('../services/token.service');
 const prisma = require('../config/database');
+const redis = require('../config/redis');
+const logger = require('../utils/logger');
 const { createError } = require('../utils/errors');
 const { authenticateApiKeyToken } = require('./apiKeyAuth');
 const { enforceOrgPolicyForRequest } = require('./orgPolicy');
@@ -89,32 +91,71 @@ async function authenticateJwtRequest(req, token) {
         }
     }
 
-    const user = await prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            status: true,
-            emailVerified: true,
-            mfaEnabled: true,
-            createdAt: true,
-            updatedAt: true,
-            userRoles: {
-                include: {
-                    role: {
-                        select: {
-                            name: true,
+    let user = null;
+    let profileVersion = '1';
+
+    if (redis.status === 'ready') {
+        try {
+            profileVersion = (await redis.get('user:profile:version')) || '1';
+        } catch (err) {
+            logger.error('Redis error getting user profile version', { error: err.message });
+        }
+    }
+
+    const cacheKey = `user:profile:${payload.sub}:${profileVersion}`;
+
+    // 1. Attempt to fetch user from Redis cache
+    if (redis.status === 'ready') {
+        try {
+            const cachedUser = await redis.get(cacheKey);
+            if (cachedUser) {
+                user = JSON.parse(cachedUser);
+                user.createdAt = new Date(user.createdAt);
+                user.updatedAt = new Date(user.updatedAt);
+            }
+        } catch (err) {
+            logger.error('Redis error fetching user profile cache', { error: err.message });
+        }
+    }
+
+    // 2. Fetch from DB on cache miss
+    if (!user) {
+        user = await prisma.user.findUnique({
+            where: { id: payload.sub },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                status: true,
+                emailVerified: true,
+                mfaEnabled: true,
+                createdAt: true,
+                updatedAt: true,
+                userRoles: {
+                    include: {
+                        role: {
+                            select: {
+                                name: true,
+                            },
                         },
                     },
                 },
             },
-        },
-    });
+        });
 
-    if (!user) {
-        throw createError('AUTH_007');
+        if (!user) {
+            throw createError('AUTH_007');
+        }
+
+        // Cache the retrieved user profile for 5 minutes (300 seconds)
+        if (redis.status === 'ready') {
+            try {
+                await redis.setex(cacheKey, 300, JSON.stringify(user));
+            } catch (err) {
+                logger.error('Redis error writing user profile cache', { error: err.message });
+            }
+        }
     }
 
     if (user.status !== 'ACTIVE') {
@@ -125,19 +166,45 @@ async function authenticateJwtRequest(req, token) {
         payload.sessionId || null;
 
     if (sessionId) {
-        const sessionUpdate = await prisma.session.updateMany({
-            where: {
-                id: sessionId,
-                userId: user.id,
-            },
-            data: {
-                lastActiveAt: new Date(),
-            },
-        });
+        const sessionCacheKey = `session:valid:${sessionId}`;
+        let isSessionValid = false;
 
-        // If the session no longer exists (revoked), the access token is also invalid
-        if (sessionUpdate.count === 0) {
-            throw createError('AUTH_006', { message: 'Session has been revoked' });
+        // Check if session validity is cached in Redis
+        if (redis.status === 'ready') {
+            try {
+                const cachedSession = await redis.get(sessionCacheKey);
+                if (cachedSession === '1') {
+                    isSessionValid = true;
+                }
+            } catch (err) {
+                logger.error('Redis error checking session cache', { error: err.message });
+            }
+        }
+
+        if (!isSessionValid) {
+            const sessionUpdate = await prisma.session.updateMany({
+                where: {
+                    id: sessionId,
+                    userId: user.id,
+                },
+                data: {
+                    lastActiveAt: new Date(),
+                },
+            });
+
+            // If the session no longer exists (revoked), the access token is also invalid
+            if (sessionUpdate.count === 0) {
+                throw createError('AUTH_006', { message: 'Session has been revoked' });
+            }
+
+            // Cache session validity for 60 seconds
+            if (redis.status === 'ready') {
+                try {
+                    await redis.setex(sessionCacheKey, 60, '1');
+                } catch (err) {
+                    logger.error('Redis error setting session cache', { error: err.message });
+                }
+            }
         }
     }
 
