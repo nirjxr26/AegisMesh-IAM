@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: 'https://github.com/nirjxr26/AegisMesh-IAM'
-    targetRevision: main
+    targetRevision: fix/sonar-security-updates
     path: k8s/overlays/prod
   destination:
     server: 'https://kubernetes.default.svc'
