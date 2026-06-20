@@ -7,13 +7,13 @@ if (process.env.NODE_ENV === 'test') {
     // Create an in-memory mock client for Jest testing to avoid connections
     redis = {
         status: 'ready',
-        get: async (key) => null,
-        set: async (key, val) => 'OK',
-        setex: async (key, seconds, val) => 'OK',
-        del: async (key) => 1,
-        exists: async (key) => 0,
-        incr: async (key) => 1,
-        on: (event, handler) => {},
+        get: async (_key) => null,
+        set: async (_key, _val) => 'OK',
+        setex: async (_key, _seconds, _val) => 'OK',
+        del: async (_key) => 1,
+        exists: async (_key) => 0,
+        incr: async (_key) => 1,
+        on: (_event, _handler) => {},
         quit: async () => 'OK',
     };
     logger.info('Using mock Redis client for testing');
