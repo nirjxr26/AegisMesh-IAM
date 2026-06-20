@@ -11,6 +11,7 @@ const {
     DEFAULT_NOTIFICATION_PREFERENCES,
     ensureOrganizationSettings,
     getOrganizationSettings,
+    clearOrganizationSettingsCache,
     isValidIpOrCidr,
     isValidTimezone,
     mergeNotificationPreferences,
@@ -946,6 +947,8 @@ exports.updateOrganization = async (req, res, next) => {
             data,
         });
 
+        await clearOrganizationSettingsCache();
+
         const diff = {};
 
         Object.keys(data).forEach((key) => {
@@ -1053,6 +1056,8 @@ exports.resetOrganizationPolicies = async (req, res, next) => {
             where: { id: current.id },
             data: defaults,
         });
+
+        await clearOrganizationSettingsCache();
 
         await createAuditLog({
             req,

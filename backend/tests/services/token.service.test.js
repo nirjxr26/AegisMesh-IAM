@@ -1,5 +1,7 @@
 'use strict';
 
+jest.mock('../../src/config/redis', () => require('../helpers/redisMock'));
+
 // Mock heavy dependencies before requiring the module under test
 jest.mock('../../src/config/database', () => ({
     session: {

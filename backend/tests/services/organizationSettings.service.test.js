@@ -1,5 +1,7 @@
 'use strict';
 
+jest.mock('../../src/config/redis', () => require('../helpers/redisMock'));
+
 // Mock prisma before the module is loaded
 jest.mock('../../src/config/database', () => ({
     userRole: { findMany: jest.fn() },

@@ -1,5 +1,7 @@
 const tokenService = require('../services/token.service');
 const prisma = require('../config/database');
+const redis = require('../config/redis');
+const logger = require('../utils/logger');
 const { createError } = require('../utils/errors');
 const { authenticateApiKeyToken } = require('./apiKeyAuth');
 const { enforceOrgPolicyForRequest } = require('./orgPolicy');
@@ -73,24 +75,46 @@ async function authenticateApiRequest(req, token) {
     return { user: apiUser };
 }
 
-async function authenticateJwtRequest(req, token) {
-    const payload =
-        tokenService.verifyAccessToken(token);
-
-    if (!payload) {
-        throw createError('AUTH_006');
+async function getProfileVersion() {
+    if (redis.status !== 'ready') return '1';
+    try {
+        return (await redis.get('user:profile:version')) || '1';
+    } catch (err) {
+        logger.error('Redis error getting user profile version', { error: err.message });
+        return '1';
     }
+}
 
-    // Check if token is blacklisted
-    if (payload.jti) {
-        const isBlacklisted = await tokenService.isTokenBlacklisted(payload.jti);
-        if (isBlacklisted) {
-            throw createError('AUTH_006', { message: 'Token has been revoked' });
+async function getUserFromCache(userId, profileVersion) {
+    if (redis.status !== 'ready') return null;
+    const cacheKey = `user:profile:${userId}:${profileVersion}`;
+    try {
+        const cachedUser = await redis.get(cacheKey);
+        if (cachedUser) {
+            const user = JSON.parse(cachedUser);
+            user.createdAt = new Date(user.createdAt);
+            user.updatedAt = new Date(user.updatedAt);
+            return user;
         }
+    } catch (err) {
+        logger.error('Redis error fetching user profile cache', { error: err.message });
     }
+    return null;
+}
 
+async function cacheUser(userId, profileVersion, user) {
+    if (redis.status !== 'ready') return;
+    const cacheKey = `user:profile:${userId}:${profileVersion}`;
+    try {
+        await redis.setex(cacheKey, 300, JSON.stringify(user));
+    } catch (err) {
+        logger.error('Redis error writing user profile cache', { error: err.message });
+    }
+}
+
+async function fetchUserFromDb(userId) {
     const user = await prisma.user.findUnique({
-        where: { id: payload.sub },
+        where: { id: userId },
         select: {
             id: true,
             email: true,
@@ -116,6 +140,75 @@ async function authenticateJwtRequest(req, token) {
     if (!user) {
         throw createError('AUTH_007');
     }
+    return user;
+}
+
+async function isSessionCached(sessionId) {
+    if (redis.status !== 'ready') return false;
+    try {
+        const cachedSession = await redis.get(`session:valid:${sessionId}`);
+        return cachedSession === '1';
+    } catch (err) {
+        logger.error('Redis error checking session cache', { error: err.message });
+        return false;
+    }
+}
+
+async function cacheSessionValidity(sessionId) {
+    if (redis.status !== 'ready') return;
+    try {
+        await redis.setex(`session:valid:${sessionId}`, 60, '1');
+    } catch (err) {
+        logger.error('Redis error setting session cache', { error: err.message });
+    }
+}
+
+async function validateAndRefreshSession(sessionId, userId) {
+    const isSessionValid = await isSessionCached(sessionId);
+    if (isSessionValid) return;
+
+    const sessionUpdate = await prisma.session.updateMany({
+        where: {
+            id: sessionId,
+            userId: userId,
+        },
+        data: {
+            lastActiveAt: new Date(),
+        },
+    });
+
+    // If the session no longer exists (revoked), the access token is also invalid
+    if (sessionUpdate.count === 0) {
+        throw createError('AUTH_006', { message: 'Session has been revoked' });
+    }
+
+    await cacheSessionValidity(sessionId);
+}
+
+async function authenticateJwtRequest(req, token) {
+    const payload =
+        tokenService.verifyAccessToken(token);
+
+    if (!payload) {
+        throw createError('AUTH_006');
+    }
+
+    // Check if token is blacklisted
+    if (payload.jti) {
+        const isBlacklisted = await tokenService.isTokenBlacklisted(payload.jti);
+        if (isBlacklisted) {
+            throw createError('AUTH_006', { message: 'Token has been revoked' });
+        }
+    }
+
+    const profileVersion = await getProfileVersion();
+    let user = await getUserFromCache(payload.sub, profileVersion);
+
+    // Fetch from DB on cache miss
+    if (!user) {
+        user = await fetchUserFromDb(payload.sub);
+        await cacheUser(payload.sub, profileVersion, user);
+    }
 
     if (user.status !== 'ACTIVE') {
         throw createError('AUTH_008');
@@ -125,20 +218,7 @@ async function authenticateJwtRequest(req, token) {
         payload.sessionId || null;
 
     if (sessionId) {
-        const sessionUpdate = await prisma.session.updateMany({
-            where: {
-                id: sessionId,
-                userId: user.id,
-            },
-            data: {
-                lastActiveAt: new Date(),
-            },
-        });
-
-        // If the session no longer exists (revoked), the access token is also invalid
-        if (sessionUpdate.count === 0) {
-            throw createError('AUTH_006', { message: 'Session has been revoked' });
-        }
+        await validateAndRefreshSession(sessionId, user.id);
     }
 
     const authUser = {
@@ -168,7 +248,6 @@ async function authenticateJwtRequest(req, token) {
     if (riskAssessment.is_anomaly) {
         authUser.isAnomalous = true;
         authUser.riskScore = riskAssessment.risk_score;
-        // In a real scenario, we might force re-auth here or set a flag for downstream middleware
     }
 
     await enforceOrgPolicyForRequest(

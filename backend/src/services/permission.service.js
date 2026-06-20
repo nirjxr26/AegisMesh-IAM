@@ -1,4 +1,6 @@
 const prisma = require('../config/database');
+const redis = require('../config/redis');
+const logger = require('../utils/logger');
 
 const SUPER_ADMIN_ROLE = 'SuperAdmin';
 const REGEX_ESCAPE_PATTERN = /[.+?^${}()|[\]\\]/g;
@@ -151,26 +153,76 @@ async function fetchFullUserAccessContext(userId) {
     return [directUserRoles, enrichedUserGroups];
 }
 
+async function getCachedUserAccessContext(userId) {
+    const versionKey = 'user:permissions:version';
+    let version = '1';
+
+    // 1. Get current version of permissions cache
+    if (redis.status === 'ready') {
+        try {
+            version = (await redis.get(versionKey)) || '1';
+        } catch (err) {
+            logger.error('Redis error getting permissions version', { error: err.message });
+        }
+    }
+
+    const cacheKey = `user:access_ctx:${userId}:${version}`;
+
+    // 2. Try to get cached context
+    if (redis.status === 'ready') {
+        try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                return JSON.parse(cached);
+            }
+        } catch (err) {
+            logger.error('Redis error reading user access context cache', { error: err.message });
+        }
+    }
+
+    // 3. Cache miss: Fetch and calculate
+    const [userRoles, enrichedUserGroups] = await fetchFullUserAccessContext(userId);
+    const isSuperAdmin = isUserSuperAdmin(userRoles, enrichedUserGroups);
+    const roleMap = extractUniqueRoles(userRoles, enrichedUserGroups);
+    const policies = extractPolicies(roleMap);
+
+    const directRoles = userRoles.map((ur) => ur.role);
+    const groups = enrichedUserGroups.map((ug) => ({
+        ...ug.group,
+        roles: ug.group?.groupRoles?.map((gr) => gr.role) || [],
+    }));
+
+    const context = { isSuperAdmin, policies, directRoles, groups };
+
+    // 4. Write back to Redis
+    if (redis.status === 'ready') {
+        try {
+            await redis.setex(cacheKey, 300, JSON.stringify(context)); // 5 minutes TTL
+        } catch (err) {
+            logger.error('Redis error setting user access context cache', { error: err.message });
+        }
+    }
+
+    return context;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Permissions Public API */
 /* -------------------------------------------------------------------------- */
 
 async function getUserPermissions(userId) {
-    const [userRoles, userGroups] = await fetchFullUserAccessContext(userId);
-    const roleMap = extractUniqueRoles(userRoles, userGroups);
-    return extractPolicies(roleMap);
+    const context = await getCachedUserAccessContext(userId);
+    return context.policies;
 }
 
 async function checkPermission(userId, action, resource) {
-    const [userRoles, userGroups] = await fetchFullUserAccessContext(userId);
+    const context = await getCachedUserAccessContext(userId);
 
-    if (isUserSuperAdmin(userRoles, userGroups)) {
+    if (context.isSuperAdmin) {
         return { allowed: true, reason: 'SuperAdmin', matchedPolicies: [], deniedBy: null };
     }
 
-    const roleMap = extractUniqueRoles(userRoles, userGroups);
-    const policies = extractPolicies(roleMap);
-    const { allowPolicies, denyPolicies } = splitPoliciesByEffect(policies);
+    const { allowPolicies, denyPolicies } = splitPoliciesByEffect(context.policies);
 
     // Deny takes precedence
     const deniedBy = denyPolicies.find((p) => matchesPolicy(p, action, resource));
@@ -187,28 +239,20 @@ async function checkPermission(userId, action, resource) {
 }
 
 async function getUserEffectivePermissions(userId) {
-    const [userRoles, userGroups] = await fetchFullUserAccessContext(userId);
-    const roleMap = extractUniqueRoles(userRoles, userGroups);
-    const policies = extractPolicies(roleMap);
-
-    const directRoles = userRoles.map((ur) => ur.role);
-    const groups = userGroups.map((ug) => ({
-        ...ug.group,
-        roles: ug.group?.groupRoles?.map((gr) => gr.role) || [],
-    }));
+    const context = await getCachedUserAccessContext(userId);
 
     const allowed = new Set();
     const denied = new Set();
 
-    policies.forEach((p) => {
+    context.policies.forEach((p) => {
         const target = p.effect === 'DENY' ? denied : allowed;
         p.actions.forEach((a) => target.add(a));
     });
 
     return {
-        roles: directRoles,
-        groups,
-        policies,
+        roles: context.directRoles,
+        groups: context.groups,
+        policies: context.policies,
         effectivePermissions: {
             allowed: Array.from(allowed),
             denied: Array.from(denied),
@@ -216,8 +260,20 @@ async function getUserEffectivePermissions(userId) {
     };
 }
 
+async function invalidatePermissionsCache() {
+    if (redis.status === 'ready') {
+        try {
+            await redis.incr('user:permissions:version');
+            logger.info('Permissions cache version bumped. All cached permissions invalidated.');
+        } catch (err) {
+            logger.error('Redis error bumping permissions version', { error: err.message });
+        }
+    }
+}
+
 module.exports = {
     getUserPermissions,
     checkPermission,
     getUserEffectivePermissions,
+    invalidatePermissionsCache,
 };

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ecr-refresher-traffic
+  namespace: aegismesh
+spec:
+  podSelector:
+    matchLabels:
+      app: ecr-registry-refresher
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow HTTPS egress for AWS ECR and Kubernetes API Server
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
