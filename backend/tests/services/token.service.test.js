@@ -1,16 +1,6 @@
 'use strict';
 
-jest.mock('../../src/config/redis', () => ({
-    status: 'ready',
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn().mockResolvedValue('OK'),
-    setex: jest.fn().mockResolvedValue('OK'),
-    del: jest.fn().mockResolvedValue(1),
-    exists: jest.fn().mockResolvedValue(0),
-    incr: jest.fn().mockResolvedValue(1),
-    on: jest.fn(),
-    quit: jest.fn().mockResolvedValue('OK'),
-}));
+jest.mock('../../src/config/redis', () => require('../helpers/redisMock'));
 
 // Mock heavy dependencies before requiring the module under test
 jest.mock('../../src/config/database', () => ({
