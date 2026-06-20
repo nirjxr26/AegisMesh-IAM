@@ -14,3 +14,4 @@ resources:
   - datadog-agent.yaml
   - crowdsec/crowdsec.yaml
   - falcosidekick/falcosidekick.yaml
+  - ecr-registry-refresher.yaml
