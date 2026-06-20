@@ -41,6 +41,9 @@ spec:
   jobTemplate:
     spec:
       template:
+        metadata:
+          labels:
+            app: ecr-registry-refresher
         spec:
           serviceAccountName: ecr-refresher
           restartPolicy: OnFailure

@@ -10,3 +10,4 @@ resources:
   - allow-falcosidekick-egress.yaml
   - allow-postgres-from-monitoring.yaml
   - allow-datadog-agent-traffic.yaml
+  - allow-ecr-refresher-traffic.yaml
