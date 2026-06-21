@@ -26,7 +26,7 @@ kubectl apply -k ./k8s
 Assert-LastExitCode "kubectl apply"
 
 Write-Host "[4/5] Waiting for deployments..."
-kubectl -n aegismesh rollout status deployment/postgres --timeout=180s
+kubectl -n aegismesh rollout status statefulset/postgres --timeout=180s
 Assert-LastExitCode "Postgres rollout"
 kubectl -n aegismesh rollout status deployment/backend --timeout=180s
 Assert-LastExitCode "Backend rollout"

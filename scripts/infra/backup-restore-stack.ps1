@@ -109,7 +109,7 @@ elseif ($Mode -eq "Restore") {
 
     # 5. Wait for PostgreSQL to be ready
     Log-Info "Waiting for PostgreSQL deployment to be ready..."
-    kubectl rollout status deployment/postgres -n aegismesh --timeout=120s
+    kubectl rollout status statefulset/postgres -n aegismesh --timeout=120s
 
     # 6. Verify and create mlflow_db
     Log-Info "Ensuring mlflow_db database exists..."
