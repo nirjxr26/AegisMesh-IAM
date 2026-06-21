@@ -17,7 +17,7 @@ const PUBLIC_AUTH_PATHS = [
 let csrfToken = null;
 let csrfPromise = null;
 
-const getSessionStorage = () => (typeof globalThis !== 'undefined' ? globalThis.sessionStorage : null);
+const getSessionStorage = () => (typeof globalThis === 'undefined' ? null : globalThis.sessionStorage);
 
 const api = axios.create({
     baseURL: '/api',

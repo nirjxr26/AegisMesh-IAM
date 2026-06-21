@@ -26,7 +26,7 @@ class AnomalyDetector:
         self.random_state = 42
         self.active_version = "unknown"
 
-        # MLflow Setup
+        # MLflow runs within the secure internal cluster network, so HTTP is acceptable here.
         self.mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000") # NOSONAR
         mlflow.set_tracking_uri(self.mlflow_uri)
         self.mlflow_client = mlflow.tracking.MlflowClient()
@@ -162,19 +162,19 @@ class AnomalyDetector:
             # Phase 1: Feature Engineering (Preprocessing)
             start_prep = time.time()
             preprocessor = self.model.named_steps['preprocessor']
-            X_transformed = preprocessor.transform(df)
+            x_transformed = preprocessor.transform(df)
             prep_time = time.time() - start_prep
 
             # Phase 2: Model Inference
             start_inf = time.time()
             classifier = self.model.named_steps['classifier']
-            scores = classifier.decision_function(X_transformed)
+            scores = classifier.decision_function(x_transformed)
             inf_time = time.time() - start_inf
 
             # Map score to 0-1 risk range
             risk_score = 1.0 - ((scores[0] + 0.5) / 1.0)
             return float(np.clip(risk_score, 0, 1)), prep_time, inf_time
 
-        except Exception as e:
-            logger.error(f"Prediction error: {e}")
+        except Exception:
+            logger.exception("Prediction error")
             return 0.5, 0.0, 0.0

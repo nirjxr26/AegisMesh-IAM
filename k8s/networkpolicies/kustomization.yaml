@@ -11,3 +11,4 @@ resources:
   - allow-postgres-from-monitoring.yaml
   - allow-datadog-agent-traffic.yaml
   - allow-ecr-refresher-traffic.yaml
+  - allow-prometheus-scraping.yaml

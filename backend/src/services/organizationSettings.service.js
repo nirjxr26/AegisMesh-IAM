@@ -387,7 +387,7 @@ function mergeNotificationPreferences(
 ) {
     return {
         ...DEFAULT_NOTIFICATION_PREFERENCES,
-        ...(currentPrefs || {}),
+        ...currentPrefs,
     };
 }
 

@@ -26,7 +26,7 @@ kubectl apply -k ./k8s
 Assert-LastExitCode "kubectl apply"
 
 Write-Host "[4/5] Waiting for deployments..."
-kubectl -n aegismesh rollout status deployment/postgres --timeout=180s
+kubectl -n aegismesh rollout status statefulset/postgres --timeout=180s
 Assert-LastExitCode "Postgres rollout"
 kubectl -n aegismesh rollout status deployment/backend --timeout=180s
 Assert-LastExitCode "Backend rollout"
@@ -43,3 +43,5 @@ Write-Host ""
 Write-Host "Run these in separate terminals to access services on localhost:"
 Write-Host "kubectl -n aegismesh port-forward svc/frontend 3000:3000"
 Write-Host "kubectl -n aegismesh port-forward svc/backend 5000:5000"
+Write-Host "kubectl -n monitoring port-forward svc/grafana 3010:3010"
+Write-Host "kubectl -n monitoring port-forward svc/prometheus 9090:9090"

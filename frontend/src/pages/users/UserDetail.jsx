@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowLeft, Edit, AlertCircle, Shield, Globe, ShieldCheck,
-    Smartphone, History, LayoutDashboard, Fingerprint, Lock, ShieldX, Users
+    History, LayoutDashboard, Fingerprint, Lock, ShieldX, Users
 } from 'lucide-react';
 import { userAPI, rbacAPI, auditAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -191,9 +191,10 @@ function SecurityTab({ user, sessions, sessionsLoading, onRevokeAll, onRevoke, r
                     )}
                 </div>
                 <div className="space-y-3">
-                    {sessionsLoading ? (
+                    {sessionsLoading && (
                         <p className="text-[#7a87a8] text-sm text-center py-4">Loading sessions...</p>
-                    ) : sessions.length > 0 ? (
+                    )}
+                    {!sessionsLoading && sessions.length > 0 && (
                         sessions.map((session) => (
                             <SessionCard
                                 key={session.id}
@@ -203,7 +204,8 @@ function SecurityTab({ user, sessions, sessionsLoading, onRevokeAll, onRevoke, r
                                 isRevoking={revokingId === session.id}
                             />
                         ))
-                    ) : (
+                    )}
+                    {!sessionsLoading && sessions.length === 0 && (
                         <div className="bg-[#ffffff] border border-[#d0d7e8] rounded-xl p-8 text-center">
                             <p className="text-[#7a87a8]">User has no active sessions.</p>
                         </div>
@@ -229,9 +231,10 @@ function AuditTab({ auditLogs, auditLoading }) {
     return (
         <div className="animate-fade-in-up">
             <h3 className="text-lg font-bold text-[#0f1623] mb-4 border-b border-[#d0d7e8] pb-2">Activity Feed</h3>
-            {auditLoading ? (
+            {auditLoading && (
                 <p className="text-[#7a87a8] py-4 text-center">Loading activity feed...</p>
-            ) : auditLogs.length > 0 ? (
+            )}
+            {!auditLoading && auditLogs.length > 0 && (
                 <div className="space-y-4">
                     {auditLogs.map(log => (
                         <div key={log.id} className="flex gap-4 p-4 bg-[#ffffff] border border-[#d0d7e8] rounded-lg">
@@ -248,7 +251,8 @@ function AuditTab({ auditLogs, auditLoading }) {
                         </div>
                     ))}
                 </div>
-            ) : (
+            )}
+            {!auditLoading && auditLogs.length === 0 && (
                 <div className="bg-[#ffffff] border border-[#d0d7e8] rounded-xl p-8 text-center text-[#7a87a8] text-sm">
                     No activity records found for this user.
                 </div>

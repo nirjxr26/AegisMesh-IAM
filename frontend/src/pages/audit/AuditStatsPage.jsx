@@ -97,6 +97,30 @@ function getCurrentStats(range, last24h, last7d, last9d, last30d) {
     return last30d;
 }
 
+function getActivityData(timeRange, hourlyActivity, dailyActivity) {
+    if (timeRange === '24h') {
+        return hourlyActivity.map((row) => ({
+            label: `${String(row.hour).padStart(2, '0')}:00`,
+            count: row.count,
+        }));
+    }
+
+    let dailyData = dailyActivity;
+    if (timeRange === '7d') {
+        dailyData = dailyActivity.slice(-7);
+    } else if (timeRange === '9d') {
+        dailyData = dailyActivity.slice(-9);
+    }
+
+    return dailyData.map((row) => ({
+        label: new Date(row.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+        }),
+        count: row.count,
+    }));
+}
+
 function getSeverityClass(severity) {
     if (severity === 'CRITICAL' || severity === 'HIGH') {
         return 'bg-[#dc2626]/10 text-[#dc2626]';
@@ -151,24 +175,7 @@ export default function AuditStatsPage() {
 
     const rangeLabel = getTimeRangeLabel(timeRange);
 
-    const activityData =
-        timeRange === '24h'
-            ? hourlyActivity.map((row) => ({
-                label: `${String(row.hour).padStart(2, '0')}:00`,
-                count: row.count,
-            }))
-            : (timeRange === '7d'
-                ? dailyActivity.slice(-7)
-                : timeRange === '9d'
-                    ? dailyActivity.slice(-9)
-                    : dailyActivity
-              ).map((row) => ({
-                label: new Date(row.date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                }),
-                count: row.count,
-              }));
+    const activityData = getActivityData(timeRange, hourlyActivity, dailyActivity);
 
     const donutData = categoryBreakdown.map((item, index) => ({
         id: `${item.category}-${index}`,

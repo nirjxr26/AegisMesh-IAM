@@ -1842,7 +1842,7 @@ export default function SettingsPage({ initialTabOverride = null }) {
 
     const effectiveUser = {
         ...user,
-        ...(profileData || {}),
+        ...profileData,
     };
 
     const fullName = `${effectiveUser?.firstName || ''} ${effectiveUser?.lastName || ''}`.trim() || effectiveUser?.email || 'User';

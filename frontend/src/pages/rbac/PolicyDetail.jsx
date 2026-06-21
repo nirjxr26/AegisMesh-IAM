@@ -18,6 +18,10 @@ import {
     Zap,
 } from 'lucide-react';
 
+const KEY_REGEXP = /^(\s*)"([^"]+)":/;
+const VALUE_REGEXP = /: "([^"]*)"(,?)$/;
+const PUNCTUATION_REGEXP = /^(\s*)([{}[\]],?)$/;
+
 function JsonHighlighter({ jsonObject }) {
     if (!jsonObject) return null;
 
@@ -25,9 +29,9 @@ function JsonHighlighter({ jsonObject }) {
     const lines = jsonString.split('\n');
 
     return lines.map((line, index) => {
-        const keyMatch = line.match(/^(\s*)"([^"]+)":/);
-        const valueMatch = line.match(/: "([^"]*)"(,?)$/);
-        const punctuationMatch = line.match(/^(\s*)([{}[\]],?)$/);
+        const keyMatch = KEY_REGEXP.exec(line);
+        const valueMatch = VALUE_REGEXP.exec(line);
+        const punctuationMatch = PUNCTUATION_REGEXP.exec(line);
 
         const safeKey = keyMatch ? `${index}-${keyMatch[2]}` : `${index}-${line.slice(0, 20).replace(/\s+/g, '_')}`;
 
@@ -68,6 +72,25 @@ JsonHighlighter.propTypes = {
     jsonObject: PropTypes.object
 };
 
+function getPolicyJson(policy) {
+    if (!policy) return null;
+    return {
+        Version: "2012-10-17",
+        Statement: [
+            {
+                Effect: policy.effect,
+                Action: policy.actions,
+                Resource: policy.resources
+            }
+        ]
+    };
+}
+
+function formatDate(value) {
+    if (!value) return 'Unknown';
+    return new Date(value).toLocaleString();
+}
+
 export default function PolicyDetail() {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('visual');
@@ -79,23 +102,8 @@ export default function PolicyDetail() {
     });
 
     const policy = policyData?.data?.data;
-    const policyJson = policy ? {
-        Version: "2012-10-17",
-        Statement: [
-            {
-                Effect: policy.effect,
-                Action: policy.actions,
-                Resource: policy.resources
-            }
-        ]
-    } : null;
-
+    const policyJson = getPolicyJson(policy);
     const policyCode = policyJson ? JSON.stringify(policyJson, null, 4) : '';
-
-    const formatDate = (value) => {
-        if (!value) return 'Unknown';
-        return new Date(value).toLocaleString();
-    };
 
     const copyJson = async () => {
         if (!policyCode) return;

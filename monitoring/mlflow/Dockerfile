@@ -13,9 +13,8 @@ COPY --from=builder /install /usr/local
 
 # Add a non-root user
 RUN addgroup --system --gid 10001 mlflowgroup && \
-    adduser --system --uid 10001 --gid 10001 mlflowuser
-
-RUN mkdir -p /mlflow-artifacts && chown -R mlflowuser:mlflowgroup /mlflow-artifacts
+    adduser --system --uid 10001 --gid 10001 mlflowuser && \
+    mkdir -p /mlflow-artifacts && chown -R mlflowuser:mlflowgroup /mlflow-artifacts
 
 # Add HEALTHCHECK (Datadog finding)
 # MLflow doesn't have a standard health endpoint, so we check if the port is listening

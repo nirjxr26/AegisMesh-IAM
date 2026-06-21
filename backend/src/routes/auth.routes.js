@@ -58,6 +58,31 @@ function setAuthCookies(req, res, accessToken, refreshToken) {
     });
 }
 
+function handleOAuthCallback(providerName, auditProviderName) {
+    return async (req, res) => {
+        try {
+            const user = req.user;
+            const refreshToken = tokenService.generateRefreshToken(user);
+
+            const session = await tokenService.createSession(
+                user.id,
+                refreshToken,
+                req.headers['user-agent'],
+                req.ip
+            );
+
+            const accessToken = tokenService.generateAccessToken(user, session.id);
+            await auditAuth.oauthLogin(req, user.id, auditProviderName, session.id);
+
+            setAuthCookies(req, res, accessToken, refreshToken);
+            return res.redirect(`${getFrontendUrl()}/oauth/callback`);
+        } catch (error) {
+            logger.warn(`${providerName} OAuth callback failed`, { message: error.message });
+            return res.redirect(getOAuthFailureUrl());
+        }
+    };
+}
+
 function getFrontendUrl() {
     return process.env.FRONTEND_URL || 'http://localhost:3000';
 }
@@ -205,28 +230,7 @@ router.get(
         session: false,
         failureRedirect: getOAuthFailureUrl(),
     }),
-    async (req, res) => {
-        try {
-            const user = req.user;
-            const refreshToken = tokenService.generateRefreshToken(user);
-
-            const session = await tokenService.createSession(
-                user.id,
-                refreshToken,
-                req.headers['user-agent'],
-                req.ip
-            );
-
-            const accessToken = tokenService.generateAccessToken(user, session.id);
-            await auditAuth.oauthLogin(req, user.id, 'google', session.id);
-
-            setAuthCookies(req, res, accessToken, refreshToken);
-            return res.redirect(`${getFrontendUrl()}/oauth/callback`);
-        } catch (error) {
-            logger.warn('Google OAuth callback failed', { message: error.message });
-            return res.redirect(getOAuthFailureUrl());
-        }
-    }
+    handleOAuthCallback('Google', 'google')
 );
 
 // GitHub OAuth
@@ -242,28 +246,7 @@ router.get(
         session: false,
         failureRedirect: getOAuthFailureUrl(),
     }),
-    async (req, res) => {
-        try {
-            const user = req.user;
-            const refreshToken = tokenService.generateRefreshToken(user);
-
-            const session = await tokenService.createSession(
-                user.id,
-                refreshToken,
-                req.headers['user-agent'],
-                req.ip
-            );
-
-            const accessToken = tokenService.generateAccessToken(user, session.id);
-            await auditAuth.oauthLogin(req, user.id, 'github', session.id);
-
-            setAuthCookies(req, res, accessToken, refreshToken);
-            return res.redirect(`${getFrontendUrl()}/oauth/callback`);
-        } catch (error) {
-            logger.warn('GitHub OAuth callback failed', { message: error.message });
-            return res.redirect(getOAuthFailureUrl());
-        }
-    }
+    handleOAuthCallback('GitHub', 'github')
 );
 
 module.exports = router;

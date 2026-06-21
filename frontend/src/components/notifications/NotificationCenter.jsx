@@ -166,9 +166,9 @@ export default function NotificationCenter({
             />
             
             {/* Centered Modal */}
-            <div 
-                className="fixed left-1/2 top-1/2 z-[70] w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2.5rem] border border-[#dbe4f0] bg-white shadow-[0_40px_100px_rgba(15,23,42,0.25)] animate-in fade-in zoom-in duration-200"
-                role="dialog"
+            <dialog 
+                open
+                className="fixed left-1/2 top-1/2 z-[70] w-[min(46rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2.5rem] border border-[#dbe4f0] bg-white p-0 shadow-[0_40px_100px_rgba(15,23,42,0.25)] animate-in fade-in zoom-in duration-200"
                 aria-live="polite"
                 aria-modal="true"
                 aria-labelledby="notification-center-title"
@@ -198,35 +198,60 @@ export default function NotificationCenter({
                                 type="button"
                                 onClick={onMarkAllRead}
                                 disabled={unreadCount === 0 || isMarkingAllRead}
-                                className="rounded-xl border border-[#d0d7e8] px-4 py-2 text-xs font-bold text-[#334155] hover:border-[#4f46e5] hover:text-[#4f46e5] transition-all disabled:opacity-50"
+                                className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-4 py-2 text-xs font-bold text-[#475569] hover:bg-slate-50 transition-all disabled:opacity-50"
                             >
-                                {isMarkingAllRead ? 'Saving...' : 'Mark all read'}
+                                <CheckCheck size={14} />
+                                {isMarkingAllRead ? 'Marking...' : 'Mark all read'}
                             </button>
+
                             <button
                                 type="button"
                                 onClick={() => onOpen?.(null)}
-                                className="rounded-xl p-2 text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#0f172a] transition-all"
+                                className="rounded-xl border border-[#e2e8f0] bg-white p-2 text-[#64748b] hover:bg-slate-50 hover:text-slate-900 transition-all"
                                 aria-label="Close"
                             >
-                                <X size={24} />
+                                <X size={18} />
                             </button>
                         </div>
                     </div>
 
-                    <div className="mt-6 flex items-center justify-between gap-3">
-                        <div className="flex flex-wrap gap-2">
-                            {FILTERS.map((filter) => (
-                                <FilterPill
-                                    key={filter.id}
-                                    label={filter.label}
-                                    count={filterCountMap[filter.id] ?? 0}
-                                    active={activeFilter === filter.id}
-                                    onClick={() => onFilterChange?.(filter.id)}
-                                />
-                            ))}
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+                            {['all', 'unread', 'critical'].map((filter) => {
+                                const active = activeFilter === filter;
+                                const count = filterCountMap[filter];
+
+                                return (
+                                    <button
+                                        key={filter}
+                                        type="button"
+                                        onClick={() => onFilterChange?.(filter)}
+                                        className={`relative flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
+                                            active
+                                                ? 'bg-white text-slate-900 shadow-sm'
+                                                : 'text-[#64748b] hover:text-[#0f172a]'
+                                        }`}
+                                    >
+                                        <span className="capitalize">{filter}</span>
+                                        {count > 0 && (
+                                            <span
+                                                className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold ${
+                                                    active
+                                                        ? filter === 'critical'
+                                                            ? 'bg-red-500 text-white'
+                                                            : 'bg-[#4f46e5] text-white'
+                                                        : 'bg-slate-200 text-slate-600'
+                                                }`}
+                                            >
+                                                {count}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
 
-                        <span className="rounded-full bg-[#eef2ff] px-3 py-1.5 text-xs font-bold text-[#4f46e5]">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#64748b]">
                             {unreadCount} UNREAD
                         </span>
                     </div>
@@ -275,7 +300,7 @@ export default function NotificationCenter({
                         </button>
                     </div>
                 </div>
-            </div>
+            </dialog>
         </>
     );
 }

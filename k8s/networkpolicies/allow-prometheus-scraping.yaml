@@ -1,12 +1,16 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-postgres-from-monitoring
+  name: allow-prometheus-scraping
   namespace: aegismesh
 spec:
   podSelector:
-    matchLabels:
-      app: postgres
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - backend
+          - security-engine
   policyTypes:
     - Ingress
   ingress:
@@ -16,13 +20,9 @@ spec:
               kubernetes.io/metadata.name: monitoring
           podSelector:
             matchLabels:
-              app: mlflow
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: monitoring
-          podSelector:
-            matchLabels:
-              app: grafana
+              app: prometheus
       ports:
         - protocol: TCP
-          port: 5432
+          port: 5000
+        - protocol: TCP
+          port: 8000

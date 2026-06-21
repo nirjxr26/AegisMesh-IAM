@@ -21,6 +21,7 @@ resources:
   - networkpolicies/allow-postgres-from-monitoring.yaml
   - manifests/datadog-agent.yaml
   - networkpolicies/allow-datadog-agent-traffic.yaml
+  - networkpolicies/allow-prometheus-scraping.yaml
 
 images:
   - name: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend

@@ -109,3 +109,8 @@ pg_dumpall*
 .claude/    
 .sonarqube_report/
 .code-quality/
+
+# Custom local tools/scripts
+scripts/ci/sonar-report.js
+scripts/ci/scan-repo.js
+

@@ -95,7 +95,12 @@ export default function SessionCard({ session, isCurrent, onRevoke, isRevoking }
                 </div>
             </div>
 
-            {!currentSession ? (
+            {currentSession ? (
+                <span className="text-[11px] text-emerald-500 inline-flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />{" "}
+                    Active now
+                </span>
+            ) : (
                 <button
                     onClick={() => onRevoke(session.id)}
                     disabled={isRevoking}
@@ -104,11 +109,6 @@ export default function SessionCard({ session, isCurrent, onRevoke, isRevoking }
                     {isRevoking ? <Loader2 size={12} className="animate-spin" /> : null}
                     Revoke
                 </button>
-            ) : (
-                <span className="text-[11px] text-emerald-500 inline-flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Active now
-                </span>
             )}
         </div>
     );
