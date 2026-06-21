@@ -94,7 +94,7 @@ export default function SessionsManagement() {
                             <span>🖥️</span> Devices
                         </h2>
                         <p className="text-sm text-aws-text-dim mt-1">
-                            {sessions.length} active session{sessions.length !== 1 ? 's' : ''}.
+                            {sessions.length} active session{sessions.length === 1 ? '' : 's'}.
                         </p>
                     </div>
                     {sessions.length > 1 && (

@@ -45,7 +45,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: mlflow
-        image: aegismesh-mlflow:1.0.0
+        image: aegismesh-mlflow:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
@@ -248,15 +248,41 @@ spec:
               - ALL
         env:
         - name: GF_SECURITY_ADMIN_USER
-          valueFrom:
-            secretKeyRef:
-              name: aegismesh-secrets
-              key: GRAFANA_ADMIN_USER
+          value: admin
         - name: GF_SECURITY_ADMIN_PASSWORD
+          value: admin
+        - name: DB_USER
           valueFrom:
             secretKeyRef:
               name: aegismesh-secrets
-              key: GRAFANA_ADMIN_PASSWORD
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: aegismesh-secrets
+              key: DB_PASSWORD
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: aegismesh-secrets
+              key: DB_NAME
+        volumeMounts:
+        - name: datasources
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: providers
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: dashboards
+          mountPath: /var/lib/grafana/dashboards
+      volumes:
+      - name: datasources
+        configMap:
+          name: grafana-datasources
+      - name: providers
+        configMap:
+          name: grafana-dashboards-provider
+      - name: dashboards
+        configMap:
+          name: grafana-dashboard-aegismesh
 ---
 apiVersion: v1
 kind: Service
@@ -268,5 +294,324 @@ spec:
     app: grafana
   ports:
   - protocol: TCP
-    port: 3000
+    port: 3010
     targetPort: 3000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: true
+      - name: AegisMesh PostgreSQL
+        uid: aegismesh-postgres
+        type: postgres
+        access: proxy
+        url: postgres.aegismesh.svc.cluster.local:5432
+        user: ${DB_USER}
+        database: ${DB_NAME}
+        secureJsonData:
+          password: ${DB_PASSWORD}
+        jsonData:
+          sslmode: disable
+          postgresVersion: 1700
+          timescaledb: false
+        editable: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: monitoring
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'AegisMesh Dashboards'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 10
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-aegismesh
+  namespace: monitoring
+data:
+  aegismesh-overview.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "grafana",
+              "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          },
+          "id": 100,
+          "panels": [],
+          "title": "Platform Health & Throughput",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+              "unit": "reqps"
+            }
+          },
+          "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+          "id": 1,
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "sum(rate(aegismesh_http_requests_total[5m]))", "legendFormat": "Global Load", "refId": "A" }],
+          "title": "Backend Request Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
+              "unit": "reqps"
+            }
+          },
+          "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
+          "id": 2,
+          "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "sum(rate(aegismesh_http_requests_total{status_code=~\"5..\"}[5m]))", "legendFormat": "Errors", "refId": "A" }],
+          "title": "Backend Error Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
+          "id": 8,
+          "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "aegismesh_active_sessions", "legendFormat": "Sessions", "refId": "A" }],
+          "title": "Active Sessions",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.01 }] }
+            }
+          },
+          "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
+          "id": 9,
+          "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "sum(increase(aegismesh_audit_log_writes_total{result=\"failure\"}[1h]))", "legendFormat": "Failures", "refId": "A" }],
+          "title": "Audit Write Failures",
+          "type": "stat"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+          "id": 101,
+          "panels": [],
+          "title": "System Performance & Resource Metrics",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s", "custom": { "fillOpacity": 10, "lineWidth": 2 } } },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+          "id": 3,
+          "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+          "targets": [
+            { "expr": "histogram_quantile(0.95, sum(rate(aegismesh_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95 Latency", "refId": "A" },
+            { "expr": "histogram_quantile(0.50, sum(rate(aegismesh_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50 Latency", "refId": "B" }
+          ],
+          "title": "API Latency Profiles",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "fillOpacity": 10, "lineWidth": 2 } } },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 },
+          "id": 5,
+          "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
+          "targets": [
+            { "expr": "aegismesh_nodejs_heap_size_used_bytes", "legendFormat": "Heap Used", "refId": "A" },
+            { "expr": "aegismesh_nodejs_heap_size_total_bytes", "legendFormat": "Heap Total", "refId": "B" }
+          ],
+          "title": "Node.js Memory Utilization",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+          "id": 102,
+          "panels": [],
+          "title": "Security & Audit Intelligence",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "aegismesh-postgres" },
+          "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50 } } },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "id": 6,
+          "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+          "targets": [{
+            "datasource": { "type": "postgres", "uid": "aegismesh-postgres" },
+            "format": "time_series",
+            "rawSql": "SELECT $__timeGroup(\"createdAt\", '1h') AS time, COUNT(*) AS audit_events FROM \"AuditLog\" WHERE $__timeFilter(\"createdAt\") GROUP BY time ORDER BY time;",
+            "refId": "A"
+          }],
+          "title": "Audit Log Velocity",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "aegismesh-postgres" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "id": 7,
+          "options": { "cellHeight": "sm", "showHeader": true },
+          "targets": [{
+            "datasource": { "type": "postgres", "uid": "aegismesh-postgres" },
+            "format": "table",
+            "rawSql": "SELECT action, result, category, COUNT(*) AS count FROM \"AuditLog\" WHERE $__timeFilter(\"createdAt\") GROUP BY action, result, category ORDER BY count DESC LIMIT 20;",
+            "refId": "A"
+          }],
+          "title": "Top Audit Actions",
+          "type": "table"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+          "id": 10,
+          "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+          "targets": [{ "expr": "sum by (action, result) (rate(aegismesh_auth_events_total[5m]))", "legendFormat": "{{action}} ({{result}})", "refId": "A" }],
+          "title": "Auth Lifecycle",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+          "id": 11,
+          "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+          "targets": [{ "expr": "sum by (action, severity) (rate(aegismesh_security_events_total[5m]))", "legendFormat": "{{action}} [{{severity}}]", "refId": "A" }],
+          "title": "Security Triggers",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+          "id": 12,
+          "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+          "targets": [{ "expr": "sum by (action, result) (rate(aegismesh_permission_events_total[5m]))", "legendFormat": "{{action}} ({{result}})", "refId": "A" }],
+          "title": "Access Denials",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+          "id": 16,
+          "panels": [],
+          "title": "Production MLOps & Threat Intelligence",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "blue" }
+            }
+          },
+          "gridPos": { "h": 6, "w": 4, "x": 0, "y": 33 },
+          "id": 19,
+          "options": { "colorMode": "background", "justifyMode": "center", "textMode": "name", "reduceOptions": { "fields": "/^version$/" } },
+          "targets": [{ "expr": "security_engine_model_info", "legendFormat": "Active Version: {{version}}", "refId": "A" }],
+          "title": "ML Model Lineage",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.2 }] },
+              "unit": "percentunit"
+            }
+          },
+          "gridPos": { "h": 6, "w": 4, "x": 4, "y": 33 },
+          "id": 17,
+          "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+          "targets": [{ "expr": "sum(rate(security_engine_predictions_total{outcome=\"anomalous\"}[5m])) / sum(rate(security_engine_predictions_total[5m]))", "legendFormat": "Rate", "refId": "A" }],
+          "title": "Anomaly Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s", "custom": { "fillOpacity": 30, "lineWidth": 2, "stacking": { "mode": "normal" } } } },
+          "gridPos": { "h": 6, "w": 16, "x": 8, "y": 33 },
+          "id": 20,
+          "options": { "legend": { "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi" } },
+          "targets": [
+            { "expr": "histogram_quantile(0.95, sum(rate(security_engine_preprocessing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "Preprocessing", "refId": "A" },
+            { "expr": "histogram_quantile(0.95, sum(rate(security_engine_inference_duration_seconds_bucket[5m])) by (le))", "legendFormat": "ML Inference", "refId": "B" }
+          ],
+          "title": "Latency Breakdown: Data vs Logic",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } } },
+          "gridPos": { "h": 7, "w": 24, "x": 0, "y": 39 },
+          "id": 18,
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(security_engine_prediction_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95 Total Prediction Latency", "refId": "A" }],
+          "title": "ML Engine End-to-End Latency",
+          "type": "timeseries"
+        }
+      ],
+      "preload": false,
+      "refresh": "15s",
+      "schemaVersion": 40,
+      "tags": ["aegismesh", "iam", "mlops"],
+      "time": { "from": "now-1h", "to": "now" },
+      "timezone": "browser",
+      "title": "AegisMesh Global Intelligence",
+      "uid": "aegismesh-overview"
+    }

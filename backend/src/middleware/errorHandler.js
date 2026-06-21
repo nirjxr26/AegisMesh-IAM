@@ -25,7 +25,7 @@ function errorHandler(err, req, res, _next) {
     // Prisma connection / credential / authentication errors
     const errMsgLower = err.message ? String(err.message).toLowerCase() : '';
     const isPrismaDbConnError = 
-        (err.code && err.code.startsWith('P1')) || 
+        err.code?.startsWith('P1') || 
         errMsgLower.includes('authentication failed against database server') ||
         errMsgLower.includes('database credentials') ||
         errMsgLower.includes('can\'t reach database server') ||

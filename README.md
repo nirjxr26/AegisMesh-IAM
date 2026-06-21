@@ -75,8 +75,6 @@ Core design rules:
 />
 </div>
 
----
-
 
 ## CI/CD & MLOps Architecture
 <div align="center">
@@ -88,24 +86,35 @@ Core design rules:
 
 ---
 
-## CI/CD & MLOps Pipeline
+## Pipeline Walkthrough
 
-**CI** — Triggered on every PR or push:
-- Lint, unit tests, SonarCloud quality gate, and CodeQL run on every PR
-- On merge to `main`: builds multi-stage Docker images, pushes to AWS ECR tagged by commit SHA
+### Dev Workflow & feature branch
+- Edit backend (Node), frontend (React), or security-engine (FastAPI) code. 
+- Test locally with `docker-compose up --build` or against a local k8s namespace. Push to a feature branch, open a PR into `main`.
 
-**CD** — Triggered on successful CI against `main`:
-- Patches Kustomize overlays under `k8s/overlays/prod` and opens a bot PR back to `main`
-- ArgoCD detects the merge and applies manifests to the cluster
+### CI — triggers on push/PR touching `backend/`, `frontend/`, or `security-engine/`
+- **Backend:** `npm ci --ignore-scripts` → ESLint → `npm test` (Jest)
+- **Frontend:** install → syntax check → `vite build`
+- **Docker validation:** builds all three Dockerfiles on the runner to catch broken builds before merge
+- **On merge to `main` only:** authenticates to ECR, builds hardened prod images (non-root UID, read-only filesystem), tags with commit SHA + `v1`, pushes to ECR
 
-**Cluster startup**:
-- Init containers run in order — `wait-for-db`, then `prisma-migrate` — before app starts
-- Smoke tests run post-deploy; failure triggers an automatic `git revert` of the overlay commit
+### CD / GitOps — triggers on push to `main` or a green CI run
+- Resolves the new image SHA and patches it into the Kustomize overlays (`patch-backend-image.yaml`, `patch-frontend-image.yaml`)
+- Commits to a `bot/overlay-update-*` branch, opens a PR, auto-merges
+- ArgoCD watches `main` and reconciles the live cluster to match
 
-**MLOps**:
-- On login, the backend calls the FastAPI security engine at `/analyze`; anomaly score > 0.7 triggers step-up MFA
-- Decisions are logged to PostgreSQL `AuditLog`
-- A K8s CronJob at midnight hits `/train`, pulls recent logs, retrains the Isolation Forest pipeline, registers the new version in MLflow, and hot-swaps the `.joblib` file in memory
+### Cluster rollout
+Init containers run in strict order before the app is reachable:
+1. `wait-for-db` — blocks until Postgres accepts connections
+2. `prisma-migrate` — runs `npx prisma migrate deploy` using the new image
+3. Backend, frontend, and security-engine pods go live
+
+### Smoke tests (self-hosted runner, local cluster)
+Checks rollout status, spins up a `curl` pod, hits `frontend:80/` to confirm real traffic, not just `Running`
+
+### MLOps loop
+- **Inference:** every login attempt triggers a non-blocking POST from backend to `security-engine:8000/analyze` with event context. FastAPI runs it through a scikit-learn pipeline (impute → scale → encode) into an Isolation Forest. Risk score > 0.7 forces step-up auth.
+- **Retraining:** a CronJob hits `/train` daily at midnight, pulls up to 10k recent logs from Postgres, retrains the Isolation Forest, logs the run to MLflow, and hot-swaps `isolation_forest.joblib` in memory — no restart required.
 
 **Key design decisions:**
 
@@ -222,14 +231,14 @@ python src/main.py # runs on :8000
 ## Project Structure
 
 ```
-├── backend/          # Node.js API, Prisma schema, auth, RBAC engine
-├── frontend/         # React 19 app, Tailwind CSS
+├── backend/          
+├── frontend/         
 ├── security-engine/  # Python ML engine, MLflow integration
-├── k8s/              # Kubernetes manifests, Kustomize overlays, SealedSecrets
-├── terraform/        # AWS infrastructure (ECR, EC2)
+├── k8s/              
+├── terraform/        
 ├── monitoring/       # Prometheus, Grafana, and MLflow configurations
-├── ci-cd/            # GitHub Actions workflows
-├── scripts/          # Cluster install and maintenance scripts
+├── .github/          # GHA workflows
+├── scripts/          # Cluster install and maintenance and backup scripts
 ```
 
 ---

@@ -68,14 +68,7 @@ export default function MFASettings() {
                             </p>
                         </div>
 
-                        {!showDisableForm ? (
-                            <button
-                                onClick={() => setShowDisableForm(true)}
-                                className="w-full text-sm font-medium text-aws-red hover:text-red-400 bg-aws-red/5 hover:bg-aws-red/10 px-4 py-3 rounded-xl border border-aws-red/20 hover:border-aws-red/40 transition-all"
-                            >
-                                Disable Two-Factor Authentication
-                            </button>
-                        ) : (
+                        {showDisableForm ? (
                             <div className="glass rounded-2xl p-6 animate-fade-in-up">
                                 <h3 className="font-semibold text-[#0f1623] mb-4">Confirm Disable MFA</h3>
                                 {disableError && (
@@ -126,6 +119,13 @@ export default function MFASettings() {
                                     </div>
                                 </form>
                             </div>
+                        ) : (
+                            <button
+                                onClick={() => setShowDisableForm(true)}
+                                className="w-full text-sm font-medium text-aws-red hover:text-red-400 bg-aws-red/5 hover:bg-aws-red/10 px-4 py-3 rounded-xl border border-aws-red/20 hover:border-aws-red/40 transition-all"
+                            >
+                                Disable Two-Factor Authentication
+                            </button>
                         )}
                     </div>
                 ) : (

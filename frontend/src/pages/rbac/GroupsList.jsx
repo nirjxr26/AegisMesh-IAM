@@ -224,9 +224,9 @@ export default function GroupsList() {
                         onClick={handleCloseForm}
                         aria-label="Close modal"
                     />
-                    <div 
-                        className="relative w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-in zoom-in duration-200" 
-                        role="dialog"
+                    <dialog 
+                        open
+                        className="relative w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white p-0 shadow-2xl animate-in zoom-in duration-200" 
                         aria-modal="true"
                         aria-labelledby="modal-title"
                     >
@@ -302,11 +302,12 @@ export default function GroupsList() {
                                             {users.length === 0 ? (
                                                 <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
                                             ) : users.map(user => (
-                                                <label key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                <label key={user.id} aria-label={`${user.firstName} ${user.lastName}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedUsers.includes(user.id)}
                                                         onChange={() => toggleUser(user.id)}
+                                                        aria-label={`Select member ${user.firstName} ${user.lastName}`}
                                                         className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
                                                     />
                                                     <div className="min-w-0">
@@ -328,11 +329,12 @@ export default function GroupsList() {
                                             {rolesList.length === 0 ? (
                                                 <p className="text-xs text-[#94a3b8] italic p-2">No roles available</p>
                                             ) : rolesList.map(role => (
-                                                <label key={role.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                <label key={role.id} aria-label={`Role ${role.name}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedRoles.includes(role.id)}
                                                         onChange={() => toggleRole(role.id)}
+                                                        aria-label={`Select role ${role.name}`}
                                                         className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
                                                     />
                                                     <div className="min-w-0">
@@ -363,7 +365,7 @@ export default function GroupsList() {
                                 </button>
                             </div>
                         </form>
-                    </div>
+                    </dialog>
                 </div>
             ) : null}
 

@@ -68,8 +68,8 @@ export default function PoliciesList() {
                 handleCloseCreateModal();
             }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        globalThis.addEventListener('keydown', handleKeyDown);
+        return () => globalThis.removeEventListener('keydown', handleKeyDown);
     }, [isCreateOpen]);
 
     const handleCreate = (e) => {
@@ -336,9 +336,9 @@ export default function PoliciesList() {
                         onClick={handleCloseCreateModal}
                         aria-label="Close modal"
                     />
-                    <div 
-                        className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
-                        role="dialog"
+                    <dialog 
+                        open
+                        className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white p-0 shadow-2xl animate-in zoom-in duration-200"
                         aria-modal="true"
                         aria-labelledby="create-policy-title"
                     >
@@ -441,7 +441,7 @@ export default function PoliciesList() {
                                 </button>
                             </div>
                         </form>
-                    </div>
+                    </dialog>
                 </div>
             )}
         </div>

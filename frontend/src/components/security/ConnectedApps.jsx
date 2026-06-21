@@ -277,12 +277,22 @@ export default function ConnectedApps() {
             ) : null}
 
             {pendingRevoke ? (
-                <div className="fixed inset-0 z-[85] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4" onMouseDown={(event) => {
-                    if (event.target === event.currentTarget && !revokeMutation.isPending) {
-                        setPendingRevoke(null);
-                    }
-                }}>
-                    <div className="mx-4 w-full max-w-sm rounded-t-[20px] bg-white p-6 shadow-xl sm:mx-0 sm:rounded-2xl" onMouseDown={(event) => event.stopPropagation()}>
+                <div
+                    role="button"
+                    tabIndex={0}
+                    className="fixed inset-0 z-[85] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm p-0 sm:items-center sm:p-4 cursor-default"
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget && !revokeMutation.isPending) {
+                            setPendingRevoke(null);
+                        }
+                    }}
+                    onKeyDown={(event) => {
+                        if ((event.key === 'Enter' || event.key === ' ') && !revokeMutation.isPending) {
+                            setPendingRevoke(null);
+                        }
+                    }}
+                >
+                    <div className="mx-4 w-full max-w-sm rounded-t-[20px] bg-white p-6 shadow-xl sm:mx-0 sm:rounded-2xl">
                         <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
                             <ShieldAlert size={22} />
                         </div>

@@ -147,10 +147,38 @@ export default function GroupDetail() {
         return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
     };
 
-    // Truncate UUID to first 8 chars
     const truncateId = (id) => {
         return id ? `${id.substring(0, 8)}...` : '';
     };
+
+    let dropdownContent = null;
+    if (searchInput.trim().length >= 2) {
+        if (isSearchingUsers) {
+            dropdownContent = <div className="px-3 py-2 text-xs text-[#7a87a8]">Searching users...</div>;
+        } else if (availableUsers.length > 0) {
+            dropdownContent = availableUsers.map((user) => {
+                const isSelected = selectedMemberId === user.id;
+                const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+
+                return (
+                    <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => {
+                            setSelectedMemberId(user.id);
+                            setSearchInput(fullName);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm border-b border-[#f0f2f8] last:border-b-0 ${isSelected ? 'bg-[#4f46e5]/8 text-[#4f46e5]' : 'hover:bg-[#f8f9fd] text-[#3a4560]'}`}
+                    >
+                        <div className="font-medium">{fullName}</div>
+                        <div className="text-xs text-[#7a87a8]">{user.email}</div>
+                    </button>
+                );
+            });
+        } else {
+            dropdownContent = <div className="px-3 py-2 text-xs text-[#7a87a8]">No matching users found</div>;
+        }
+    }
 
     return (
         <div className="min-h-screen bg-white">
@@ -250,35 +278,11 @@ export default function GroupDetail() {
                                     className="w-full border border-[#d0d7e8] rounded-xl px-4 py-2.5 text-sm placeholder:text-[#7a87a8] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25 focus:border-[#4f46e5] text-[#0f1623]"
                                 />
 
-                                {searchInput.trim().length >= 2 ? (
+                                {searchInput.trim().length >= 2 && (
                                     <div className="absolute z-20 mt-2 w-full rounded-xl border border-[#d0d7e8] bg-white shadow-lg overflow-hidden">
-                                        {isSearchingUsers ? (
-                                            <div className="px-3 py-2 text-xs text-[#7a87a8]">Searching users...</div>
-                                        ) : availableUsers.length > 0 ? (
-                                            availableUsers.map((user) => {
-                                                const isSelected = selectedMemberId === user.id;
-                                                const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
-
-                                                return (
-                                                    <button
-                                                        key={user.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSelectedMemberId(user.id);
-                                                            setSearchInput(fullName);
-                                                        }}
-                                                        className={`w-full px-3 py-2 text-left text-sm border-b border-[#f0f2f8] last:border-b-0 ${isSelected ? 'bg-[#4f46e5]/8 text-[#4f46e5]' : 'hover:bg-[#f8f9fd] text-[#3a4560]'}`}
-                                                    >
-                                                        <div className="font-medium">{fullName}</div>
-                                                        <div className="text-xs text-[#7a87a8]">{user.email}</div>
-                                                    </button>
-                                                );
-                                            })
-                                        ) : (
-                                            <div className="px-3 py-2 text-xs text-[#7a87a8]">No matching users found</div>
-                                        )}
+                                        {dropdownContent}
                                     </div>
-                                ) : null}
+                                )}
                             </div>
 
                             <button
@@ -301,7 +305,7 @@ export default function GroupDetail() {
                                     <div
                                         key={user.id}
                                         className={`px-6 py-3.5 flex items-center justify-between hover:bg-[#f8f9fd] transition-colors ${
-                                            index !== group.userGroups.length - 1 ? 'border-b border-[#f0f2f8]' : ''
+                                            index === group.userGroups.length - 1 ? '' : 'border-b border-[#f0f2f8]'
                                         }`}
                                     >
                                         {/* User Info */}
@@ -390,7 +394,7 @@ export default function GroupDetail() {
                                     <div
                                         key={role.id}
                                         className={`px-6 py-3.5 flex items-center justify-between hover:bg-[#f8f9fd] transition-colors ${
-                                            index !== group.groupRoles.length - 1 ? 'border-b border-[#f0f2f8]' : ''
+                                            index === group.groupRoles.length - 1 ? '' : 'border-b border-[#f0f2f8]'
                                         }`}
                                     >
                                         {/* Role Info */}

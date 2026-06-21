@@ -175,20 +175,7 @@ export default function SecuritySettings() {
                 {user?.mfaEnabled ? (
                     // MFA Enabled UI
                     <div className="space-y-6">
-                        {!showDisableForm ? (
-                            <div className="p-4 bg-aws-navy-light rounded-xl border border-aws-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div>
-                                    <h3 className="text-[#0f1623] font-medium">Authenticator App</h3>
-                                    <p className="text-xs text-aws-text-dim mt-1">Your account is currently protected via TOTP</p>
-                                </div>
-                                <button
-                                    onClick={() => setShowDisableForm(true)}
-                                    className="text-sm font-medium text-aws-red hover:text-red-400 bg-aws-red/5 hover:bg-aws-red/10 px-4 py-2 rounded-lg border border-aws-red/20 transition-all whitespace-nowrap"
-                                >
-                                    Disable MFA
-                                </button>
-                            </div>
-                        ) : (
+                        {showDisableForm ? (
                             // Disable Form
                             <div className="p-6 bg-aws-navy-light border border-aws-border rounded-xl animate-fade-in-up">
                                 <h3 className="font-semibold text-[#0f1623] mb-4">Confirm Disable MFA</h3>
@@ -243,27 +230,25 @@ export default function SecuritySettings() {
                                     </div>
                                 </form>
                             </div>
+                        ) : (
+                            <div className="p-4 bg-aws-navy-light rounded-xl border border-aws-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-[#0f1623] font-medium">Authenticator App</h3>
+                                    <p className="text-xs text-aws-text-dim mt-1">Your account is currently protected via TOTP</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowDisableForm(true)}
+                                    className="text-sm font-medium text-aws-red hover:text-red-400 bg-aws-red/5 hover:bg-aws-red/10 px-4 py-2 rounded-lg border border-aws-red/20 transition-all whitespace-nowrap"
+                                >
+                                    Disable MFA
+                                </button>
+                            </div>
                         )}
                     </div>
                 ) : (
                     // MFA Not Enabled UI
                     <div>
-                        {!showMFASetup ? (
-                            <div className="p-4 bg-aws-navy-light rounded-xl border border-aws-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div>
-                                    <h3 className="text-[#0f1623] font-medium flex items-center gap-2">
-                                        Authenticator App
-                                    </h3>
-                                    <p className="text-xs text-aws-text-dim mt-1">Use an app like Google Authenticator or Authy</p>
-                                </div>
-                                <button
-                                    onClick={() => setShowMFASetup(true)}
-                                    className="text-sm font-medium bg-aws-orange text-black font-semibold hover:bg-aws-orange-dark px-4 py-2 rounded-lg transition-all shadow-lg shadow-aws-orange/20 whitespace-nowrap"
-                                >
-                                    Setup MFA
-                                </button>
-                            </div>
-                        ) : (
+                        {showMFASetup ? (
                             <div className="mt-4 border border-aws-border rounded-xl p-1 bg-aws-navy-light">
                                 <div className="bg-aws-dark rounded-lg p-4 sm:p-6">
                                     <div className="flex justify-between items-center border-b border-aws-border pb-4 mb-4">
@@ -280,6 +265,21 @@ export default function SecuritySettings() {
                                         onClose={() => setShowMFASetup(false)}
                                     />
                                 </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-aws-navy-light rounded-xl border border-aws-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-[#0f1623] font-medium flex items-center gap-2">
+                                        Authenticator App
+                                    </h3>
+                                    <p className="text-xs text-aws-text-dim mt-1">Use an app like Google Authenticator or Authy</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowMFASetup(true)}
+                                    className="text-sm font-medium bg-aws-orange text-black font-semibold hover:bg-aws-orange-dark px-4 py-2 rounded-lg transition-all shadow-lg shadow-aws-orange/20 whitespace-nowrap"
+                                >
+                                    Setup MFA
+                                </button>
                             </div>
                         )}
                     </div>

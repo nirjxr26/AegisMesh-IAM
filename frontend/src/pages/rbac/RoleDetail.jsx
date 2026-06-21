@@ -191,11 +191,12 @@ export default function RoleDetail() {
                         </div>
 
                         <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
-                            <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.05em] text-slate-700">
+                            <label htmlFor="attachPolicySelect" className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.05em] text-slate-700">
                                 Attach Additional Policy
                             </label>
                             <div className="flex flex-col gap-3 sm:flex-row">
                                 <select
+                                    id="attachPolicySelect"
                                     value={selectedPolicy}
                                     onChange={(e) => setSelectedPolicy(e.target.value)}
                                     className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
@@ -359,7 +360,7 @@ export default function RoleDetail() {
                                             fontSize: 13,
                                             fontWeight: 600,
                                             cursor: 'pointer',
-                                            opacity: !selectedUserId ? 0.5 : 1,
+                                            opacity: selectedUserId ? 1 : 0.5,
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: 6,

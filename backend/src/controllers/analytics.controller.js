@@ -1,6 +1,6 @@
 const prisma = require('../config/database');
 const logger = require('../utils/logger');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 // Helper: seed audit logs when database is sparse to make dashboards meaningful
 async function seedAuditLogsIfSparse(auditLogsAll, now) {
@@ -139,7 +139,7 @@ exports.getOverviewMetrics = async (req, res, next) => {
                 const hourLabel = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                 buckets.push({
                     label: hourLabel,
-                    start: new Date(d.getTime()),
+                    start: new Date(d.getTime),
                     end: new Date(d.getTime() + 59 * 60 * 1000 + 59 * 1000),
                     requests: 0,
                     avgRisk: 0,
@@ -365,7 +365,12 @@ exports.getOverviewMetrics = async (req, res, next) => {
                 }
             }
         });
-        const activeSessionsTrend = sessionsPrior12h ? Math.round(((sessionsLast12h - sessionsPrior12h) / sessionsPrior12h) * 100) : (sessionsLast12h > 0 ? 100 : 0);
+        let activeSessionsTrend = 0;
+        if (sessionsPrior12h) {
+            activeSessionsTrend = Math.round(((sessionsLast12h - sessionsPrior12h) / sessionsPrior12h) * 100);
+        } else if (sessionsLast12h > 0) {
+            activeSessionsTrend = 100;
+        }
 
         const threatsLast30d = activeLogs.filter(log => log.result === 'BLOCKED' && new Date(log.createdAt) >= monthAgo).length;
         const threatsPrior30d = await prisma.auditLog.count({
@@ -377,7 +382,12 @@ exports.getOverviewMetrics = async (req, res, next) => {
                 result: 'BLOCKED'
             }
         });
-        const blockedThreatsTrend = threatsPrior30d ? Math.round(((threatsLast30d - threatsPrior30d) / threatsPrior30d) * 100) : (threatsLast30d > 0 ? 100 : 0);
+        let blockedThreatsTrend = 0;
+        if (threatsPrior30d) {
+            blockedThreatsTrend = Math.round(((threatsLast30d - threatsPrior30d) / threatsPrior30d) * 100);
+        } else if (threatsLast30d > 0) {
+            blockedThreatsTrend = 100;
+        }
 
         const threatsLast24h = activeLogs.filter(log => log.result === 'BLOCKED' && new Date(log.createdAt) >= new Date(now.getTime() - 24 * 60 * 60 * 1000)).length;
 

@@ -343,9 +343,9 @@ export default function RolesList() {
                         }}
                         aria-label="Close modal"
                     />
-                    <div
-                        className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white shadow-2xl animate-in zoom-in duration-200"
-                        role="dialog"
+                    <dialog
+                        open
+                        className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#dbe4f0] bg-white p-0 shadow-2xl animate-in zoom-in duration-200"
                         aria-modal="true"
                         aria-labelledby="create-role-title"
                     >
@@ -427,11 +427,12 @@ export default function RolesList() {
                                             {users.length === 0 ? (
                                                 <p className="text-xs text-[#94a3b8] italic p-2">No users available</p>
                                             ) : users.map(user => (
-                                                <label key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                <label key={user.id} aria-label={`${user.firstName} ${user.lastName}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedUsers.includes(user.id)}
                                                         onChange={() => toggleUser(user.id)}
+                                                        aria-label={`Select user ${user.firstName} ${user.lastName}`}
                                                         className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
                                                     />
                                                     <div className="min-w-0">
@@ -453,11 +454,12 @@ export default function RolesList() {
                                             {policies.length === 0 ? (
                                                 <p className="text-xs text-[#94a3b8] italic p-2">No policies available</p>
                                             ) : policies.map(policy => (
-                                                <label key={policy.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
+                                                <label key={policy.id} aria-label={`Policy ${policy.name}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-[#d0d7e8]">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedPolicies.includes(policy.id)}
                                                         onChange={() => togglePolicy(policy.id)}
+                                                        aria-label={`Select policy ${policy.name}`}
                                                         className="w-4 h-4 rounded border-[#d0d7e8] text-[#4f46e5] focus:ring-[#4f46e5]/25"
                                                     />
                                                     <div className="min-w-0">
@@ -488,7 +490,7 @@ export default function RolesList() {
                                 </button>
                             </div>
                         </form>
-                    </div>
+                    </dialog>
                 </div>
             )}
 
