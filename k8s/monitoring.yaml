@@ -57,7 +57,7 @@ spec:
             ephemeral-storage: "500Mi"
           limits:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "1Gi"
             ephemeral-storage: "1Gi"
         securityContext:
           allowPrivilegeEscalation: false
