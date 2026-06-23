@@ -3,7 +3,8 @@
 <h1>AegisMesh</h1>
 
 </div>
-A self-hosted IAM platform with policy-driven authorization, step-up authentication, ML-based threat detection, and a full DevSecOps pipeline.
+
+Run your own IAM layer instead of paying for Auth0/Okta which covers policy-driven access, step-up auth, ML threat detection and DevSecOps pipeline.
 
 ---
 
@@ -123,7 +124,6 @@ Checks rollout status, spins up a `curl` pod, hits `frontend:80/` to confirm rea
 - SealedSecrets keep credentials encrypted in the repo. The in-cluster controller handles decryption.
 - Kubelet credential-provider handles ECR auth. `imagePullSecrets` are legacy only.
 
-Full pipeline docs: [`ci-cd/README.md`](./ci-cd/README.md)
 
 ---
 
@@ -185,7 +185,7 @@ The Security Engine is a FastAPI service that scores every login request against
 ### Prerequisites
 
 ```bash
-git clone https://github.com/nirjxr26/Aegismesh-IAM.git
+git clone https://github.com/nirjxr26/AegisMesh-IAM.git
 cd AegisMesh-IAM
 cp .env.example .env
 ```
@@ -207,7 +207,7 @@ docker-compose up --build
 | MLflow | http://localhost:5001 |
 | Prometheus | http://localhost:9090 |
 
-Full setup guide: [`docker_setup`](docs/SETUP.md)
+Full setup guide: [`docker_setup`](docs/docker.md)
 
 ### Option 2 — Local Development
 
@@ -238,25 +238,37 @@ python src/main.py # runs on :8000
 ├── terraform/        
 ├── monitoring/       # Prometheus, Grafana, and MLflow configurations
 ├── .github/          # GHA workflows
-├── scripts/          # Cluster install and maintenance and backup scripts
+├── scripts/          # Cluster install, maintenance and backup scripts
 ```
 
 ---
 
 ## Documentation
 
-| Category | Links |
-|---|---|
-| Setup | [Docker Setup](docs/SETUP.md) · [Local Development](#option-2--local-development) |
-| Deployment | [CI/CD Pipeline](ci-cd/README.md) · [GitHub Runner](docs/GITHUB_RUNNER_SETUP.md) |
-| Kubernetes | [K8s Overview](k8s/README.md) · [Ingress & TLS](docs/devops/ingress-and-tls.md) · [HPA](docs/devops/hpa-metrics-server.md) |
-| Security | [SealedSecrets](docs/devops/sealedsecrets-sops.md) · [Falco](docs/devops/falco.md) · [Kyverno](docs/devops/kyverno-networkpolicy.md) |
-| Reliability | [Argo Rollouts](docs/devops/argo-rollouts.md) · [Backups (Velero)](docs/devops/backups-velero-minio.md) |
-| Observability | [Loki Stack](docs/devops/observability-loki-tempo.md) |
-| Index | [All Documentation](docs/README.md) |
- 
----
+**Setup**
+- [Docker Setup](docs/docker.md)
+- [Local Development](#option-2--local-development)
 
-## License
+**Deployment**
+- [CI/CD Pipeline](ci-cd/README.md)
+- [GitHub Runner](docs/github-runner.md)
 
-MIT — see [LICENSE](LICENSE)
+**Kubernetes**
+- [K8s Overview](k8s/README.md)
+- [Ingress & TLS](docs/devops/ingress-and-tls.md)
+- [HPA](docs/devops/hpa-metrics-server.md)
+
+**Security**
+- [SealedSecrets](docs/devops/sealedsecrets-sops.md)
+- [Falco](docs/devops/falco.md)
+- [Kyverno](docs/devops/kyverno-networkpolicy.md)
+
+**Reliability**
+- [Argo Rollouts](docs/devops/argo-rollouts.md)
+- [Backups (Velero)](docs/devops/backups-velero-minio.md)
+
+**Observability**
+- [Loki Stack](docs/devops/observability-loki-tempo.md)
+
+→ [Full documentation index](docs/README.md)
+

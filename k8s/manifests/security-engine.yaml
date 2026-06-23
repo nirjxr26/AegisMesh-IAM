@@ -103,6 +103,10 @@ spec:
           value: "true"
         - name: DD_BIND_HOST
           value: "0.0.0.0"
+        - name: MLFLOW_HTTP_REQUEST_TIMEOUT
+          value: "10"
+        - name: MLFLOW_HTTP_REQUEST_MAX_RETRIES
+          value: "2"
         volumeMounts:
         - name: tmp
           mountPath: /tmp
