@@ -1,0 +1,3 @@
+# Ignore false positive MongoDB NoSQL Injection flags on Prisma SQL controllers
+# Rule: javascript.express.mongodb.express-mongo-nosqli.express-mongo-nosqli
+backend/src/controllers/

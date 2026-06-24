@@ -250,7 +250,7 @@ python src/main.py # runs on :8000
 - [Local Development](#option-2--local-development)
 
 **Deployment**
-- [CI/CD Pipeline](ci-cd/README.md)
+- [CI/CD Pipeline](CI_CD_RUNBOOK.md)
 - [GitHub Runner](docs/github-runner.md)
 
 **Kubernetes**
