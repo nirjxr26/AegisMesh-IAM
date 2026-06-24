@@ -25,7 +25,7 @@ services:
   # Backend API Service
   backend:
     build:
-      context: ./apps/backend-api
+      context: ./apps/api
       dockerfile: Dockerfile
     container_name: aegismesh-backend
     depends_on:
@@ -75,7 +75,7 @@ services:
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     volumes:
-      - ./apps/backend-api/logs:/app/logs
+      - ./apps/api/logs:/app/logs
     networks:
       - aegismesh-network
     restart: unless-stopped
@@ -89,7 +89,7 @@ services:
   # Frontend Application
   frontend:
     build:
-      context: ./apps/frontend-dashboard
+      context: ./apps/dashboard
       dockerfile: Dockerfile
     container_name: aegismesh-frontend
     depends_on:
