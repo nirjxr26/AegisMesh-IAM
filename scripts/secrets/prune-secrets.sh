@@ -18,7 +18,7 @@ echo "Scanning repository for tracked sensitive files..."
 patterns=("\.env$" "^credentials-velero$" "\bbackups/" "\.archive/" "kubeconfig" "terraform\.tfstate" "\.sql$" "\.sql\.gz$" "\bpg_dump" "\bpg_dumpall" "secrets.*\.ya?ml$" "\.pem$" "\.key$" "\.cred$" "^credentials-")
 regex=$(IFS='|'; echo "${patterns[*]}")
 
-tracked=$(git ls-files | grep -E "$regex" | grep -Ev '^backend/prisma/migrations/' || true)
+tracked=$(git ls-files | grep -E "$regex" | grep -Ev '^apps/api/prisma/migrations/' || true)
 
 if [[ -z "$tracked" ]]; then
   echo "No tracked sensitive files found."

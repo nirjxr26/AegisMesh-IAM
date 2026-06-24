@@ -101,11 +101,11 @@ elseif ($Mode -eq "Restore") {
 
     # 4. Apply manifests
     Log-Info "Applying Kustomize and base manifests..."
-    kubectl apply -k "$ProjectRoot\k8s"
-    kubectl apply -f "$ProjectRoot\k8s\monitoring.yaml"
-    kubectl apply -f "$ProjectRoot\k8s\manifests\crowdsec\crowdsec.yaml"
-    kubectl apply -f "$ProjectRoot\k8s\manifests\falcosidekick\falcosidekick.yaml"
-    kubectl apply -f "$ProjectRoot\k8s\manifests\trivy\trivy-crds.yaml"
+    kubectl apply -k "$ProjectRoot\platform\kubernetes"
+    kubectl apply -f "$ProjectRoot\platform\kubernetes\app-monitoring.yaml"
+    kubectl apply -f "$ProjectRoot\platform\kubernetes\manifests\crowdsec\crowdsec.yaml"
+    kubectl apply -f "$ProjectRoot\platform\kubernetes\manifests\falcosidekick\falcosidekick.yaml"
+    kubectl apply -f "$ProjectRoot\platform\kubernetes\manifests\trivy\trivy-crds.yaml"
 
     # 5. Wait for PostgreSQL to be ready
     Log-Info "Waiting for PostgreSQL deployment to be ready..."

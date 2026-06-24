@@ -215,13 +215,13 @@ Requires Node.js 22+, Python 3.11+, and PostgreSQL 17+.
 
 ```bash
 # Backend
-cd backend
+cd apps/api
 npm install
 npm run prisma:generate
 npm run dev        # runs on :5000
 
 # Security Engine
-cd security-engine
+cd apps/security-engine
 pip install -r requirements.txt
 python src/main.py # runs on :8000
 ```
@@ -231,14 +231,16 @@ python src/main.py # runs on :8000
 ## Project Structure
 
 ```
-├── backend/          
-├── frontend/         
-├── security-engine/  # Python ML engine, MLflow integration
-├── k8s/              
-├── terraform/        
-├── monitoring/       # Prometheus, Grafana, and MLflow configurations
-├── .github/          # GHA workflows
-├── scripts/          # Cluster install, maintenance and backup scripts
+├── apps/             # Deployable application runtimes
+│   ├── api/          # Primary Express API
+│   ├── dashboard/    # React admin portal
+│   └── security-engine/ # Python ML threat detection service
+├── platform/         # Infrastructure & GitOps configuration
+│   ├── kubernetes/   # Kustomize resources & manifests
+│   ├── gitops/       # ArgoCD application declarations
+│   └── terraform/    # IaC provisioning
+├── docs/             # Documentation portal
+├── scripts/          # Cluster installation, maintenance & backups
 ```
 
 ---

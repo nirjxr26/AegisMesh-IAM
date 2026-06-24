@@ -10,4 +10,4 @@ helm upgrade --install argo-rollouts argo/argo-rollouts --namespace argo-rollout
 echo "Installing kubectl plugin (optional for local control)"
 kubectl krew install argo-rollouts || true
 
-echo "Argo Rollouts installed. See k8s/rollouts/backend-rollout.yaml for an example rollout." 
+echo "Argo Rollouts installed. See platform/kubernetes/rollouts/backend-rollout.yaml for an example rollout." 

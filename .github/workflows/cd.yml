@@ -42,7 +42,7 @@ jobs:
           echo "backend=$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "frontend=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Update k8s/overlays/prod image patches
+      - name: Update platform/kubernetes/overlays/prod image patches
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |

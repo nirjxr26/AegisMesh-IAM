@@ -36,7 +36,7 @@ $patterns = @(
 # build regex
 $regex = ($patterns -join '|')
 
-$tracked = git ls-files 2>$null | Where-Object { $_ -match $regex } | Where-Object { $_ -notlike 'backend/prisma/migrations/*' }
+$tracked = git ls-files 2>$null | Where-Object { $_ -match $regex } | Where-Object { $_ -notlike 'apps/api/prisma/migrations/*' }
 
 if (-not $tracked) {
     Write-Host "No tracked sensitive files found." -ForegroundColor Green
