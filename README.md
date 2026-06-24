@@ -93,8 +93,8 @@ Core design rules:
 - Edit backend (Node), frontend (React), or security-engine (FastAPI) code. 
 - Test locally with `docker-compose up --build` or against a local k8s namespace. Push to a feature branch, open a PR into `main`.
 
-### CI — triggers on push/PR touching `backend/`, `frontend/`, or `security-engine/`
-- **Backend:** `npm ci --ignore-scripts` → ESLint → `npm test` (Jest)
+### CI — triggers on push/PR touching `apps/api/`, `apps/dashboard/`, or `apps/security-engine/`
+- **Backend:** `npm install --no-audit` → ESLint → `npm test` (Jest)
 - **Frontend:** install → syntax check → `vite build`
 - **Docker validation:** builds all three Dockerfiles on the runner to catch broken builds before merge
 - **On merge to `main` only:** authenticates to ECR, builds hardened prod images (non-root UID, read-only filesystem), tags with commit SHA + `v1`, pushes to ECR
