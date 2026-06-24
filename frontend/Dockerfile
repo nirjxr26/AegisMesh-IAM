@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:22.16.0-alpine AS builder
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 USER root
 # Install curl for healthcheck
-RUN apk add --no-cache curl=8.12.1-r1
+RUN apk add --no-cache curl
 USER nginx
 
 # Copy only the built assets and configuration with read-only permissions

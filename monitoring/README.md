@@ -34,4 +34,4 @@ When running locally via `docker-compose`:
 - **Prometheus:** http://localhost:9090
 
 ---
-For technical details on how Datadog is initialized, refer to the source at `backend/src/server.js` and `security-engine/src/main.py`.
+For technical details on how Datadog is initialized, refer to the source at [backend/src/server.js](../backend/src/server.js) and [security-engine/src/main.py](../security-engine/src/main.py).

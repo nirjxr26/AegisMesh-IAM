@@ -36,12 +36,13 @@ Welcome to the central documentation hub for **AegisMesh**, a high-assurance, se
 ## Documentation Index
 
 ### Architecture & Design
-- [System Overview](ARCHITECTURE.md) - High-level system design and component interactions.
-- [Security Model](SECURITY_ARCHITECTURE.md) - Deep dive into Zero-Trust, PBAC, and layers of defense.
-- [Network Topology](K8S_ARCHITECTURE.md) - K8s service mesh and network policy specifications.
+- [System Overview](overview.md) - High-level system design and component interactions.
+- [MVP Architecture Spec](system.md) - Deep dive into system boundary, topology, and internal anatomy.
+- [Security Model](security.md) - Deep dive into Zero-Trust, PBAC, and layers of defense.
+- [Network Topology](k8s.md) - K8s service mesh and network policy specifications.
 
 ### Kubernetes & Infrastructure
-- [K8s Architecture Spec](K8S_ARCHITECTURE.md) - **Recommended Reading.** Comprehensive guide to the GitOps flow.
+- [K8s Architecture Spec](k8s.md) - **Recommended Reading.** Comprehensive guide to the GitOps flow.
 - [Ingress & TLS Management](devops/ingress-and-tls.md) - Nginx Ingress Controller, MetalLB, and cert-manager configuration.
 - [SealedSecrets Guide](devops/sealedsecrets-sops.md) - Safe secrets storage in Git via Bitnami SealedSecrets controller.
 - [Backup & Recovery](devops/backups-velero-minio.md) - Disaster recovery using Velero snapshots and local MinIO S3 storage.
@@ -55,8 +56,8 @@ Welcome to the central documentation hub for **AegisMesh**, a high-assurance, se
 - [Observability Stack (Loki & Tempo)](devops/observability-loki-tempo.md) - Centralized logging with Loki, trace context with Tempo, and Alertmanager setups.
 
 ### Setup & Operations
-- [Docker Quickstart](docker_setup.md) - Local development environment using Docker Compose.
-- [GitHub Runner Setup](GITHUB_RUNNER_SETUP.md) - Guide to connecting and configuring self-hosted runners.
+- [Docker Quickstart](docker.md) - Local development environment using Docker Compose.
+- [GitHub Runner Setup](github-runner.md) - Guide to connecting and configuring self-hosted runners.
 
 ---
 
