@@ -1,197 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
   name: backend
   namespace: aegismesh
-
 spec:
-  replicas: 1
-
-  selector:
-    matchLabels:
-      app: backend
-
   template:
-    metadata:
-      labels:
-        app: backend
-
     spec:
-      automountServiceAccountToken: false
-
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 10001
-        fsGroup: 10001
-        seccompProfile:
-          type: RuntimeDefault
-
       initContainers:
         - name: wait-for-db
-          image: postgres@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
-          imagePullPolicy: Always
-
-          command:
-            - sh
-            - -c
-            - |
-              until pg_isready -h postgres.aegismesh.svc.cluster.local -p 5432 -U "$DB_USER" -d "$DB_NAME"; do
-                echo "waiting for postgres";
-                sleep 2;
-              done
-
-          envFrom:
-            - configMapRef:
-                name: aegismesh-config
-            - secretRef:
-                name: aegismesh-secrets
-
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
         - name: prisma-migrate
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
-          imagePullPolicy: Always
-
-          command:
-            - sh
-            - -c
-            - |
-              # Retry migrations to tolerate transient DNS/database startup races.
-              attempts=0
-              until npx prisma migrate deploy; do
-                attempts=$((attempts+1))
-                if [ "$attempts" -ge 12 ]; then
-                  echo "prisma migrate deploy failed after ${attempts} attempts"
-                  exit 1
-                fi
-                echo "prisma migrate deploy failed (attempt ${attempts}), retrying in 5s..."
-                sleep 5
-              done
-
-          envFrom:
-            - configMapRef:
-                name: aegismesh-config
-            - secretRef:
-                name: aegismesh-secrets
-
-          env:
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: aegismesh-secrets
-                  key: DB_NAME
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: aegismesh-secrets
-                  key: DB_USER
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: aegismesh-secrets
-                  key: DB_PASSWORD
-            - name: DATABASE_URL
-              value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
-
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
-              ephemeral-storage: "128Mi"
-
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
-              ephemeral-storage: "512Mi"
-
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:a5e3691acdd7ebc64baa4f445eede5a7b8fcc78d
+          imagePullPolicy: IfNotPresent
       containers:
         - name: backend
-          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:b11f3991228702265ef848d95b626b06444d4a64
-          imagePullPolicy: Always
-
-          ports:
-            - containerPort: 5000
-
-          envFrom:
-            - configMapRef:
-                name: aegismesh-config
-            - secretRef:
-                name: aegismesh-secrets
-
-          env:
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: aegismesh-secrets
-                  key: DB_NAME
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: aegismesh-secrets
-                  key: DB_USER
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: aegismesh-secrets
-                  key: DB_PASSWORD
-            - name: DATABASE_URL
-              value: postgresql://$(DB_USER):$(DB_PASSWORD)@postgres.aegismesh.svc.cluster.local:5432/$(DB_NAME)
-
+          image: 654654364687.dkr.ecr.us-east-1.amazonaws.com/aegismesh-backend:a5e3691acdd7ebc64baa4f445eede5a7b8fcc78d
+          imagePullPolicy: IfNotPresent
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
-              ephemeral-storage: "128Mi"
-
             limits:
               cpu: "500m"
               memory: "512Mi"
-              ephemeral-storage: "512Mi"
-
-          readinessProbe:
-            httpGet:
-              path: /api/health
-              port: 5000
-
-            initialDelaySeconds: 10
-            periodSeconds: 5
-
-          livenessProbe:
-            httpGet:
-              path: /api/health
-              port: 5000
-
-            initialDelaySeconds: 20
-            periodSeconds: 10
-
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
-            - name: logs
-              mountPath: /app/logs
-
-      volumes:
-        - name: tmp
-          emptyDir: {}
-        - name: logs
-          emptyDir: {}
