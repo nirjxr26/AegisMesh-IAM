@@ -44,4 +44,4 @@ kubeseal --format yaml < secret.yaml > manifests/sealedsecret.yaml
 ```
 
 ---
-For a deeper dive into the cluster logic, see the [Detailed K8s Specification](../docs/k8s.md).
+For a deeper dive into the cluster logic, see the [Detailed K8s Specification](../../docs/k8s.md).

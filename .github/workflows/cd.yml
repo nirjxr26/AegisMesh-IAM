@@ -11,8 +11,8 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'k8s/**'
-      - 'argocd/**'
+      - 'platform/kubernetes/**'
+      - 'platform/gitops/**'
   workflow_run:
     workflows: ["CI"]
     types:
@@ -59,19 +59,19 @@ jobs:
           BRANCH="bot/overlay-update-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          UNEXPECTED_FILES="$(git diff --name-only | grep -vE '^(k8s/overlays/prod/patch-backend-image.yaml|k8s/overlays/prod/patch-frontend-image.yaml)$' || true)"
+          UNEXPECTED_FILES="$(git diff --name-only | grep -vE '^(platform/kubernetes/overlays/prod/patch-backend-image.yaml|platform/kubernetes/overlays/prod/patch-frontend-image.yaml)$' || true)"
           if [ -n "$UNEXPECTED_FILES" ]; then
             echo "Unexpected file changes detected in CD workspace:"
             printf '%s\n' "$UNEXPECTED_FILES"
             exit 1
           fi
-          if git diff --quiet -- k8s/overlays/prod/patch-backend-image.yaml k8s/overlays/prod/patch-frontend-image.yaml; then
+          if git diff --quiet -- platform/kubernetes/overlays/prod/patch-backend-image.yaml platform/kubernetes/overlays/prod/patch-frontend-image.yaml; then
             echo "No image changes detected"
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git checkout -b "$BRANCH"
-          git add -- k8s/overlays/prod/patch-backend-image.yaml k8s/overlays/prod/patch-frontend-image.yaml
+          git add -- platform/kubernetes/overlays/prod/patch-backend-image.yaml platform/kubernetes/overlays/prod/patch-frontend-image.yaml
           git commit -m "ci: update prod overlay images for ${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT} [skip ci]"
           git push origin "$BRANCH"
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"

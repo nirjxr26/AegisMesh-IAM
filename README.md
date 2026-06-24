@@ -250,11 +250,11 @@ python src/main.py # runs on :8000
 - [Local Development](#option-2--local-development)
 
 **Deployment**
-- [CI/CD Pipeline](CI_CD_RUNBOOK.md)
+- [CI/CD Pipeline](docs/guides/runbook-ci-cd.md)
 - [GitHub Runner](docs/github-runner.md)
 
 **Kubernetes**
-- [K8s Overview](k8s/README.md)
+- [K8s Overview](platform/kubernetes/README.md)
 - [Ingress & TLS](docs/devops/ingress-and-tls.md)
 - [HPA](docs/devops/hpa-metrics-server.md)
 

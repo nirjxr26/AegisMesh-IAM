@@ -40,4 +40,4 @@ npm run preview
 - **Route Guards:** Private routes are protected by the `AuthContext`.
 
 ---
-For the underlying API specifications, see the [Main Documentation Portal](../docs/README.md).
+For the underlying API specifications, see the [Main Documentation Portal](../../docs/README.md).
