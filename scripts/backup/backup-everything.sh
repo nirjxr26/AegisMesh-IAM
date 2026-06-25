@@ -106,20 +106,20 @@ if [[ "$SKIP_REPO" -eq 0 ]]; then
   safe_run git remote -v
   safe_run git log -1 --stat
   archive_if_exists "repo-source.tar.gz" \
-    argocd backend docs frontend k8s monitoring scripts terraform \
+    apps docs packages platform scripts \
     README.md CI_CD_RUNBOOK.md Docker_Setup.md LICENSE CODE_OF_CONDUCT.md AegisMesh-IAM-Fix-Logic-Guide.md \
     docker-compose.yml docker-compose.dev.yml
 fi
 
 if [[ "$SKIP_TERRAFORM" -eq 0 ]]; then
   log "Backing up Terraform state and vars"
-  if [[ -f terraform/terraform.tfstate ]]; then
-    cp terraform/terraform.tfstate "$OUT_DIR/terraform.tfstate"
+  if [[ -f platform/terraform/terraform.tfstate ]]; then
+    cp platform/terraform/terraform.tfstate "$OUT_DIR/terraform.tfstate"
   fi
-  if [[ -f terraform/terraform.tfstate.backup ]]; then
-    cp terraform/terraform.tfstate.backup "$OUT_DIR/terraform.tfstate.backup.local"
+  if [[ -f platform/terraform/terraform.tfstate.backup ]]; then
+    cp platform/terraform/terraform.tfstate.backup "$OUT_DIR/terraform.tfstate.backup.local"
   fi
-  archive_if_exists "terraform-config.tar.gz" terraform/main.tf terraform/outputs.tf terraform/variables.tf terraform/terraform.tfvars
+  archive_if_exists "terraform-config.tar.gz" platform/terraform/main.tf platform/terraform/outputs.tf platform/terraform/variables.tf platform/terraform/terraform.tfvars
 fi
 
 if [[ "$SKIP_K8S" -eq 0 ]]; then
@@ -170,8 +170,8 @@ if [[ "$DOCKER_VOLUMES" -eq 1 ]] && command -v docker >/dev/null 2>&1; then
 fi
 
 log "Collecting local files and logs"
-archive_if_exists "backend-logs.tar.gz" backend/logs
-archive_if_exists "monitoring-config.tar.gz" monitoring/prometheus monitoring/grafana
+archive_if_exists "backend-logs.tar.gz" apps/backend-api/logs
+archive_if_exists "monitoring-config.tar.gz" platform/kubernetes/observability/prometheus platform/kubernetes/observability/grafana
 
 log "Backup complete"
 log "Review $OUT_DIR and move it to durable storage (S3, another server, or encrypted archive)."

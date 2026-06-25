@@ -6,5 +6,5 @@ $docs = $content.Content -split "---"
 $crdDocs = $docs | Where-Object { $_ -match "kind:\s*CustomResourceDefinition" }
 Write-Host "Found $($crdDocs.Count) CustomResourceDefinitions"
 $crdYaml = $crdDocs -join "`n---`n"
-$crdYaml | Out-File -FilePath "k8s/manifests/trivy/trivy-crds.yaml" -Encoding utf8
-Write-Host "Successfully wrote CRDs to k8s/manifests/trivy/trivy-crds.yaml"
+$crdYaml | Out-File -FilePath "platform/kubernetes/manifests/trivy/trivy-crds.yaml" -Encoding utf8
+Write-Host "Successfully wrote CRDs to platform/kubernetes/manifests/trivy/trivy-crds.yaml"

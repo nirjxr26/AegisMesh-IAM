@@ -62,7 +62,7 @@ if (-not $SkipRepo) {
   Invoke-Safe { git log -1 --stat }
 
   $repoItems = @(
-    'argocd','backend','docs','frontend','k8s','monitoring','scripts','terraform',
+    'apps','docs','packages','platform','scripts',
     'README.md','CI_CD_RUNBOOK.md','Docker_Setup.md','LICENSE','CODE_OF_CONDUCT.md','AegisMesh-IAM-Fix-Logic-Guide.md',
     'docker-compose.yml','docker-compose.dev.yml'
   )
@@ -77,13 +77,13 @@ if (-not $SkipRepo) {
 
 if (-not $SkipTerraform) {
   Write-Log 'Backing up Terraform state and vars'
-  foreach ($file in @('terraform/terraform.tfstate','terraform/terraform.tfstate.backup','terraform/terraform.tfvars')) {
+  foreach ($file in @('platform/terraform/terraform.tfstate','platform/terraform/terraform.tfstate.backup','platform/terraform/terraform.tfvars')) {
     if (Test-Path $file) {
       Copy-Item $file -Destination $OutDir -Force
     }
   }
   $tfExisting = @()
-  foreach ($item in @('terraform/main.tf','terraform/outputs.tf','terraform/variables.tf')) {
+  foreach ($item in @('platform/terraform/main.tf','platform/terraform/outputs.tf','platform/terraform/variables.tf')) {
     if (Test-Path $item) { $tfExisting += $item }
   }
   if ($tfExisting.Count -gt 0) {
@@ -145,7 +145,7 @@ if ($DockerVolumes -and (Test-Command docker)) {
 }
 
 Write-Log 'Collecting local config and logs'
-foreach ($path in @('backend/logs','monitoring/prometheus','monitoring/grafana')) {
+foreach ($path in @('apps/backend-api/logs','platform/kubernetes/observability/prometheus','platform/kubernetes/observability/grafana')) {
   if (Test-Path $path) {
     $name = ($path -replace '[\\/]', '-') + '.zip'
     Compress-Archive -Path $path -DestinationPath (Join-Path $OutDir $name) -Force

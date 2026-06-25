@@ -25,7 +25,7 @@ services:
   # Backend API Service
   backend:
     build:
-      context: ./backend
+      context: ./apps/api
       dockerfile: Dockerfile
     container_name: aegismesh-backend
     depends_on:
@@ -75,7 +75,7 @@ services:
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     volumes:
-      - ./backend/logs:/app/logs
+      - ./apps/api/logs:/app/logs
     networks:
       - aegismesh-network
     restart: unless-stopped
@@ -89,7 +89,7 @@ services:
   # Frontend Application
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/dashboard
       dockerfile: Dockerfile
     container_name: aegismesh-frontend
     depends_on:
@@ -123,7 +123,7 @@ services:
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./platform/kubernetes/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     networks:
       - aegismesh-network
@@ -133,7 +133,7 @@ services:
   # Security Engine (ML-powered Threat Detection)
   security-engine:
     build:
-      context: ./security-engine
+      context: ./apps/security-engine
       dockerfile: Dockerfile
     container_name: aegismesh-security-engine
     depends_on:
@@ -163,7 +163,7 @@ services:
   # MLflow Tracking Server (Persistent Metadata in Postgres)
   mlflow:
     build:
-      context: ./monitoring/mlflow
+      context: ./platform/kubernetes/observability/mlflow
     container_name: aegismesh-mlflow
     depends_on:
       db:

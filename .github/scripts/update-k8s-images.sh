@@ -7,7 +7,7 @@ if [[ -z "$IMAGE_BACKEND" || -z "$IMAGE_FRONTEND" ]]; then
   exit 2
 fi
 
-cat > k8s/overlays/prod/patch-backend-image.yaml <<EOF
+cat > platform/kubernetes/overlays/prod/patch-backend-image.yaml <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,7 +36,7 @@ spec:
               memory: "512Mi"
 EOF
 
-cat > k8s/overlays/prod/patch-frontend-image.yaml <<EOF
+cat > platform/kubernetes/overlays/prod/patch-frontend-image.yaml <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:

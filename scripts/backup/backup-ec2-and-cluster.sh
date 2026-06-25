@@ -83,9 +83,9 @@ else
 fi
 
 echo "5) Backing up Terraform state file (if present under /terraform)"
-if [[ -f terraform/terraform.tfstate ]]; then
-  cp terraform/terraform.tfstate "$OUT_DIR/terraform.tfstate.backup"
-  echo "Backed up terraform/terraform.tfstate"
+if [[ -f platform/terraform/terraform.tfstate ]]; then
+  cp platform/terraform/terraform.tfstate "$OUT_DIR/terraform.tfstate.backup"
+  echo "Backed up platform/terraform/terraform.tfstate"
 else
   echo "No local terraform state found; if you use remote state, ensure it's backed up separately" > "$OUT_DIR/terraform_state_note.txt"
 fi

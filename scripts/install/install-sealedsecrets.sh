@@ -26,4 +26,4 @@ else
 fi
 
 echo "Sealed Secrets controller installed. To seal secrets locally install 'kubeseal' and run:"
-echo "  kubeseal --controller-namespace ${NAMESPACE} --format yaml < k8s/manifests/secret.yaml > k8s/overlays/prod/sealedsecret-aegismesh.yaml"
+echo "  kubeseal --controller-namespace ${NAMESPACE} --format yaml < platform/kubernetes/manifests/secret.yaml > platform/kubernetes/overlays/prod/sealedsecret-aegismesh.yaml"

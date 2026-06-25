@@ -31,4 +31,4 @@ This directory contains the Terraform configuration for provisioning the AegisMe
 Credentials are never hardcoded. Terraform uses environment variables or the AWS credential provider.
 
 ---
-For CI/CD integration, see [.github/workflows/terraform.yml](../.github/workflows/terraform.yml).
+For CI/CD integration, see [.github/workflows/terraform.yml](../../.github/workflows/terraform.yml).

@@ -11,16 +11,16 @@ on:
   pull_request:
     branches: [ main ]
     paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'security-engine/**'
+      - 'apps/api/**'
+      - 'apps/dashboard/**'
+      - 'apps/security-engine/**'
       - '.github/workflows/ci.yml'
   push:
     branches: [ main ]
     paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'security-engine/**'
+      - 'apps/api/**'
+      - 'apps/dashboard/**'
+      - 'apps/security-engine/**'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -36,19 +36,19 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
       - name: Install backend deps
-        working-directory: backend
+        working-directory: apps/api
         run: |
           npm install --no-audit --no-fund
       - name: Lint backend
-        working-directory: backend
+        working-directory: apps/api
         run: npm run lint
       - name: Run backend tests
-        working-directory: backend
+        working-directory: apps/api
         run: npm test --silent
       - name: Build backend (artifact)
-        working-directory: backend
+        working-directory: apps/api
         run: npm run build --if-present
 
   frontend:
@@ -62,15 +62,15 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: apps/dashboard/package-lock.json
       - name: Install frontend deps
-        working-directory: frontend
+        working-directory: apps/dashboard
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Lint frontend
-        working-directory: frontend
+        working-directory: apps/dashboard
         run: npm run lint -- --max-warnings=0
       - name: Build frontend
-        working-directory: frontend
+        working-directory: apps/dashboard
         run: npm run build --if-present
 
   docker-validate:
@@ -82,13 +82,13 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Build backend image
-        run: docker build -t aegismesh-backend:ci -f backend/Dockerfile ./backend
+        run: docker build -t aegismesh-backend:ci -f apps/api/Dockerfile ./apps/api
 
       - name: Build frontend image
-        run: docker build -t aegismesh-frontend:ci -f frontend/Dockerfile ./frontend
+        run: docker build -t aegismesh-frontend:ci -f apps/dashboard/Dockerfile ./apps/dashboard
 
       - name: Build security-engine image
-        run: docker build -t aegismesh-security-engine:ci -f security-engine/Dockerfile ./security-engine
+        run: docker build -t aegismesh-security-engine:ci -f apps/security-engine/Dockerfile ./apps/security-engine
 
   build-and-push:
     name: Build and push Docker images (main only)
@@ -114,7 +114,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@5a88a04c91d5c6f97aae0d9be790e64d9b1d47b7
 
       - name: Build and push backend image
-        working-directory: backend
+        working-directory: apps/api
         env:
           IMAGE_TAG: ${{ github.sha }}
           STABLE_TAG: v1
@@ -125,7 +125,7 @@ jobs:
             docker push $ECR_REGISTRY/aegismesh-backend:$STABLE_TAG
 
       - name: Build and push frontend image
-        working-directory: frontend
+        working-directory: apps/dashboard
         env:
           IMAGE_TAG: ${{ github.sha }}
           STABLE_TAG: v1
@@ -136,7 +136,7 @@ jobs:
             docker push $ECR_REGISTRY/aegismesh-frontend:$STABLE_TAG
 
       - name: Build and push security-engine image
-        working-directory: security-engine
+        working-directory: apps/security-engine
         env:
           IMAGE_TAG: ${{ github.sha }}
           STABLE_TAG: v1

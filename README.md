@@ -93,8 +93,8 @@ Core design rules:
 - Edit backend (Node), frontend (React), or security-engine (FastAPI) code. 
 - Test locally with `docker-compose up --build` or against a local k8s namespace. Push to a feature branch, open a PR into `main`.
 
-### CI — triggers on push/PR touching `backend/`, `frontend/`, or `security-engine/`
-- **Backend:** `npm ci --ignore-scripts` → ESLint → `npm test` (Jest)
+### CI — triggers on push/PR touching `apps/api/`, `apps/dashboard/`, or `apps/security-engine/`
+- **Backend:** `npm install --no-audit` → ESLint → `npm test` (Jest)
 - **Frontend:** install → syntax check → `vite build`
 - **Docker validation:** builds all three Dockerfiles on the runner to catch broken builds before merge
 - **On merge to `main` only:** authenticates to ECR, builds hardened prod images (non-root UID, read-only filesystem), tags with commit SHA + `v1`, pushes to ECR
@@ -215,13 +215,13 @@ Requires Node.js 22+, Python 3.11+, and PostgreSQL 17+.
 
 ```bash
 # Backend
-cd backend
+cd apps/api
 npm install
 npm run prisma:generate
 npm run dev        # runs on :5000
 
 # Security Engine
-cd security-engine
+cd apps/security-engine
 pip install -r requirements.txt
 python src/main.py # runs on :8000
 ```
@@ -231,14 +231,16 @@ python src/main.py # runs on :8000
 ## Project Structure
 
 ```
-├── backend/          
-├── frontend/         
-├── security-engine/  # Python ML engine, MLflow integration
-├── k8s/              
-├── terraform/        
-├── monitoring/       # Prometheus, Grafana, and MLflow configurations
-├── .github/          # GHA workflows
-├── scripts/          # Cluster install, maintenance and backup scripts
+├── apps/             # Deployable application runtimes
+│   ├── api/          # Primary Express API
+│   ├── dashboard/    # React admin portal
+│   └── security-engine/ # Python ML threat detection service
+├── platform/         # Infrastructure & GitOps configuration
+│   ├── kubernetes/   # Kustomize resources & manifests
+│   ├── gitops/       # ArgoCD application declarations
+│   └── terraform/    # IaC provisioning
+├── docs/             # Documentation portal
+├── scripts/          # Cluster installation, maintenance & backups
 ```
 
 ---
@@ -250,11 +252,11 @@ python src/main.py # runs on :8000
 - [Local Development](#option-2--local-development)
 
 **Deployment**
-- [CI/CD Pipeline](CI_CD_RUNBOOK.md)
+- [CI/CD Pipeline](docs/guides/runbook-ci-cd.md)
 - [GitHub Runner](docs/github-runner.md)
 
 **Kubernetes**
-- [K8s Overview](k8s/README.md)
+- [K8s Overview](platform/kubernetes/README.md)
 - [Ingress & TLS](docs/devops/ingress-and-tls.md)
 - [HPA](docs/devops/hpa-metrics-server.md)
 
