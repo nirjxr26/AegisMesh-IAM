@@ -4,7 +4,7 @@ import { AlertTriangle, Key, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../../../services/api';
 import { formatDate } from '../../../utils/formatters';
-import { classNames, API_SCOPE_OPTIONS, Field, Modal } from './shared';
+import { classNames, API_SCOPE_OPTIONS, Field, Modal, CardShell } from './shared';
 
 export default function ApiKeysTab() {
     const queryClient = useQueryClient();
@@ -48,7 +48,7 @@ export default function ApiKeysTab() {
                 <button type="button" onClick={() => { setShowModal(true); setCreatedToken(null); }} className="px-4 py-2 rounded-lg text-sm bg-[#4f46e5] text-white hover:bg-[#3730a3]">+ New API Key</button>
             </div>
 
-            <div className="bg-white border border-[#d0d7e8] rounded-2xl overflow-hidden shadow-sm">
+            <CardShell>
                 <div className="grid grid-cols-[1.1fr_0.9fr_1.4fr_0.9fr_0.9fr_0.9fr_0.6fr] px-5 py-3 border-b border-[#f0f2f8] text-[10px] font-semibold tracking-widest uppercase text-[#7a87a8]">
                     <span>Name</span><span>Prefix</span><span>Scopes</span><span>Created</span><span>Last Used</span><span>Expires</span><span>Actions</span>
                 </div>
@@ -74,7 +74,7 @@ export default function ApiKeysTab() {
                     })}
                     {apiKeys.length === 0 ? <div className="px-5 py-6 text-sm text-[#7a87a8]">No API keys created yet.</div> : null}
                 </div>
-            </div>
+            </CardShell>
 
             {showModal ? (
                 <Modal title="Create API Key" icon={Key} onClose={() => setShowModal(false)}>

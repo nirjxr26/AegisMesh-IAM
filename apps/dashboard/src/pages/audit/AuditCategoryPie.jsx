@@ -6,10 +6,11 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from 'recharts';
+import { CardShell } from '../../components/common/CardShell';
 
 export default function AuditCategoryPie({ donutData }) {
     return (
-        <div className="rounded-2xl border border-[#d0d7e8] bg-white p-6 shadow-sm">
+        <CardShell className="p-6">
             <div className="mb-5 flex items-center gap-2">
                 <div className="rounded-lg bg-[#4f46e5]/10 p-2 text-[#4f46e5]">
                     <PieChartIcon size={16} />
@@ -58,7 +59,7 @@ export default function AuditCategoryPie({ donutData }) {
                     </div>
                 ))}
             </div>
-        </div>
+        </CardShell>
     );
 }
 

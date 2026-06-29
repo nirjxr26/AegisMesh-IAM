@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import { AlertTriangle, Shield, ShieldCheck, Zap } from 'lucide-react';
 import { formatNumber, formatIp, getSeverityClass } from './auditHelpers';
 import { toTitleCase, formatDate } from '../../../utils/formatters';
+import { CardShell } from '../../../components/common/CardShell';
 
 function TopActionsPanel({ topActions, rangeLabel }) {
     return (
-        <div className="h-full overflow-hidden rounded-2xl border border-[#d0d7e8] bg-white shadow-sm">
+        <CardShell className="h-full overflow-hidden">
             <div className="flex items-center gap-2 border-b border-[#f0f2f8] px-6 py-4">
                 <div className="rounded-lg bg-[#4f46e5]/10 p-2 text-[#4f46e5]">
                     <Zap size={16} />
@@ -58,13 +59,13 @@ function TopActionsPanel({ topActions, rangeLabel }) {
                     </div>
                 ))}
             </div>
-        </div>
+        </CardShell>
     );
 }
 
 function TopFailedIPsPanel({ topFailedIPs }) {
     return (
-        <div className="h-full overflow-hidden rounded-2xl border border-[#d0d7e8] bg-white shadow-sm">
+        <CardShell className="h-full overflow-hidden">
             <div className="flex items-center gap-2 border-b border-[#f0f2f8] px-6 py-4">
                 <div className="rounded-lg bg-[#dc2626]/10 p-2 text-[#dc2626]">
                     <Shield size={16} />
@@ -131,13 +132,13 @@ function TopFailedIPsPanel({ topFailedIPs }) {
                     </div>
                 </>
             )}
-        </div>
+        </CardShell>
     );
 }
 
 function SecurityAlertsPanel({ alerts }) {
     return (
-        <div className="h-full overflow-hidden rounded-2xl border border-[#d0d7e8] bg-white shadow-sm">
+        <CardShell className="h-full overflow-hidden">
             <div className="flex items-center gap-2 border-b border-[#f0f2f8] px-6 py-4">
                 <div className="rounded-lg bg-[#dc2626]/10 p-2 text-[#dc2626]">
                     <AlertTriangle size={16} />
@@ -196,7 +197,7 @@ function SecurityAlertsPanel({ alerts }) {
                     ))}
                 </div>
             )}
-        </div>
+        </CardShell>
     );
 }
 

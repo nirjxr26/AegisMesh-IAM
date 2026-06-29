@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../../../services/api';
-import { NOTIFICATION_ROWS, NotificationPrefRow } from './shared';
+import { NOTIFICATION_ROWS, NotificationPrefRow, CardShell, CardHeader } from './shared';
 
 export default function NotificationsTab() {
     const queryClient = useQueryClient();
@@ -23,15 +23,12 @@ export default function NotificationsTab() {
     });
 
     const renderCard = (title, rows) => (
-        <div className="bg-white border border-[#d0d7e8] rounded-2xl overflow-hidden shadow-sm">
-            <div className="px-6 py-4 border-b border-[#f0f2f8] flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#4f46e5]/10 text-[#4f46e5] flex items-center justify-center"><Bell size={16} /></div>
-                <h3 className="text-[15px] font-semibold text-[#0f1623]">{title}</h3>
-            </div>
+        <CardShell>
+            <CardHeader title={title} />
             <div>
                 {rows.map((row) => (<NotificationPrefRow key={row.keyEmail} row={row} mergedPrefs={mergedPrefs} setLocalPrefs={setLocalPrefs} />))}
             </div>
-        </div>
+        </CardShell>
     );
 
     return (

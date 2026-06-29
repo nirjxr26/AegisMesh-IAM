@@ -9,10 +9,11 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import { CardShell } from '../../components/common/CardShell';
 
 export default function AuditActivityChart({ activityData, rangeLabel }) {
     return (
-        <div className="rounded-2xl border border-[#d0d7e8] bg-white p-6 shadow-sm lg:col-span-2">
+        <CardShell className="p-6 lg:col-span-2">
             <div className="mb-5 flex items-center gap-2">
                 <div className="rounded-lg bg-[#4f46e5]/10 p-2 text-[#4f46e5]">
                     <BarChart2 size={16} />
@@ -103,7 +104,7 @@ export default function AuditActivityChart({ activityData, rangeLabel }) {
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
-        </div>
+        </CardShell>
     );
 }
 

@@ -3,6 +3,7 @@ import { Info, Monitor, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../../../services/api';
 import { formatDate, formatRelative } from '../../../utils/formatters';
+import { CardShell } from '../../../components/common/CardShell';
 
 export default function SessionsTab() {
     const queryClient = useQueryClient();
@@ -36,7 +37,7 @@ export default function SessionsTab() {
                 <button type="button" onClick={() => revokeAllMutation.mutate()} className="text-sm text-[#dc2626] hover:underline font-medium">Revoke All Others</button>
             </div>
 
-            <div className="bg-white border border-[#d0d7e8] rounded-2xl overflow-hidden shadow-sm divide-y divide-[#f0f2f8]">
+            <CardShell className="divide-y divide-[#f0f2f8]">
                 {sessions.map((session) => (
                     <div key={session.id} className="px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -59,7 +60,7 @@ export default function SessionsTab() {
                     </div>
                 ))}
                 {sessions.length === 0 ? <div className="px-6 py-6 text-sm text-[#7a87a8]">No active sessions found.</div> : null}
-            </div>
+            </CardShell>
         </div>
     );
 }

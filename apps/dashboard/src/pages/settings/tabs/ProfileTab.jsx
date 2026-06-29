@@ -5,7 +5,7 @@ import { Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../../../services/api';
 import { getInitials } from '../../../utils/formatters';
-import { LANG_OPTIONS, TIMEZONE_OPTIONS, Field } from './shared';
+import { LANG_OPTIONS, TIMEZONE_OPTIONS, Field, CardShell } from './shared';
 
 export default function ProfileTab({ user, onProfileUpdated }) {
     const queryClient = useQueryClient();
@@ -64,7 +64,7 @@ export default function ProfileTab({ user, onProfileUpdated }) {
 
     return (
         <div className="w-full space-y-5">
-            <div className="bg-white border border-[#d0d7e8] rounded-2xl p-6 flex flex-col items-start gap-4 shadow-sm sm:flex-row sm:items-center sm:gap-6">
+            <CardShell className="p-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
                 {user?.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" className="w-20 h-20 rounded-2xl object-cover" />
                 ) : (
@@ -95,9 +95,9 @@ export default function ProfileTab({ user, onProfileUpdated }) {
                     accept="image/png,image/jpeg,image/webp"
                     onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadMutation.mutate(file); }}
                 />
-            </div>
+            </CardShell>
 
-            <div className="bg-white border border-[#d0d7e8] rounded-2xl p-6 shadow-sm space-y-4">
+            <CardShell className="p-6 space-y-4">
                 <div className="pb-3 border-b border-[#f0f2f8]">
                     <h3 className="text-[15px] font-semibold text-[#0f1623]">Personal Information</h3>
                 </div>
@@ -141,7 +141,7 @@ export default function ProfileTab({ user, onProfileUpdated }) {
                     <button type="button" onClick={() => setForm({ firstName: user?.firstName || '', lastName: user?.lastName || '', jobTitle: user?.jobTitle || '', department: user?.department || '', timezone: user?.timezone || 'UTC', language: user?.language || 'en' })} className="px-4 py-2 rounded-lg text-sm border border-[#d0d7e8] text-[#3a4560] hover:bg-[#f4f6fb]">Cancel</button>
                     <button type="button" onClick={handleSave} className="px-4 py-2 rounded-lg text-sm bg-[#4f46e5] text-white hover:bg-[#3730a3]" disabled={updateMutation.isPending}>Save Changes</button>
                 </div>
-            </div>
+            </CardShell>
         </div>
     );
 }

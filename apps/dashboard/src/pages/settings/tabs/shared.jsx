@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createElement, useId, Children, cloneElement, isValidElement } from 'react';
+import { useId, Children, cloneElement, isValidElement } from 'react';
 import PropTypes from 'prop-types';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -184,31 +184,7 @@ Field.propTypes = {
     children: PropTypes.node,
 };
 
-export function CardShell({ children }) {
-    return <div className="bg-white border border-[#d0d7e8] rounded-2xl overflow-hidden shadow-sm">{children}</div>;
-}
-
-CardShell.propTypes = {
-    children: PropTypes.node,
-};
-
-export function CardHeader({ icon: Icon, title, right = null }) {
-    return (
-        <div className="px-6 py-4 border-b border-[#f0f2f8] flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#4f46e5]/10 text-[#4f46e5] flex items-center justify-center">
-                {createElement(Icon, { size: 16 })}
-            </div>
-            <h3 className="text-[15px] font-semibold text-[#0f1623]">{title}</h3>
-            <div className="ml-auto">{right}</div>
-        </div>
-    );
-}
-
-CardHeader.propTypes = {
-    icon: PropTypes.elementType.isRequired,
-    title: PropTypes.string.isRequired,
-    right: PropTypes.node,
-};
+export { CardShell, CardHeader } from '../../../components/common/CardShell';
 
 export function PasswordField({ label, value, onChange, visible, onToggle, error }) {
     return (

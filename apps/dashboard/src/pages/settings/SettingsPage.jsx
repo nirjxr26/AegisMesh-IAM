@@ -1,4 +1,4 @@
-import { createElement, useId, useMemo, useRef, useState, cloneElement, isValidElement, Children } from 'react';
+import { useId, useMemo, useRef, useState, cloneElement, isValidElement, Children } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     AlertTriangle,
@@ -22,6 +22,7 @@ import { settingsAPI } from '../../services/api';
 import ConnectedApps from '../../components/security/ConnectedApps';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { CardShell, CardHeader } from '../../components/common/CardShell';
 
 const TAB_DEFS = [
     { id: 'profile', label: 'Profile', icon: User },
@@ -1704,22 +1705,6 @@ function Field({ label, error, children }) {
     );
 }
 
-function CardShell({ children }) {
-    return <div className="bg-white border border-[#d0d7e8] rounded-2xl overflow-hidden shadow-sm">{children}</div>;
-}
-
-function CardHeader({ icon: Icon, title, right = null }) {
-    return (
-        <div className="px-6 py-4 border-b border-[#f0f2f8] flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#4f46e5]/10 text-[#4f46e5] flex items-center justify-center">
-                {createElement(Icon, { size: 16 })}
-            </div>
-            <h3 className="text-[15px] font-semibold text-[#0f1623]">{title}</h3>
-            <div className="ml-auto">{right}</div>
-        </div>
-    );
-}
-
 function PasswordField({ label, value, onChange, visible, onToggle, error }) {
     return (
         <Field label={label} error={error}>
@@ -1931,16 +1916,6 @@ Field.propTypes = {
     label: PropTypes.string.isRequired,
     error: PropTypes.string,
     children: PropTypes.node,
-};
-
-CardShell.propTypes = {
-    children: PropTypes.node,
-};
-
-CardHeader.propTypes = {
-    icon: PropTypes.elementType.isRequired,
-    title: PropTypes.string.isRequired,
-    right: PropTypes.node,
 };
 
 PasswordField.propTypes = {

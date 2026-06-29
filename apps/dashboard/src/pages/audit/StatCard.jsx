@@ -1,15 +1,12 @@
 import PropTypes from 'prop-types';
 import { formatNumber } from './auditHelpers';
+import { CardShell } from '../../components/common/CardShell';
 
 export default function StatCard({
-    icon,
-    iconBg,
-    label,
-    value,
-    valueClass,
+    icon, iconBg, label, value, valueClass,
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-2xl border border-[#d0d7e8] bg-white px-5 py-4 shadow-sm">
+        <CardShell className="flex items-center gap-3 px-5 py-4">
             <div
                 className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
             >
@@ -25,7 +22,7 @@ export default function StatCard({
                     {label}
                 </p>
             </div>
-        </div>
+        </CardShell>
     );
 }
 
