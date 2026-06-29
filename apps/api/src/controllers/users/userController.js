@@ -352,7 +352,12 @@ exports.updateUser = async (req, res, next) => {
             await auditUser.statusChanged(req, id, user.email, user.status, status);
         }
 
-        const { passwordHash: _passwordHash2, mfaSecret: _mfaSecret2, mfaBackupCodes: _mfaBackupCodes2, passwordResetToken: _passwordResetToken2, emailVerifyToken: _emailVerifyToken2, ...safeUser } = updatedUser;
+        const { ...safeUser } = updatedUser;
+        Reflect.deleteProperty(safeUser, 'passwordHash');
+        Reflect.deleteProperty(safeUser, 'mfaSecret');
+        Reflect.deleteProperty(safeUser, 'mfaBackupCodes');
+        Reflect.deleteProperty(safeUser, 'passwordResetToken');
+        Reflect.deleteProperty(safeUser, 'emailVerifyToken');
         res.json({ success: true, data: { ...safeUser, roles: updatedUser.userRoles.map((ur) => ur.role) } });
     } catch (error) {
         next(error);

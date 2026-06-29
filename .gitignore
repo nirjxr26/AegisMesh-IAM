@@ -115,3 +115,7 @@ scripts/ci/sonar-report.js
 scripts/ci/scan-repo.js
 
 .aider*
+
+# Python Compilation Cache
+__pycache__/
+*.pyc

@@ -31,7 +31,6 @@ class AnomalyDetector:
         if self._mlflow_initialized:
             return
         import mlflow
-        import mlflow.sklearn
         self.mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")  # NOSONAR
         mlflow.set_tracking_uri(self.mlflow_uri)
         self.mlflow_client = mlflow.tracking.MlflowClient()

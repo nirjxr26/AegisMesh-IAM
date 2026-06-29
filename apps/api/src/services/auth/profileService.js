@@ -40,19 +40,19 @@ async function getProfile(userId) {
     const roleNames = (user.userRoles || []).map((ur) => ur.role?.name).filter(Boolean);
     const role = roleNames.includes('SuperAdmin') ? 'SuperAdmin' : (roleNames[0] || null);
 
-    const {
-        userRoles: _userRoles,
-        passwordHash,
-        backupCodes,
-        mfaBackupCodes,
-        ...safeUser
-    } = user;
+    const { ...safeUser } = user;
+    const hasPassword = Boolean(safeUser.passwordHash);
+    const hasBackupCodes = hasConfiguredBackupCodes({ backupCodes: safeUser.mfaBackupCodes, mfaBackupCodes: safeUser.mfaBackupCodes });
+    Reflect.deleteProperty(safeUser, 'userRoles');
+    Reflect.deleteProperty(safeUser, 'passwordHash');
+    Reflect.deleteProperty(safeUser, 'backupCodes');
+    Reflect.deleteProperty(safeUser, 'mfaBackupCodes');
 
     return {
         ...safeUser,
         role,
-        hasBackupCodes: hasConfiguredBackupCodes({ backupCodes, mfaBackupCodes }),
-        hasPassword: Boolean(passwordHash),
+        hasBackupCodes,
+        hasPassword,
     };
 }
 

@@ -50,7 +50,10 @@ exports.updateUserStatus = async (req, res, next) => {
 
         await auditUser.statusChanged(req, id, user.email, user.status, status);
 
-        const { passwordHash: _passwordHash3, mfaSecret: _mfaSecret3, mfaBackupCodes: _mfaBackupCodes3, ...safeUser } = updatedUser;
+        const { ...safeUser } = updatedUser;
+        Reflect.deleteProperty(safeUser, 'passwordHash');
+        Reflect.deleteProperty(safeUser, 'mfaSecret');
+        Reflect.deleteProperty(safeUser, 'mfaBackupCodes');
         res.json({ success: true, data: safeUser });
     } catch (error) {
         next(error);
@@ -77,7 +80,8 @@ exports.verifyUserEmail = async (req, res, next) => {
 
         await auditUser.emailVerified(req, id, user.email);
 
-        const { passwordHash: _passwordHash4, ...safeUser } = updatedUser;
+        const { ...safeUser } = updatedUser;
+        Reflect.deleteProperty(safeUser, 'passwordHash');
         res.json({ success: true, data: safeUser });
     } catch (error) {
         next(error);

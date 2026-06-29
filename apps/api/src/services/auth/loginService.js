@@ -226,17 +226,20 @@ async function createLoginResponse({ user, req }) {
         ? 'SuperAdmin'
         : (roleNames[0] || null);
 
-    const {
-        passwordHash,
-        mfaSecret: _mfaSecret,
-        mfaBackupCodes,
-        backupCodes,
-        emailVerifyToken: _emailVerifyToken,
-        passwordResetToken: _passwordResetToken,
-        passwordResetExpires: _passwordResetExpires,
-        userRoles: _userRoles,
-        ...safeUser
-    } = user;
+    const { ...safeUser } = user;
+    const hasBackupCodes = hasConfiguredBackupCodes({
+        backupCodes: safeUser.mfaBackupCodes,
+        mfaBackupCodes: safeUser.mfaBackupCodes,
+    });
+    const hasPassword = Boolean(safeUser.passwordHash);
+    Reflect.deleteProperty(safeUser, 'passwordHash');
+    Reflect.deleteProperty(safeUser, 'mfaSecret');
+    Reflect.deleteProperty(safeUser, 'mfaBackupCodes');
+    Reflect.deleteProperty(safeUser, 'backupCodes');
+    Reflect.deleteProperty(safeUser, 'emailVerifyToken');
+    Reflect.deleteProperty(safeUser, 'passwordResetToken');
+    Reflect.deleteProperty(safeUser, 'passwordResetExpires');
+    Reflect.deleteProperty(safeUser, 'userRoles');
 
     return {
         accessToken,
@@ -244,12 +247,8 @@ async function createLoginResponse({ user, req }) {
         user: {
             ...safeUser,
             role,
-            hasBackupCodes:
-                hasConfiguredBackupCodes({
-                    backupCodes,
-                    mfaBackupCodes,
-                }),
-            hasPassword: Boolean(passwordHash),
+            hasBackupCodes,
+            hasPassword,
         },
     };
 }

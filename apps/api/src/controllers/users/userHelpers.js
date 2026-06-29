@@ -13,15 +13,12 @@ function parsePagination(page, limit) {
 }
 
 function sanitizeUser(user) {
-    const {
-        passwordHash: _passwordHash,
-        mfaSecret: _mfaSecret,
-        mfaBackupCodes: _mfaBackupCodes,
-        passwordResetToken: _passwordResetToken,
-        emailVerifyToken: _emailVerifyToken,
-        ...safeUser
-    } = user;
-
+    const { ...safeUser } = user;
+    Reflect.deleteProperty(safeUser, 'passwordHash');
+    Reflect.deleteProperty(safeUser, 'mfaSecret');
+    Reflect.deleteProperty(safeUser, 'mfaBackupCodes');
+    Reflect.deleteProperty(safeUser, 'passwordResetToken');
+    Reflect.deleteProperty(safeUser, 'emailVerifyToken');
     return safeUser;
 }
 

@@ -44,13 +44,21 @@ function printResults(findings, scannedFileCount, filterFile) {
 
   if (filterFile) {
     console.log(`\n${BOLD}[Detailed Findings for Filtered Files]${RESET}`);
-    findings
-      .sort((a, b) => a.priority.localeCompare(b.priority) || a.line - b.line)
-      .forEach((f, i) => {
-        const color = f.priority === 'P1' ? RED : (f.priority === 'P2' ? YELLOW : RESET);
-        console.log(` ${i + 1}. [${f.priority}] [${f.ruleId}] ${CYAN}${f.file}:L${f.line}${RESET}`);
-        console.log(`    Message: ${color}${f.message}${RESET}`);
-      });
+    const sorted = [...findings].sort(
+      (a, b) => a.priority.localeCompare(b.priority) || a.line - b.line
+    );
+    sorted.forEach((f, i) => {
+      let color;
+      if (f.priority === 'P1') {
+        color = RED;
+      } else if (f.priority === 'P2') {
+        color = YELLOW;
+      } else {
+        color = RESET;
+      }
+      console.log(` ${i + 1}. [${f.priority}] [${f.ruleId}] ${CYAN}${f.file}:L${f.line}${RESET}`);
+      console.log(`    Message: ${color}${f.message}${RESET}`);
+    });
   } else {
     console.log(`\n${BOLD}[P1 - Critical & Blocker Findings Details]${RESET}`);
     const p1s = findings.filter(f => f.priority === 'P1');

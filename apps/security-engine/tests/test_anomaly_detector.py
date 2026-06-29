@@ -44,7 +44,7 @@ class TestAnomalyDetector:
         from sklearn.ensemble import IsolationForest
         classifier = detector.model.named_steps['classifier']
         assert isinstance(classifier, IsolationForest)
-        assert classifier.contamination == 0.05
+        assert classifier.contamination == pytest.approx(0.05)
 
     def test_risk_score_bounds(self):
         detector = AnomalyDetector()

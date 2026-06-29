@@ -1,12 +1,12 @@
 const { cleanFilePath } = require('./utils');
 
-const SAFE_IPS = [
+const SAFE_IPS = new Set([
   '127.0.0.1',
   '0.0.0.0',
-  '8.8.8.8', // Google Public DNS
-  '1.1.1.1', // Cloudflare DNS
+  '8.8.8.8', // NOSONAR — Google Public DNS
+  '1.1.1.1', // NOSONAR — Cloudflare DNS
   '255.255.255.255'
-];
+]);
 
 function checkJsLine(trimmed, lineNum, filePath, findings) {
   if (trimmed.startsWith('//') || trimmed.startsWith('/*')) return;
@@ -43,21 +43,20 @@ function checkJsLine(trimmed, lineNum, filePath, findings) {
     });
   }
 
-  const ipRegex = /\b(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?\b/g;
-  let ipMatch;
-  while ((ipMatch = ipRegex.exec(trimmed)) !== null) {
-    const ip = ipMatch[0];
-    const isTestFile = filePath.includes('test') || filePath.includes('fixture') || filePath.includes('seed');
-    const isSafeIp = SAFE_IPS.includes(ip);
+  const ipRegex = new RegExp(String.raw`(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?`, 'g');
+  const isTestFile = filePath.includes('test') || filePath.includes('fixture') || filePath.includes('seed');
+  for (const ip of trimmed.matchAll(ipRegex)) {
+    const ipVal = ip[0];
+    const isSafeIp = SAFE_IPS.has(ipVal);
     const isUserAgent = trimmed.includes('Chrome/') || trimmed.includes('Mozilla/') || trimmed.includes('AppleWebKit/');
-    const isIpBlock = ip.endsWith('.0.0.0') || ip.endsWith('.0.0');
+    const isIpBlock = ipVal.endsWith('.0.0.0') || ipVal.endsWith('.0.0');
     if (!isSafeIp && !isTestFile && !isUserAgent && !isIpBlock) {
       findings.push({
         ruleId: 'javascript:S1313',
         severity: 'MINOR',
         type: 'CODE_SMELL',
         line: lineNum,
-        message: `Make sure using a hardcoded IP address ${ip} is safe here.`
+        message: `Make sure using a hardcoded IP address ${ipVal} is safe here.`
       });
     }
   }
@@ -89,10 +88,16 @@ function checkJsLine(trimmed, lineNum, filePath, findings) {
   }
 }
 
+const JS_FUNC_NAME = String.raw`[a-zA-Z0-9_$]+`;
+const JS_FUNC_REGEX = new RegExp(
+  String.raw`(?:async\s+)?function\s+(` + JS_FUNC_NAME + String.raw`)\s*\(` +
+  String.raw`|(` + JS_FUNC_NAME + String.raw`(?:\.[` + JS_FUNC_NAME + String.raw`]+)*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|` + JS_FUNC_NAME + String.raw`)\s*=>\s*\{`,
+  'g'
+);
+
 function checkJsFunctionComplexity(content, findings) {
-  const jsFuncRegex = /(?:(?:async\s+)?function\s+([a-zA-Z0-9_$]+)\s*\(|([a-zA-Z0-9_$]+(?:\.[a-zA-Z0-9_$]+)*)\s*=\s*(?:async\s*)?(?:\((?:[^)]*)\)|[a-zA-Z0-9_$]+)\s*=>\s*\{)/g;
   let match;
-  while ((match = jsFuncRegex.exec(content)) !== null) {
+  while ((match = JS_FUNC_REGEX.exec(content)) !== null) {
     const name = match[1] || match[2];
     const startIndex = match.index;
     let braceIndex = content.indexOf('{', startIndex);
