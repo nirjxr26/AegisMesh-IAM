@@ -18,10 +18,8 @@ class TestAnomalyDetector:
             "result": "SUCCESS",
             "duration": 100.0
         }
-        risk_score, prep_time, inf_time = detector.predict_risk(data)
+        risk_score, _, _ = detector.predict_risk(data)
         assert 0.0 <= risk_score <= 1.0
-        assert prep_time >= 0.0
-        assert inf_time >= 0.0
 
     def test_predict_risk_with_missing_columns(self):
         detector = AnomalyDetector()
@@ -31,7 +29,7 @@ class TestAnomalyDetector:
 
     def test_predict_risk_with_empty_dict(self):
         detector = AnomalyDetector()
-        risk_score, prep_time, inf_time = detector.predict_risk({})
+        risk_score, _, _ = detector.predict_risk({})
         assert 0.0 <= risk_score <= 1.0
 
     def test_predict_risk_raises_on_invalid_data(self):

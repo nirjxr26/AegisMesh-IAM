@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../../../services/api';
 import { NOTIFICATION_ROWS, NotificationPrefRow, CardShell, CardHeader } from './shared';

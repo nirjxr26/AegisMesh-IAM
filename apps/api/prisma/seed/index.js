@@ -105,10 +105,14 @@ const roleDistribution = [
 
 const users = userProfiles.map(([firstName, lastName], idx) => {
     const emailLocal = idx === 0 ? 'admin' : `${firstName}.${lastName}`.toLowerCase().replace(/[^a-z.]/g, '').replace(/\.{2,}/g, '.');
-    let status = idx < 18 ? 'active' : idx < 22 ? 'locked' : 'pending';
+    let status;
+    if (idx < 18) status = 'active';
+    else if (idx < 22) status = 'locked';
+    else status = 'pending';
     const emailVerified = idx < 20;
     const mfaEnabled = idx === 0 ? false : idx < 15;
-    const mfaType = mfaEnabled ? (idx % 4 === 0 ? 'sms' : 'totp') : null;
+    let mfaType = null;
+    if (mfaEnabled) mfaType = idx % 4 === 0 ? 'sms' : 'totp';
     let lastLoginAt = null;
     if (idx < 10) lastLoginAt = toIso(hoursAgo([1, 2, 3, 5, 7, 9, 12, 15, 18, 22][idx]));
     else if (idx < 18) lastLoginAt = toIso(daysAgo([2, 2.5, 3, 3.5, 4, 5, 6, 6.75][idx - 10]));

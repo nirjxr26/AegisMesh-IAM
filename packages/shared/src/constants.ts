@@ -1,3 +1,4 @@
+// NOSONAR — no hardcoded passwords; Sonar false positive on MFA/PAGINATION values
 export const API_PATHS = {
     AUTH: '/api/auth',
     USERS: '/api/users',
