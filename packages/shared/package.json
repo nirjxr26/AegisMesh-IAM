@@ -1,0 +1,25 @@
+{
+  "name": "@aegismesh/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared constants, formatters, and utilities for AegisMesh IAM",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "require": "./src/index.cjs"
+    },
+    "./constants": {
+      "import": "./src/constants.js",
+      "require": "./src/constants.cjs"
+    },
+    "./formatters": {
+      "import": "./src/formatters.js",
+      "require": "./src/formatters.cjs"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "clean": "echo clean"
+  }
+}

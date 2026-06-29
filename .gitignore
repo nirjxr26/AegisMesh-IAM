@@ -110,6 +110,9 @@ pg_dumpall*
 .sonarqube_report/
 .code-quality/
 
+# Monorepo
+.turbo/
+
 # Custom local tools/scripts
 scripts/ci/sonar-report.js
 scripts/ci/scan-repo.js
