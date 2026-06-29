@@ -24,7 +24,11 @@
     "typescript": "^6.0.3"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.40.2",
+    "@esbuild/linux-x64": "0.28.1",
+    "@oxc-parser/binding-linux-x64-gnu": "0.132.0",
+    "@rollup/rollup-linux-x64-gnu": "4.60.3",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.0",
+    "@unrs/resolver-binding-linux-x64-gnu": "1.12.2",
     "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "engines": {
