@@ -2,7 +2,8 @@ import os
 from contextlib import asynccontextmanager
 if os.getenv("DD_APM_ENABLED") == "true":
     from ddtrace import patch_all; patch_all()
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
+from .models import AnalyzeRequest, TrainRequest
 from .anomaly_detector import AnomalyDetector
 from prometheus_client import Counter, Histogram, Gauge, make_asgi_app
 import time
@@ -86,11 +87,12 @@ def health():
 
 
 @app.post("/analyze")
-async def analyze(request: Request):
-    data = await request.json()
-
+async def analyze(data: AnalyzeRequest):
     start_total = time.time()
-    risk_score, prep_time, inf_time = detector.predict_risk(data)
+    try:
+        risk_score, prep_time, inf_time = detector.predict_risk(data.model_dump())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
     total_duration = time.time() - start_total
 
     # Record detailed metrics

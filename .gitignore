@@ -114,3 +114,4 @@ pg_dumpall*
 scripts/ci/sonar-report.js
 scripts/ci/scan-repo.js
 
+.aider*

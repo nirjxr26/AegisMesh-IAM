@@ -26,7 +26,6 @@ const UserCreate = lazy(() => import('./pages/users/UserCreate'));
 const UserEdit = lazy(() => import('./pages/users/UserEdit'));
 const SecurityPage = lazy(() => import('./pages/security/SecurityPage'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
-const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AuditLogsPage = lazy(() => import('./pages/audit/AuditLogsPage'));
 const AuditStatsPage = lazy(() => import('./pages/audit/AuditStatsPage'));

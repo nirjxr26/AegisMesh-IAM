@@ -90,32 +90,31 @@ const onSubmit = async (event) => {
         const errorData = err.response?.data?.error;
         const errorCode = errorData?.code;
 
-        if (errorCode === 'AUTH_004') {
-            setMfaRequired(true);
-            setError('');
+        const ERROR_ACTIONS = {
+            AUTH_004: { mfa: true, errorMsg: '' },
+            AUTH_002: (data) => {
+                const unlockTime = data.details?.unlockTime;
+                return { errorMsg: `Account locked. Try again ${unlockTime ? `after ${new Date(unlockTime).toLocaleTimeString()}` : 'later'}.` };
+            },
+        };
+
+        const action = ERROR_ACTIONS[errorCode];
+        if (action) {
+            if (typeof action === 'function') {
+                const { errorMsg } = action(errorData);
+                setError(errorMsg);
+            } else {
+                setMfaRequired(action.mfa);
+                setError(action.errorMsg);
+            }
             return;
         }
 
-        if (errorCode === 'AUTH_002') {
-            const unlockTime = errorData.details?.unlockTime;
-
-            const unlockMessage = unlockTime
-                ? `after ${new Date(unlockTime).toLocaleTimeString()}`
-                : 'later';
-
-            setError(`Account locked. Try again ${unlockMessage}.`);
-            return;
-        }
+        const DB_ERROR_PATTERNS = ['prisma', 'database credentials', 'authentication failed', 'findfirst', 'ensureorganizationsettings'];
 
         let displayError = errorData?.message || 'Login failed. Please check your credentials.';
         const lowerError = String(displayError).toLowerCase();
-        if (
-            lowerError.includes('prisma') ||
-            lowerError.includes('database credentials') ||
-            lowerError.includes('authentication failed') ||
-            lowerError.includes('findfirst') ||
-            lowerError.includes('ensureorganizationsettings')
-        ) {
+        if (DB_ERROR_PATTERNS.some((pattern) => lowerError.includes(pattern))) {
             displayError = 'Database connection or authentication failed. Please verify credentials and database availability.';
         }
 

@@ -1,7 +1,6 @@
-const authService = require('../services/auth.service');
+const authService = require('../services/auth');
 const tokenService = require('../services/token.service');
 const prisma = require('../config/database');
-const logger = require('../utils/logger');
 const { encryptText, decryptText } = require('../utils/crypto');
 
 function getCookieOptions(req) {

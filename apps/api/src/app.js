@@ -38,7 +38,7 @@ const settingsRoutes = require('./routes/settings.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const logger = require('./utils/logger');
 const { metricsHandler, metricsMiddleware } = require('./utils/metrics');
-const { scheduleCleanup } = require('./utils/auditCleanup');
+const { scheduleCleanup: _scheduleCleanup } = require('./utils/auditCleanup');
 const path = require('node:path');
 
 const app = express();

@@ -21,8 +21,7 @@ module.exports = [
         'error',
         {
           argsIgnorePattern: '^_',
-          varsIgnorePattern:
-            '^(?:_|allPresent|scheduleCleanup|logger|crypto|http|options|getStats|req|res|next|result|sendWelcomeEmail|prisma|error|mfaSecret|emailVerifyToken|passwordResetToken|passwordResetExpires|userRoles|sessionsRevokedCount|currentPassword|passwordHash|mfaBackupCodes)$',
+          varsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_'
         }
       ],

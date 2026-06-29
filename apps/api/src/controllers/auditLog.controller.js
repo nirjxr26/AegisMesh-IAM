@@ -1,6 +1,5 @@
 const prisma = require('../config/database');
 const { audit } = require('../utils/auditLog');
-const logger = require('../utils/logger');
 
 /**
  * GET /api/audit-logs

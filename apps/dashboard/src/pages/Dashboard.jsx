@@ -1,24 +1,10 @@
 import PropTypes from 'prop-types';
-import { createElement, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-    AlertTriangle,
-    ArrowRight,
-    CheckCircle2,
-    ChevronDown,
-    Clock3,
-    FileText,
-    KeyRound,
-    Layers,
-    LayoutDashboard,
-    Mail,
-    Monitor,
-    ScrollText,
-    ShieldAlert,
-    ShieldCheck,
-    UserPlus,
-    Users,
+    AlertTriangle, Clock3, FileText, KeyRound, Layers, LayoutDashboard,
+    Mail, Monitor, ScrollText, ShieldAlert, ShieldCheck, UserPlus, Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { auditAPI, authAPI, rbacAPI, userAPI } from '../services/api';
@@ -27,205 +13,8 @@ import UsersList from './users/UsersList';
 import RolesList from './rbac/RolesList';
 import PoliciesList from './rbac/PoliciesList';
 import GroupsList from './rbac/GroupsList';
-import { formatDate, formatRelativeTime, toTitleCase as toTitleCaseAction } from '../utils/formatters';
-
-function NavItem({
-    icon: Icon,
-    label,
-    value,
-    href,
-    activeSection,
-    onSelect,
-    collapsed,
-    forceActive = false,
-}) {
-    const navigate = useNavigate();
-    const isActive = forceActive || activeSection === value;
-    const iconElement = createElement(Icon, { size: collapsed ? 18 : 17 });
-
-    const handleClick = () => {
-        if (href) {
-            navigate(href);
-        } else {
-            onSelect(value);
-        }
-    };
-
-    if (collapsed) {
-        return (
-            <button
-                onClick={handleClick}
-                title={label}
-                className={`w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-all duration-150 ${isActive
-                    ? 'bg-[#4f46e5]/25 text-[#c7d2fe]'
-                    : 'text-[#93a4c3] hover:text-[#e2e8f0] hover:bg-[#1f2937]'
-                    }`}
-            >
-                {iconElement}
-            </button>
-        );
-    }
-
-    return (
-        <button
-            onClick={handleClick}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl text-xs cursor-pointer transition-all duration-150 border ${isActive
-                ? 'bg-[#4f46e5]/25 text-[#c7d2fe] border-[#6366f1]/50 font-semibold'
-                : 'text-[#b6c2d9] hover:text-[#f8fafc] hover:bg-[#1f2937] border-transparent font-medium'
-                }`}
-        >
-            {iconElement}
-            <span>{label}</span>
-        </button>
-    );
-}
-
-NavItem.propTypes = {
-    icon: PropTypes.elementType.isRequired,
-    label: PropTypes.string.isRequired,
-    value: PropTypes.string,
-    href: PropTypes.string,
-    activeSection: PropTypes.string,
-    onSelect: PropTypes.func,
-    collapsed: PropTypes.bool,
-    forceActive: PropTypes.bool,
-};
-
-function SectionToggle({ label, expanded, active, onToggle }) {
-    return (
-        <button
-            onClick={onToggle}
-            className="w-full flex items-center justify-between px-4 py-2 cursor-pointer select-none group"
-        >
-            <span className={`text-[9px] font-semibold tracking-widest uppercase transition-colors ${active ? 'text-[#a5b4fc]' : 'text-[#7b8ba8] group-hover:text-[#cbd5e1]'}`}>
-                {label}
-            </span>
-            <ChevronDown
-                size={14}
-                className={`text-[#64748b] transition-transform duration-150 ${expanded ? 'rotate-180' : ''}`}
-            />
-        </button>
-    );
-}
-
-SectionToggle.propTypes = {
-    label: PropTypes.string.isRequired,
-    expanded: PropTypes.bool,
-    active: PropTypes.bool,
-    onToggle: PropTypes.func.isRequired,
-};
-
-function SectionHeader({ title, description }) {
-    return (
-        <div className="mb-6">
-            <h1 className="text-xl font-semibold text-aws-text">{title}</h1>
-            <p className="text-sm text-[#7a87a8] mt-0.5">{description}</p>
-        </div>
-    );
-}
-
-SectionHeader.propTypes = {
-    title: PropTypes.string.isRequired,
-    description: PropTypes.string.isRequired,
-};
-
-function getSystemHealth(criticalAlertsCount, totalAlerts) {
-    if (criticalAlertsCount > 0) {
-        return {
-            label: 'Critical Security Events Detected',
-            dotClass: 'bg-red-500',
-            textClass: 'text-red-600',
-        };
-    }
-
-    if (totalAlerts > 0) {
-        return {
-            label: 'Monitoring Warnings',
-            dotClass: 'bg-amber-500',
-            textClass: 'text-amber-600',
-        };
-    }
-
-    return {
-        label: 'All Systems Operational',
-        dotClass: 'bg-emerald-500',
-        textClass: 'text-emerald-600',
-    };
-}
-
-function getRecentLogDotClass(result = '') {
-    const normalized = String(result || '').toUpperCase();
-
-    if (normalized === 'SUCCESS') {
-        return 'bg-emerald-500';
-    }
-
-    if (['FAILURE', 'ERROR', 'BLOCKED'].includes(normalized)) {
-        return 'bg-red-500';
-    }
-
-    return 'bg-amber-500';
-}
-
-function computeRoleDistribution(users = []) {
-    let superAdmin = 0;
-    let readOnly = 0;
-    let custom = 0;
-
-    users.forEach((u) => {
-        const roleNames = (u.roles || []).map((role) => (role.name || '').toLowerCase());
-
-        if (roleNames.some((n) => n.includes('superadmin') || n.includes('super admin'))) {
-            superAdmin += 1;
-            return;
-        }
-
-        if (roleNames.some((n) => n.includes('readonly') || n.includes('read only'))) {
-            readOnly += 1;
-            return;
-        }
-
-        custom += 1;
-    });
-
-    const total = superAdmin + readOnly + custom || 1;
-
-    return {
-        superAdmin,
-        readOnly,
-        custom,
-        superAdminPct: Math.round((superAdmin / total) * 100),
-        readOnlyPct: Math.round((readOnly / total) * 100),
-        customPct: Math.round((custom / total) * 100),
-    };
-}
-
-function buildCsv(columns, rows) {
-    return [columns, ...rows]
-        .map((line) => line.map((item) => `"${String(item).replaceAll('"', '""')}"`).join(','))
-        .join('\n');
-}
-
-function getStatusChip(status) {
-    if (status === 'critical') {
-        return {
-            label: 'Critical',
-            className: 'bg-red-50 text-red-600 border border-red-200',
-        };
-    }
-
-    if (status === 'warning') {
-        return {
-            label: 'Warning',
-            className: 'bg-amber-50 text-amber-600 border border-amber-200',
-        };
-    }
-
-    return {
-        label: 'Good',
-        className: 'bg-emerald-50 text-emerald-600 border border-emerald-200',
-    };
-}
+import { getSystemHealth, computeRoleDistribution, buildCsv, SectionHeader } from './dashboard/sections/shared';
+import { StatsCards, SecurityAlerts, RecentActivity, UserChart, QuickActions } from './dashboard/sections';
 
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
@@ -273,10 +62,7 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
 
     const weeklyLogsQuery = useQuery({
         queryKey: ['overview-weekly-logs', sevenDaysAgoIso],
-        queryFn: () =>
-            auditAPI
-                .getLogs({ page: 1, limit: 250, startDate: sevenDaysAgoIso })
-                .then((res) => res.data),
+        queryFn: () => auditAPI.getLogs({ page: 1, limit: 250, startDate: sevenDaysAgoIso }).then((res) => res.data),
         staleTime: 20 * 1000,
     });
 
@@ -300,15 +86,13 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
     const activeSessions = sessions.length;
     const totalPolicyAssignments = roles.reduce((sum, role) => sum + (role._count?.rolePolicies || 0), 0);
 
-    const countWeeklyActions = (matchers) => {
-        return weeklyLogs.filter((log) => {
-            const action = (log.action || '').toUpperCase();
-            return matchers.some((matcher) => {
-                if (typeof matcher === 'string') return action.includes(matcher);
-                return matcher(action);
-            });
-        }).length;
-    };
+    const countWeeklyActions = (matchers) => weeklyLogs.filter((log) => {
+        const action = (log.action || '').toUpperCase();
+        return matchers.some((matcher) => {
+            if (typeof matcher === 'string') return action.includes(matcher);
+            return matcher(action);
+        });
+    }).length;
 
     const metricDeltas = {
         users: countWeeklyActions(['REGISTER', 'USER_CREATED']),
@@ -331,10 +115,8 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
         (role.rolePolicies || []).some(({ policy }) => {
             const actions = policy?.actions || [];
             const resources = policy?.resources || [];
-
             const wildcardAction = actions.some((a) => typeof a === 'string' && (a === '*' || a.includes('*')));
             const wildcardResource = resources.some((r) => typeof r === 'string' && (r === '*' || r.includes('*')));
-
             return wildcardAction || wildcardResource;
         })
     ).length;
@@ -346,88 +128,44 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
     }, 0);
 
     const criticalAlertsCount = alerts.filter((alert) => ['CRITICAL', 'HIGH'].includes(alert.severity)).length;
-
     const systemHealth = getSystemHealth(criticalAlertsCount, totalAlerts);
 
     const postureChecks = [
-        {
-            label: 'MFA Coverage',
-            icon: ShieldCheck,
-            value: `${mfaCoverage}%`,
-            status: mfaCoverage < 80 ? 'critical' : 'good',
-        },
-        {
-            label: 'Inactive Users',
-            icon: Clock3,
-            value: `${inactiveUsersCount}`,
-            status: inactiveUsersCount > 0 ? 'warning' : 'good',
-        },
-        {
-            label: 'Overprivileged Roles',
-            icon: ShieldAlert,
-            value: `${overprivilegedRolesCount}`,
-            status: overprivilegedRolesCount > 0 ? 'critical' : 'good',
-        },
-        {
-            label: 'Unverified Emails',
-            icon: Mail,
-            value: `${unverifiedUsersCount}`,
-            status: unverifiedUsersCount > 0 ? 'warning' : 'good',
-        },
+        { label: 'MFA Coverage', icon: ShieldCheck, value: `${mfaCoverage}%`, status: mfaCoverage < 80 ? 'critical' : 'good' },
+        { label: 'Inactive Users', icon: Clock3, value: `${inactiveUsersCount}`, status: inactiveUsersCount > 0 ? 'warning' : 'good' },
+        { label: 'Overprivileged Roles', icon: ShieldAlert, value: `${overprivilegedRolesCount}`, status: overprivilegedRolesCount > 0 ? 'critical' : 'good' },
+        { label: 'Unverified Emails', icon: Mail, value: `${unverifiedUsersCount}`, status: unverifiedUsersCount > 0 ? 'warning' : 'good' },
     ];
 
     const topActiveUsers = useMemo(() => {
         const bucket = new Map();
-
         weeklyLogs.forEach((log) => {
             const email = log.user?.email;
             if (!email) return;
-
             const key = log.user?.id || email;
             const existing = bucket.get(key) || {
-                id: key,
-                email,
-                name: `${log.user?.firstName || ''} ${log.user?.lastName || ''}`.trim() || email,
-                count: 0,
-                lastActiveAt: log.createdAt,
+                id: key, email, name: `${log.user?.firstName || ''} ${log.user?.lastName || ''}`.trim() || email,
+                count: 0, lastActiveAt: log.createdAt,
             };
-
             existing.count += 1;
-            if (new Date(log.createdAt).getTime() > new Date(existing.lastActiveAt).getTime()) {
-                existing.lastActiveAt = log.createdAt;
-            }
-
+            if (new Date(log.createdAt).getTime() > new Date(existing.lastActiveAt).getTime()) existing.lastActiveAt = log.createdAt;
             bucket.set(key, existing);
         });
-
-        return Array.from(bucket.values())
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
+        return Array.from(bucket.values()).sort((a, b) => b.count - a.count).slice(0, 5);
     }, [weeklyLogs]);
 
     const roleDistribution = computeRoleDistribution(users);
 
     const handleExportUserReport = () => {
         const columns = ['Name', 'Email', 'Status', 'MFA', 'Email Verified', 'Roles'];
-
         const rows = users.map((u) => {
             const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
             const rolesLabel = (u.roles || []).map((r) => r.name).join('; ');
-            return [
-                name || 'N/A',
-                u.email || 'N/A',
-                u.status || 'UNKNOWN',
-                u.mfaEnabled ? 'Enabled' : 'Disabled',
-                u.emailVerified ? 'Verified' : 'Unverified',
-                rolesLabel || 'None',
-            ];
+            return [name || 'N/A', u.email || 'N/A', u.status || 'UNKNOWN', u.mfaEnabled ? 'Enabled' : 'Disabled', u.emailVerified ? 'Verified' : 'Unverified', rolesLabel || 'None'];
         });
-
         const csv = buildCsv(columns, rows);
-
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', 'iam-user-report.csv');
@@ -437,35 +175,13 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
         URL.revokeObjectURL(url);
     };
 
+    const lastIncident = alerts[0]?.lastSeen || alerts[0]?.firstSeen;
+
     const metricCards = [
-        {
-            title: 'Total Users',
-            value: totalUsers,
-            delta: metricDeltas.users,
-            icon: Users,
-            iconClass: 'bg-[#4f46e5]/10 text-[#4f46e5]',
-        },
-        {
-            title: 'Active Sessions',
-            value: activeSessions,
-            delta: metricDeltas.sessions,
-            icon: Monitor,
-            iconClass: 'bg-[#0284c7]/10 text-[#0284c7]',
-        },
-        {
-            title: 'Policies Attached',
-            value: totalPolicyAssignments,
-            delta: metricDeltas.policyAssignments,
-            icon: FileText,
-            iconClass: 'bg-[#16a34a]/10 text-[#16a34a]',
-        },
-        {
-            title: 'Security Alerts',
-            value: totalAlerts,
-            delta: metricDeltas.alerts,
-            icon: AlertTriangle,
-            iconClass: totalAlerts > 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600',
-        },
+        { title: 'Total Users', value: totalUsers, delta: metricDeltas.users, icon: Users, iconClass: 'bg-[#4f46e5]/10 text-[#4f46e5]' },
+        { title: 'Active Sessions', value: activeSessions, delta: metricDeltas.sessions, icon: Monitor, iconClass: 'bg-[#0284c7]/10 text-[#0284c7]' },
+        { title: 'Policies Attached', value: totalPolicyAssignments, delta: metricDeltas.policyAssignments, icon: FileText, iconClass: 'bg-[#16a34a]/10 text-[#16a34a]' },
+        { title: 'Security Alerts', value: totalAlerts, delta: metricDeltas.alerts, icon: AlertTriangle, iconClass: totalAlerts > 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600' },
     ];
 
     const accessSummaryRows = [
@@ -476,367 +192,23 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
     ];
 
     const quickActions = [
-        {
-            label: 'Invite New User',
-            icon: UserPlus,
-            onClick: () => navigate('/dashboard/users/new'),
-        },
-        {
-            label: 'Create Role',
-            icon: KeyRound,
-            onClick: () => onSelectSection('roles'),
-        },
-        {
-            label: 'Attach Policy',
-            icon: FileText,
-            onClick: () => onSelectSection('policies'),
-        },
-        {
-            label: 'View Audit Logs',
-            icon: ScrollText,
-            onClick: () => navigate('/dashboard/audit-logs'),
-        },
-        {
-            label: 'Manage MFA Settings',
-            icon: ShieldCheck,
-            onClick: () => navigate('/dashboard/security', { state: { activeTab: 'mfa' } }),
-        },
-        {
-            label: 'Export User Report',
-            icon: LayoutDashboard,
-            onClick: handleExportUserReport,
-        },
+        { label: 'Invite New User', icon: UserPlus, onClick: () => navigate('/dashboard/users/new') },
+        { label: 'Create Role', icon: KeyRound, onClick: () => onSelectSection('roles') },
+        { label: 'Attach Policy', icon: FileText, onClick: () => onSelectSection('policies') },
+        { label: 'View Audit Logs', icon: ScrollText, onClick: () => navigate('/dashboard/audit-logs') },
+        { label: 'Manage MFA Settings', icon: ShieldCheck, onClick: () => navigate('/dashboard/security', { state: { activeTab: 'mfa' } }) },
+        { label: 'Export User Report', icon: LayoutDashboard, onClick: handleExportUserReport },
     ];
 
     return (
         <div className="animate-in space-y-6">
-            <SectionHeader
-                title="AegisMesh Console"
-                description="IAM command center with live health, security posture, and access activity."
-            />
+            <SectionHeader title="AegisMesh Console" description="IAM command center with live health, security posture, and access activity." />
 
-            <div className="w-full bg-white border border-[#d0d7e8] rounded-2xl px-6 py-4 shadow-sm flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${systemHealth.dotClass}`}></span>
-                    <span className={`text-sm font-semibold ${systemHealth.textClass}`}>{systemHealth.label}</span>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs text-[#3a4560] xl:justify-end">
-                    <div className="min-w-[160px] flex-1 rounded-xl border border-[#edf0f7] bg-[#f8f9fd] px-3 py-2 sm:flex-none">
-                        Last policy eval: {latestPolicyTimestamp ? formatRelativeTime(latestPolicyTimestamp) : 'N/A'}
-                    </div>
-                    <div className="min-w-[160px] flex-1 rounded-xl border border-[#edf0f7] bg-[#f8f9fd] px-3 py-2 sm:flex-none">
-                        Active sessions: {activeSessions}
-                    </div>
-                    <div className="min-w-[160px] flex-1 rounded-xl border border-[#edf0f7] bg-[#f8f9fd] px-3 py-2 sm:flex-none">
-                        Uptime: {totalAlerts > 0 ? 'Degraded' : 'Stable'}
-                    </div>
-                    <div className="min-w-[160px] flex-1 rounded-xl border border-[#edf0f7] bg-[#f8f9fd] px-3 py-2 sm:flex-none">
-                        {totalAlerts > 0
-                            ? `Last incident: ${formatRelativeTime(alerts[0]?.lastSeen || alerts[0]?.firstSeen)}`
-                            : 'No incidents in last 24h'}
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {metricCards.map((card) => {
-                    const Icon = card.icon;
-
-                    return (
-                        <div key={card.title} className="bg-white border border-[#d0d7e8] rounded-2xl px-5 py-4 shadow-sm">
-                            <div className="flex items-center justify-between mb-3">
-                                <p className="text-xs font-semibold tracking-wide uppercase text-[#7a87a8]">{card.title}</p>
-                                <div className={`rounded-xl p-2 ${card.iconClass}`}>
-                                    <Icon size={16} />
-                                </div>
-                            </div>
-                            <p className="text-3xl font-semibold text-[#0f1623] leading-none">{card.value}</p>
-                            <p className="text-xs text-[#7a87a8] mt-2">+{card.delta} this week</p>
-                        </div>
-                    );
-                })}
-            </div>
-
-            <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 className="text-[16px] font-semibold text-[#0f1623]">Security Posture</h2>
-                        <p className="text-xs text-[#7a87a8] mt-1">
-                            Live checks for MFA adoption, inactive identities, privilege risks, and email trust.
-                        </p>
-                    </div>
-                    <ShieldCheck size={18} className="text-[#4f46e5]" />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {postureChecks.map((check) => {
-                        const chip = getStatusChip(check.status);
-                        const Icon = check.icon;
-
-                        return (
-                            <div key={check.label} className="border border-[#e5eaf3] rounded-xl p-3 bg-[#f8f9fd]">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 rounded-lg bg-white border border-[#e3e7f1] text-[#4f46e5]">
-                                            <Icon size={14} />
-                                        </div>
-                                        <p className="text-xs font-semibold text-[#3a4560]">{check.label}</p>
-                                    </div>
-                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${chip.className}`}>
-                                        {chip.label}
-                                    </span>
-                                </div>
-                                <p className="text-sm font-semibold text-[#0f1623] mt-2">{check.value}</p>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-[16px] font-semibold text-[#0f1623]">Recent Activity</h2>
-                    </div>
-
-                    <div className="space-y-3">
-                        {(() => {
-                            if (recentLogsQuery.isLoading) {
-                                return <p className="text-sm text-[#7a87a8]">Loading activity...</p>;
-                            }
-
-                            if (recentLogs.length === 0) {
-                                return <p className="text-sm text-[#7a87a8]">No recent activity found.</p>;
-                            }
-
-                            return recentLogs.map((log) => {
-                                const dotClass = getRecentLogDotClass(log.result);
-
-                                return (
-                                    <div key={log.id} className="flex items-center justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <span className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`}></span>
-                                                <p className="text-sm font-medium text-[#0f1623] truncate">
-                                                    {toTitleCaseAction(log.action)}
-                                                </p>
-                                            </div>
-                                            <p className="text-xs text-[#7a87a8] mt-0.5 truncate">
-                                                {log.user?.email || 'System'}
-                                            </p>
-                                        </div>
-                                        <p className="text-xs text-[#7a87a8] shrink-0">{formatRelativeTime(log.createdAt)}</p>
-                                    </div>
-                                );
-                            });
-                        })()}
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => navigate('/dashboard/audit-logs')}
-                        className="mt-4 text-sm text-[#4f46e5] font-medium hover:text-[#3730a3] transition-colors inline-flex items-center gap-1"
-                    >
-                        View All Logs
-                        <ArrowRight size={14} />
-                    </button>
-                </div>
-
-                <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
-                    <h2 className="text-[16px] font-semibold text-[#0f1623] mb-4">Access Control Summary</h2>
-
-                    <div className="space-y-2">
-                        {accessSummaryRows.map((item) => {
-                            const Icon = item.icon;
-
-                            return (
-                                <div
-                                    key={item.label}
-                                    className="flex items-center justify-between p-3 border border-[#edf0f7] rounded-xl bg-[#f8f9fd]"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-[#4f46e5]/10 rounded-lg p-2 text-[#4f46e5]">
-                                            <Icon size={14} />
-                                        </div>
-                                        <p className="text-sm font-medium text-[#0f1623]">{item.label}</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs font-semibold text-[#3a4560] bg-white border border-[#d0d7e8] px-2 py-0.5 rounded-full">
-                                            {item.count}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => onSelectSection(item.section)}
-                                            className="text-xs text-[#4f46e5] hover:text-[#3730a3] font-medium inline-flex items-center gap-1"
-                                        >
-                                            Manage
-                                            <ArrowRight size={12} />
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="mt-5">
-                        <p className="text-xs font-semibold tracking-wide uppercase text-[#7a87a8] mb-2">Role Distribution</p>
-                        <div className="h-2 rounded-full bg-[#e6eaf4] overflow-hidden flex">
-                            <div className="bg-[#4f46e5]" style={{ width: `${roleDistribution.superAdminPct}%` }}></div>
-                            <div className="bg-[#0284c7]" style={{ width: `${roleDistribution.readOnlyPct}%` }}></div>
-                            <div className="bg-[#94a3b8]" style={{ width: `${roleDistribution.customPct}%` }}></div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 mt-3 text-[11px] text-[#7a87a8]">
-                            <div>
-                                <span className="font-semibold text-[#0f1623]">{roleDistribution.superAdmin}</span> SuperAdmin
-                            </div>
-                            <div>
-                                <span className="font-semibold text-[#0f1623]">{roleDistribution.readOnly}</span> ReadOnly
-                            </div>
-                            <div>
-                                <span className="font-semibold text-[#0f1623]">{roleDistribution.custom}</span> Custom
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
-                    <h2 className="text-[16px] font-semibold text-[#0f1623] mb-4">Current User Profile</h2>
-
-                    <div className="flex items-start gap-3">
-                        <div className="w-11 h-11 rounded-full bg-[#4f46e5] text-white font-bold flex items-center justify-center text-sm">
-                            {initials}
-                        </div>
-
-                        <div className="min-w-0">
-                            <p className="text-sm font-semibold text-[#0f1623] truncate">{fullName}</p>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <span className="inline-flex items-center rounded-full bg-[#4f46e5]/10 px-2 py-0.5 text-xs font-semibold text-[#4f46e5]">
-                                    {roleBadge}
-                                </span>
-                                {user?.emailVerified ? (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-                                        <CheckCircle2 size={12} />
-                                        Verified
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600">
-                                        <AlertTriangle size={12} />
-                                        Unverified
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 space-y-2 text-sm">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[#7a87a8]">Email</span>
-                            <span className="text-[#3a4560] truncate max-w-[65%] text-right">{user?.email || 'N/A'}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-[#7a87a8]">MFA</span>
-                            <span className={`font-medium ${user?.mfaEnabled ? 'text-emerald-600' : 'text-red-600'}`}>
-                                {user?.mfaEnabled ? 'Enabled' : 'Disabled'}
-                            </span>
-                        </div>
-                        {!user?.mfaEnabled && (
-                            <button
-                                type="button"
-                                onClick={() => navigate('/dashboard/security', { state: { activeTab: 'mfa' } })}
-                                className="text-xs text-[#4f46e5] hover:text-[#3730a3] font-medium inline-flex items-center gap-1"
-                            >
-                                Enable Now
-                                <ArrowRight size={12} />
-                            </button>
-                        )}
-                        <div className="flex items-center justify-between">
-                            <span className="text-[#7a87a8]">Last login</span>
-                            <span className="text-[#3a4560] text-right">{formatDate(sessions[0]?.createdAt)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-[#7a87a8]">Account created</span>
-                            <span className="text-[#3a4560] text-right">{formatDate(user?.createdAt)}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
-                    <h2 className="text-[16px] font-semibold text-[#0f1623] mb-4">Top Active Users (This Week)</h2>
-                    {(() => {
-                        if (weeklyLogsQuery.isLoading) {
-                            return <p className="text-sm text-[#7a87a8]">Loading active users...</p>;
-                        }
-
-                        if (topActiveUsers.length === 0) {
-                            return <p className="text-sm text-[#7a87a8]">No user activity in the selected window.</p>;
-                        }
-
-                        return (
-                            <div className="space-y-3">
-                                {topActiveUsers.map((activeUser) => {
-                                    const initialsText = (activeUser.name || activeUser.email)
-                                        .split(' ')
-                                        .map((chunk) => chunk[0])
-                                        .join('')
-                                        .slice(0, 2)
-                                        .toUpperCase();
-
-                                    return (
-                                        <div key={activeUser.id} className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <div className="w-8 h-8 rounded-full bg-[#4f46e5]/10 text-[#4f46e5] text-[11px] font-semibold flex items-center justify-center">
-                                                    {initialsText}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-medium text-[#0f1623] truncate">{activeUser.name}</p>
-                                                    <p className="text-xs text-[#7a87a8] truncate">{activeUser.email}</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="text-right shrink-0">
-                                                <span className="inline-flex items-center rounded-full bg-[#f4f6fb] border border-[#d0d7e8] px-2 py-0.5 text-xs font-semibold text-[#3a4560]">
-                                                    {activeUser.count} evts
-                                                </span>
-                                                <p className="text-[11px] text-[#7a87a8] mt-1">
-                                                    {formatRelativeTime(activeUser.lastActiveAt)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
-                    })()}
-                </div>
-
-                <div className="bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm">
-                    <h2 className="text-[16px] font-semibold text-[#0f1623] mb-4">Quick Actions</h2>
-                    <div className="space-y-2">
-                        {quickActions.map((action) => {
-                            const Icon = action.icon;
-
-                            return (
-                                <button
-                                    key={action.label}
-                                    type="button"
-                                    onClick={action.onClick}
-                                    className="w-full flex items-center justify-between p-3 rounded-xl border border-[#edf0f7] bg-[#f8f9fd] hover:bg-[#eef2ff] transition-colors"
-                                >
-                                    <span className="inline-flex items-center gap-2 text-sm font-medium text-[#0f1623]">
-                                        <Icon size={14} className="text-[#4f46e5]" />
-                                        {action.label}
-                                    </span>
-                                    <ArrowRight size={14} className="text-[#7a87a8]" />
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
+            <StatsCards systemHealth={systemHealth} metricCards={metricCards} activeSessions={activeSessions} totalAlerts={totalAlerts} latestPolicyTimestamp={latestPolicyTimestamp} lastIncident={lastIncident} />
+            <SecurityAlerts postureChecks={postureChecks} />
+            <RecentActivity recentLogs={recentLogs} recentLogsQuery={recentLogsQuery} accessSummaryRows={accessSummaryRows} onSelectSection={onSelectSection} roleDistribution={roleDistribution} />
+            <UserChart user={user} fullName={fullName} initials={initials} roleBadge={roleBadge} sessions={sessions} topActiveUsers={topActiveUsers} weeklyLogsQuery={weeklyLogsQuery} />
+            <QuickActions actions={quickActions} />
         </div>
     );
 }
@@ -844,38 +216,14 @@ function OverviewSection({ user, roleBadge, fullName, initials, sessions, onSele
 function SessionsSection({ sessions, sessionsLoading, revokingSession, onRevoke }) {
     return (
         <div className="animate-in">
-            <SectionHeader
-                title="Sessions"
-                description="Track devices and revoke active sessions when needed."
-            />
-
+            <SectionHeader title="Sessions" description="Track devices and revoke active sessions when needed." />
             {(() => {
-                if (sessionsLoading) {
-                    return (
-                        <div className="flex justify-center py-12">
-                            <div className="w-8 h-8 border-2 border-aws-orange border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                    );
-                }
-
-                if (sessions.length === 0) {
-                    return (
-                        <div className="card-glass text-center">
-                            <p className="text-aws-text-dim">No active sessions found.</p>
-                        </div>
-                    );
-                }
-
+                if (sessionsLoading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-aws-orange border-t-transparent rounded-full animate-spin"></div></div>;
+                if (sessions.length === 0) return <div className="card-glass text-center"><p className="text-aws-text-dim">No active sessions found.</p></div>;
                 return (
                     <div className="grid gap-3">
                         {sessions.map((session, index) => (
-                            <SessionCard
-                                key={session.id}
-                                session={session}
-                                isCurrent={index === 0}
-                                onRevoke={onRevoke}
-                                isRevoking={revokingSession === session.id}
-                            />
+                            <SessionCard key={session.id} session={session} isCurrent={index === 0} onRevoke={onRevoke} isRevoking={revokingSession === session.id} />
                         ))}
                     </div>
                 );
@@ -886,77 +234,37 @@ function SessionsSection({ sessions, sessionsLoading, revokingSession, onRevoke 
 
 function SecuritySection({ user, sessions }) {
     const navigate = useNavigate();
-
     return (
         <div className="animate-in max-w-3xl">
-            <SectionHeader
-                title="Security"
-                description="Manage MFA, password posture, and session safety controls."
-            />
-
+            <SectionHeader title="Security" description="Manage MFA, password posture, and session safety controls." />
             <div className="space-y-6">
                 <div className="card-glass">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-semibold text-aws-text flex items-center gap-2">
-                                Two-Factor Authentication
-                            </h3>
-                            <p className="text-sm text-aws-text-dim mt-1">
-                                Add an extra layer of security with TOTP-based MFA.
-                            </p>
+                            <h3 className="font-semibold text-aws-text flex items-center gap-2">Two-Factor Authentication</h3>
+                            <p className="text-sm text-aws-text-dim mt-1">Add an extra layer of security with TOTP-based MFA.</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/dashboard/security', { state: { activeTab: 'mfa' } })}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${user?.mfaEnabled
-                                ? 'bg-aws-navy-light text-aws-text border border-aws-border hover:border-aws-orange/30'
-                                : 'btn-accent-glow'
-                                }`}
-                        >
+                        <button type="button" onClick={() => navigate('/dashboard/security', { state: { activeTab: 'mfa' } })} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${user?.mfaEnabled ? 'bg-aws-navy-light text-aws-text border border-aws-border hover:border-aws-orange/30' : 'btn-accent-glow'}`}>
                             {user?.mfaEnabled ? 'Manage' : 'Enable'}
                         </button>
                     </div>
                 </div>
-
                 <div className="card-glass">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-semibold text-aws-text flex items-center gap-2">
-                                Password
-                            </h3>
-                            <p className="text-sm text-aws-text-dim mt-1">
-                                Last changed: {user?.passwordChangedAt
-                                    ? new Date(user.passwordChangedAt).toLocaleDateString()
-                                    : 'Never'}
-                            </p>
+                            <h3 className="font-semibold text-aws-text flex items-center gap-2">Password</h3>
+                            <p className="text-sm text-aws-text-dim mt-1">Last changed: {user?.passwordChangedAt ? new Date(user.passwordChangedAt).toLocaleDateString() : 'Never'}</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/dashboard/security', { state: { activeTab: 'password' } })}
-                            className="px-4 py-2 rounded-lg text-sm font-medium bg-aws-navy-light text-aws-text border border-aws-border hover:border-aws-orange/30 transition-all"
-                        >
-                            Change
-                        </button>
+                        <button type="button" onClick={() => navigate('/dashboard/security', { state: { activeTab: 'password' } })} className="px-4 py-2 rounded-lg text-sm font-medium bg-aws-navy-light text-aws-text border border-aws-border hover:border-aws-orange/30 transition-all">Change</button>
                     </div>
                 </div>
-
                 <div className="card-glass">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-semibold text-aws-text flex items-center gap-2">
-                                Active Sessions
-                            </h3>
-                            <p className="text-sm text-aws-text-dim mt-1">
-                                {sessions.length} active session(s)
-                            </p>
+                            <h3 className="font-semibold text-aws-text flex items-center gap-2">Active Sessions</h3>
+                            <p className="text-sm text-aws-text-dim mt-1">{sessions.length} active session(s)</p>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/settings/sessions')}
-                            className="px-4 py-2 rounded-lg text-sm font-medium bg-aws-navy-light text-aws-text border border-aws-border hover:border-aws-orange/30 transition-all"
-                        >
-                            Open Controls
-                        </button>
+                        <button type="button" onClick={() => navigate('/settings/sessions')} className="px-4 py-2 rounded-lg text-sm font-medium bg-aws-navy-light text-aws-text border border-aws-border hover:border-aws-orange/30 transition-all">Open Controls</button>
                     </div>
                 </div>
             </div>
@@ -964,31 +272,12 @@ function SecuritySection({ user, sessions }) {
     );
 }
 
-function UsersSection() {
-    return <UsersList />;
-}
-
-function RolesSection() {
-    return <RolesList />;
-}
-
-function PoliciesSection() {
-    return <PoliciesList />;
-}
-
-function GroupsSection() {
-    return <GroupsList />;
-}
-
-function LogsSection() {
-    // Navigation to /dashboard/audit-logs handles content directly
-    return null;
-}
-
-function AnalyticsSection() {
-    // Navigation to /dashboard/audit-logs/stats handles content directly
-    return null;
-}
+function UsersSection() { return <UsersList />; }
+function RolesSection() { return <RolesList />; }
+function PoliciesSection() { return <PoliciesList />; }
+function GroupsSection() { return <GroupsList />; }
+function LogsSection() { return null; }
+function AnalyticsSection() { return null; }
 
 const userShape = PropTypes.shape({
     email: PropTypes.string,
@@ -1049,10 +338,7 @@ export default function Dashboard() {
     }
 
     useEffect(() => {
-        const timer = globalThis.setTimeout(() => {
-            fetchSessions();
-        }, 0);
-
+        const timer = globalThis.setTimeout(() => { fetchSessions(); }, 0);
         return () => globalThis.clearTimeout(timer);
     }, []);
 
@@ -1082,45 +368,20 @@ export default function Dashboard() {
         if (user?.role?.name) return user.role.name;
         if (typeof user?.role === 'string') return user.role;
         if (user?.primaryRole?.name) return user.primaryRole.name;
-        if (Array.isArray(user?.roles) && user.roles.length > 0) {
-            return user.roles[0]?.name || 'AegisMesh User';
-        }
+        if (Array.isArray(user?.roles) && user.roles.length > 0) return user.roles[0]?.name || 'AegisMesh User';
         return 'AegisMesh User';
     }, [user]);
 
     const renderSectionContent = () => ({
-        overview: (
-            <OverviewSection
-                user={user}
-                roleBadge={roleBadge}
-                fullName={fullName}
-                initials={initials}
-                sessions={sessions}
-                onSelectSection={setActiveSection}
-            />
-        ),
-        sessions: (
-            <SessionsSection
-                sessions={sessions}
-                sessionsLoading={sessionsLoading}
-                revokingSession={revokingSession}
-                onRevoke={handleRevokeSession}
-            />
-        ),
+        overview: <OverviewSection user={user} roleBadge={roleBadge} fullName={fullName} initials={initials} sessions={sessions} onSelectSection={setActiveSection} />,
+        sessions: <SessionsSection sessions={sessions} sessionsLoading={sessionsLoading} revokingSession={revokingSession} onRevoke={handleRevokeSession} />,
         security: <SecuritySection user={user} sessions={sessions} />,
         users: <UsersSection />,
         roles: <RolesSection />,
         policies: <PoliciesSection />,
         groups: <GroupsSection />,
     })[activeSection] || (
-        <OverviewSection
-            user={user}
-            roleBadge={roleBadge}
-            fullName={fullName}
-            initials={initials}
-            sessions={sessions}
-            onSelectSection={setActiveSection}
-        />
+        <OverviewSection user={user} roleBadge={roleBadge} fullName={fullName} initials={initials} sessions={sessions} onSelectSection={setActiveSection} />
     );
 
     return <div>{renderSectionContent()}</div>;

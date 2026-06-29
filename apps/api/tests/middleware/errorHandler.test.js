@@ -163,6 +163,38 @@ describe('errorHandler', () => {
 
         expect(res.status).toHaveBeenCalledWith(422);
     });
+
+    it('handles EBADCSRFTOKEN with 403', () => {
+        const err = Object.assign(new Error('csrf'), { code: 'EBADCSRFTOKEN' });
+        const res = mockRes();
+
+        errorHandler(err, mockReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        const body = res.json.mock.calls[0][0];
+        expect(body.error.code).toBe('CSRF_ERROR');
+        expect(body.error.message).toContain('CSRF token');
+    });
+
+    it('handles Prisma connection failure messages with 503', () => {
+        const err = new Error("Can't reach database server");
+        const res = mockRes();
+
+        errorHandler(err, mockReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(503);
+        expect(res.json.mock.calls[0][0].error.code).toBe('DATABASE_ERROR');
+    });
+
+    it('handles Prisma cannot connect to database message with 503', () => {
+        const err = new Error('Cannot connect to the database');
+        const res = mockRes();
+
+        errorHandler(err, mockReq(), res, next);
+
+        expect(res.status).toHaveBeenCalledWith(503);
+        expect(res.json.mock.calls[0][0].error.code).toBe('DATABASE_ERROR');
+    });
 });
 
 describe('notFoundHandler', () => {

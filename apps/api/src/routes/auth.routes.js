@@ -33,13 +33,13 @@ function getCookieOptions(req) {
         access: {
             httpOnly: true,
             secure,
-            sameSite: secure ? 'none' : 'lax',
+            sameSite: secure ? 'strict' : 'lax',
             maxAge: 15 * 60 * 1000,
         },
         refresh: {
             httpOnly: true,
             secure,
-            sameSite: secure ? 'none' : 'lax',
+            sameSite: secure ? 'strict' : 'lax',
             path: '/api/auth/refresh-token',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         },
