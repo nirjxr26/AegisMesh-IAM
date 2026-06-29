@@ -14,7 +14,8 @@ function buildKey() {
         }
         seed = mfaFallbackKey;
     }
-    return crypto.createHash('sha256').update(seed).digest();
+    const key = crypto.pbkdf2Sync(seed, 'aegismesh-mfa-key-v1', 100000, 32, 'sha512');
+    return key;
 }
 
 function encryptText(plainText) {

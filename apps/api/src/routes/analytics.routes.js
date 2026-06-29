@@ -5,6 +5,6 @@ const authorize = require('../middleware/authorize');
 const analyticsController = require('../controllers/analytics.controller');
 
 // Overview metrics for the 'War Room' dashboard
-router.get('/overview', authenticate, authorize('audit:read', '*'), analyticsController.getOverviewMetrics);
+router.get('/overview', authenticate, authorize('audit:read', 'overview'), analyticsController.getOverviewMetrics);
 
 module.exports = router;

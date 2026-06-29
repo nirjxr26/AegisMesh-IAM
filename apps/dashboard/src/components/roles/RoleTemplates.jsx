@@ -12,7 +12,7 @@ import {
     roleTemplates,
 } from '../../services/api';
 
-import ApplyTemplateModal from './ApplyTemplateModal';
+import ApplyTemplateWizard from './ApplyTemplateWizard';
 import TemplateCard from './TemplateCard';
 
 const CATEGORY_FILTERS = [
@@ -206,7 +206,7 @@ export default function RoleTemplates({
 
     if (selectedTemplate) {
         return (
-            <ApplyTemplateModal
+            <ApplyTemplateWizard
                 template={
                     selectedTemplate
                 }

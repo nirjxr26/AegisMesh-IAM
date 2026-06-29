@@ -1,15 +1,14 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Eye, FileText, Key, KeyRound, Pencil, Plus, Search, Sparkles, Trash2, Users, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { FileText, KeyRound, Plus, Sparkles, Users, X } from 'lucide-react';
 import { rbacAPI, userAPI } from '../../services/api';
 import RoleTemplates from '../../components/roles/RoleTemplates';
 import { useEntityList } from '../../hooks/useEntityList';
 import LoadingState from '../../components/common/LoadingState';
 import EmptyState from '../../components/common/EmptyState';
-
-const EMPTY_ROLES = [];
+import RoleRow from './RoleRow';
+import RoleFilters from './RoleFilters';
 
 export default function RolesList() {
     const navigate = useNavigate();
@@ -46,7 +45,6 @@ export default function RolesList() {
             const roleId = roleResponse.data?.data?.id;
             
             if (roleId) {
-                // Attach users and policies in parallel for better performance and to satisfy quality gates
                 const userAssignments = data.userIds.map(userId => rbacAPI.assignUserRole(userId, roleId));
                 const policyAttachments = data.policyIds.map(policyId => rbacAPI.attachPolicyToRole(roleId, policyId));
                 
@@ -137,15 +135,8 @@ export default function RolesList() {
         );
     };
 
-    const handleDelete = (role) => {
-        if (role.isSystem) {
-            toast.error('System roles cannot be deleted');
-            return;
-        }
-
-        if (globalThis.confirm(`Are you sure you want to delete "${role.name}"?`)) {
-            deleteMutation.mutate(role.id);
-        }
+    const handleDelete = (roleId) => {
+        deleteMutation.mutate(roleId);
     };
 
     const handleTemplateSuccess = (role) => {
@@ -181,84 +172,7 @@ export default function RolesList() {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredRoles.map((role) => (
-                    <div
-                        key={role.id}
-                        className="group bg-white border border-[#d0d7e8] rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#4f46e5]/30 transition-all duration-200 flex flex-col h-full"
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center shrink-0">
-                                <Key size={18} />
-                            </div>
-                            <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(`/dashboard/roles/${role.id}`)}
-                                    className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#f0f9ff] hover:text-[#0ea5e9] hover:border-[#0ea5e9] transition-all"
-                                    title="View"
-                                >
-                                    <Eye size={14} />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(`/dashboard/roles/${role.id}`)}
-                                    className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#eef2ff] hover:text-[#6366f1] hover:border-[#6366f1] transition-all"
-                                    title="Edit"
-                                >
-                                    <Pencil size={14} />
-                                </button>
-                                {!role.isSystem && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(role)}
-                                        className="p-2 rounded-lg border border-[#e2e8f0] text-[#64748b] hover:bg-[#fef2f2] hover:text-[#ef4444] hover:border-[#fca5a5] transition-all"
-                                        title="Delete"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="mb-4 flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                                <h3 className="text-sm font-bold text-[#0f172a] truncate">
-                                    {role.name}
-                                </h3>
-                                {role.isSystem ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dbeafe] text-[#1d4ed8] uppercase tracking-wider">
-                                        System
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#475569] uppercase tracking-wider">
-                                        Custom
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-[12px] text-[#64748b] line-clamp-2 leading-relaxed">
-                                {role.description || 'No description provided'}
-                            </p>
-                        </div>
-
-                        <div className="pt-4 border-t border-[#f1f5f9] flex items-center justify-between">
-                            <div className="flex gap-4">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Policies</span>
-                                    <span className="text-[13px] font-semibold text-[#334155]">{role._count?.rolePolicies || 0}</span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-tight">Users</span>
-                                    <span className="text-[13px] font-semibold text-[#334155]">{role._count?.userRoles || 0}</span>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => navigate(`/dashboard/roles/${role.id}`)}
-                                className="text-[12px] font-bold text-[#4f46e5] hover:text-[#3730a3] transition-colors"
-                            >
-                                Manage Role →
-                            </button>
-                        </div>
-                    </div>
+                    <RoleRow key={role.id} role={role} onDelete={handleDelete} />
                 ))}
             </div>
         );
@@ -294,35 +208,12 @@ export default function RolesList() {
                         </div>
                     </div>
 
-                    <div className="bg-white border border-[#d0d7e8] rounded-2xl px-5 py-4 mb-4 flex items-center gap-3 shadow-sm flex-wrap lg:flex-nowrap">
-                        <div className="relative flex-1 min-w-[260px]">
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a87a8]" />
-                            <label htmlFor="role-search" className="sr-only">Search roles</label>
-                            <input
-                                id="role-search"
-                                type="text"
-                                placeholder="Search roles..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full border border-[#d0d7e8] rounded-xl pl-9 pr-4 py-2.5 text-sm text-[#0f1623] placeholder:text-[#7a87a8] focus:ring-2 focus:ring-[#4f46e5]/25 focus:border-[#4f46e5] outline-none"
-                            />
-                        </div>
-
-                        <div className="relative">
-                            <label htmlFor="type-filter" className="sr-only">Filter by type</label>
-                            <select
-                                id="type-filter"
-                                value={typeFilter}
-                                onChange={(e) => setTypeFilter(e.target.value)}
-                                className="appearance-none bg-[#f4f6fb] border border-[#d0d7e8] rounded-xl px-4 py-2.5 pr-8 text-sm text-[#3a4560] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/25"
-                            >
-                                <option value="">All Types</option>
-                                <option value="SYSTEM">System</option>
-                                <option value="CUSTOM">Custom</option>
-                            </select>
-                            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7a87a8] pointer-events-none" />
-                        </div>
-                    </div>
+                    <RoleFilters
+                        search={search}
+                        onSearchChange={setSearch}
+                        typeFilter={typeFilter}
+                        onTypeFilterChange={setTypeFilter}
+                    />
 
                     <div className="w-full">
                         {renderRolesContent()}

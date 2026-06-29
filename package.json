@@ -1,0 +1,38 @@
+{
+  "name": "aegismesh-iam",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AegisMesh IAM — monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "test:api": "turbo test:api",
+    "lint:fix": "turbo lint:fix",
+    "clean": "turbo clean",
+    "format": "prettier --write \"**/*.{js,jsx,json,css,md}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{js,jsx,json,css,md}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.0",
+    "turbo": "^2.10.0",
+    "typescript": "^6.0.3"
+  },
+  "optionalDependencies": {
+    "@esbuild/linux-x64": "0.28.1",
+    "@oxc-parser/binding-linux-x64-gnu": "0.132.0",
+    "@rollup/rollup-linux-x64-gnu": "4.60.3",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.0",
+    "@unrs/resolver-binding-linux-x64-gnu": "1.12.2",
+    "lightningcss-linux-x64-gnu": "1.32.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "npm@11.17.0"
+}

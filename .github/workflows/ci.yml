@@ -14,6 +14,9 @@ on:
       - 'apps/api/**'
       - 'apps/dashboard/**'
       - 'apps/security-engine/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/ci.yml'
   push:
     branches: [ main ]
@@ -21,12 +24,30 @@ on:
       - 'apps/api/**'
       - 'apps/dashboard/**'
       - 'apps/security-engine/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 jobs:
+  lint:
+    name: "Lint & Typecheck"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Use Node.js 22.13.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.13.0'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - run: npx turbo run build --filter=@aegismesh/shared
+      - run: npx turbo run lint
+
   backend:
-    name: "Backend: test / build"
+    name: "Backend: test"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,23 +57,13 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: 'npm'
-          cache-dependency-path: apps/api/package-lock.json
-      - name: Install backend deps
+      - run: npm ci --no-audit --no-fund
+      - run: npx turbo run build --filter=@aegismesh/shared
+      - run: npx jest --runInBand --passWithNoTests --silent
         working-directory: apps/api
-        run: |
-          npm install --no-audit --no-fund
-      - name: Lint backend
-        working-directory: apps/api
-        run: npm run lint
-      - name: Run backend tests
-        working-directory: apps/api
-        run: npm test --silent
-      - name: Build backend (artifact)
-        working-directory: apps/api
-        run: npm run build --if-present
 
   frontend:
-    name: "Frontend: lint / build"
+    name: "Frontend: test / build"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -62,21 +73,17 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: 'npm'
-          cache-dependency-path: apps/dashboard/package-lock.json
-      - name: Install frontend deps
+      - run: npm ci --no-audit --no-fund
+      - run: npx turbo run build --filter=@aegismesh/shared
+      - run: npm run lint -- --max-warnings=0
         working-directory: apps/dashboard
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Lint frontend
+      - run: npm run build --if-present
         working-directory: apps/dashboard
-        run: npm run lint -- --max-warnings=0
-      - name: Build frontend
-        working-directory: apps/dashboard
-        run: npm run build --if-present
 
   docker-validate:
     name: "Docker: validate images build"
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [lint, backend, frontend]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -93,7 +100,7 @@ jobs:
   build-and-push:
     name: Build and push Docker images (main only)
     runs-on: ubuntu-latest
-    needs: [backend, frontend, docker-validate]
+    needs: [lint, backend, frontend, docker-validate]
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 30
     env:
@@ -145,4 +152,3 @@ jobs:
             docker build -t $ECR_REGISTRY/aegismesh-security-engine:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-security-engine:$STABLE_TAG -f Dockerfile .
             docker push $ECR_REGISTRY/aegismesh-security-engine:$IMAGE_TAG
             docker push $ECR_REGISTRY/aegismesh-security-engine:$STABLE_TAG
-

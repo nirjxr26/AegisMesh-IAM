@@ -4,37 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, AppWindow, Calendar, Clock, Info, Key, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { connectedAppsAPI } from '../../services/api';
+import { formatDate, formatRelative } from '../../utils/formatters';
 
 function classNames(...values) {
     return values.filter(Boolean).join(' ');
-}
-
-function formatRelative(value) {
-    if (!value) return 'Unknown';
-
-    const diffMs = Date.now() - new Date(value).getTime();
-    const minutes = Math.max(0, Math.floor(diffMs / 60000));
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}d ago`;
-
-    const months = Math.floor(days / 30);
-    return `${months}mo ago`;
-}
-
-function formatDate(value) {
-    if (!value) return 'Never';
-    return new Date(value).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
 }
 
 function getRiskBadgeClasses(level) {

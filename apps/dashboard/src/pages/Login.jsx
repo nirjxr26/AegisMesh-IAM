@@ -4,6 +4,17 @@ import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 import InputField from '../components/InputField';
 
+const ERROR_ACTIONS = {
+    AUTH_004: { mfa: true, errorMsg: '' },
+    AUTH_002: (data) => {
+        const unlockTime = data.details?.unlockTime;
+        const timeStr = unlockTime ? `after ${new Date(unlockTime).toLocaleTimeString()}` : 'later';
+        return { errorMsg: `Account locked. Try again ${timeStr}.` };
+    },
+};
+
+const DB_ERROR_PATTERNS = ['prisma', 'database credentials', 'authentication failed', 'findfirst', 'ensureorganizationsettings'];
+
 export default function Login() {
     const { user, login, isLoading } = useAuth();
     const navigate = useNavigate();
@@ -68,62 +79,51 @@ export default function Login() {
         return Object.keys(nextErrors).length === 0;
     };
 
-const onSubmit = async (event) => {
-    event.preventDefault();
+    const onSubmit = async (event) => {
+        event.preventDefault();
 
-    if (!validate()) {
-        return;
-    }
-
-    setError('');
-    setLoading(true);
-
-    try {
-        await login({
-            email: formData.email.trim(),
-            password: formData.password,
-            totpCode: formData.totpCode?.trim() || undefined,
-        });
-
-        navigate(from, { replace: true });
-    } catch (err) {
-        const errorData = err.response?.data?.error;
-        const errorCode = errorData?.code;
-
-        if (errorCode === 'AUTH_004') {
-            setMfaRequired(true);
-            setError('');
+        if (!validate()) {
             return;
         }
 
-        if (errorCode === 'AUTH_002') {
-            const unlockTime = errorData.details?.unlockTime;
+        setError('');
+        setLoading(true);
 
-            const unlockMessage = unlockTime
-                ? `after ${new Date(unlockTime).toLocaleTimeString()}`
-                : 'later';
+        try {
+            await login({
+                email: formData.email.trim(),
+                password: formData.password,
+                totpCode: formData.totpCode?.trim() || undefined,
+            });
 
-            setError(`Account locked. Try again ${unlockMessage}.`);
-            return;
+            navigate(from, { replace: true });
+        } catch (err) {
+            const errorData = err.response?.data?.error;
+            const errorCode = errorData?.code;
+
+            const action = ERROR_ACTIONS[errorCode];
+            if (action) {
+                if (typeof action === 'function') {
+                    const { errorMsg } = action(errorData);
+                    setError(errorMsg);
+                } else {
+                    setMfaRequired(action.mfa);
+                    setError(action.errorMsg);
+                }
+                return;
+            }
+
+            let displayError = errorData?.message || 'Login failed. Please check your credentials.';
+            const lowerError = String(displayError).toLowerCase();
+            if (DB_ERROR_PATTERNS.some((pattern) => lowerError.includes(pattern))) {
+                displayError = 'Database connection or authentication failed. Please verify credentials and database availability.';
+            }
+
+            setError(displayError);
+        } finally {
+            setLoading(false);
         }
-
-        let displayError = errorData?.message || 'Login failed. Please check your credentials.';
-        const lowerError = String(displayError).toLowerCase();
-        if (
-            lowerError.includes('prisma') ||
-            lowerError.includes('database credentials') ||
-            lowerError.includes('authentication failed') ||
-            lowerError.includes('findfirst') ||
-            lowerError.includes('ensureorganizationsettings')
-        ) {
-            displayError = 'Database connection or authentication failed. Please verify credentials and database availability.';
-        }
-
-        setError(displayError);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     return (
         <AuthLayout title="Welcome Back" subtitle="Sign in to your AegisMesh account">

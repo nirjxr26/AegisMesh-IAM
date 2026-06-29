@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import PropTypes from 'prop-types';
 import { useQuery } from '@tanstack/react-query';
 import {
     Activity,
@@ -28,110 +27,9 @@ import {
 } from 'recharts';
 
 import { auditAPI } from '../../services/api';
-
-const DONUT_COLORS = [
-    '#4f46e5',
-    '#2563eb',
-    '#16a34a',
-    '#d97706',
-    '#dc2626',
-    '#7c3aed',
-    '#0891b2',
-    '#be185d',
-    '#65a30d',
-    '#ea580c',
-];
-
-const EMPTY_ARRAY = [];
-
-function toTitleCase(value = '') {
-    return value
-        .toLowerCase()
-        .split('_')
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-}
-
-function formatNumber(value = 0) {
-    return new Intl.NumberFormat('en-US').format(value);
-}
-
-function formatIp(ip) {
-    if (ip === '::1' || ip === '127.0.0.1') {
-        return 'localhost';
-    }
-
-    return ip || '-';
-}
-
-function getTimeRangeLabel(range) {
-    if (range === '24h') {
-        return 'Last 24 Hours';
-    }
-
-    if (range === '7d') {
-        return 'Last 7 Days';
-    }
-
-    if (range === '9d') {
-        return 'Last 9 Days';
-    }
-
-    return 'Last 30 Days';
-}
-
-function getCurrentStats(range, last24h, last7d, last9d, last30d) {
-    if (range === '24h') {
-        return last24h;
-    }
-
-    if (range === '7d') {
-        return last7d;
-    }
-
-    if (range === '9d') {
-        return last9d;
-    }
-
-    return last30d;
-}
-
-function getActivityData(timeRange, hourlyActivity, dailyActivity) {
-    if (timeRange === '24h') {
-        return hourlyActivity.map((row) => ({
-            label: `${String(row.hour).padStart(2, '0')}:00`,
-            count: row.count,
-        }));
-    }
-
-    let dailyData = dailyActivity;
-    if (timeRange === '7d') {
-        dailyData = dailyActivity.slice(-7);
-    } else if (timeRange === '9d') {
-        dailyData = dailyActivity.slice(-9);
-    }
-
-    return dailyData.map((row) => ({
-        label: new Date(row.date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-        }),
-        count: row.count,
-    }));
-}
-
-function getSeverityClass(severity) {
-    if (severity === 'CRITICAL' || severity === 'HIGH') {
-        return 'bg-[#dc2626]/10 text-[#dc2626]';
-    }
-
-    if (severity === 'MEDIUM') {
-        return 'bg-[#d97706]/10 text-[#d97706]';
-    }
-
-    return 'bg-[#4f46e5]/8 text-[#4f46e5]';
-}
+import { DONUT_COLORS, EMPTY_ARRAY, formatNumber, formatIp, getTimeRangeLabel, getCurrentStats, getActivityData, getSeverityClass } from '../../components/audit/auditHelpers';
+import { toTitleCase } from '../../utils/formatters';
+import StatCard from '../../components/audit/StatCard';
 
 export default function AuditStatsPage() {
     const [timeRange, setTimeRange] = useState('24h');
@@ -619,43 +517,3 @@ export default function AuditStatsPage() {
         </div>
     );
 }
-
-function StatCard({
-    icon,
-    iconBg,
-    label,
-    value,
-    valueClass,
-}) {
-    return (
-        <div className="flex items-center gap-3 rounded-2xl border border-[#d0d7e8] bg-white px-5 py-4 shadow-sm">
-            <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
-            >
-                {icon}
-            </div>
-
-            <div>
-                <p className={`text-2xl font-bold ${valueClass}`}>
-                    {formatNumber(value)}
-                </p>
-
-                <p className="mt-0.5 text-xs text-[#7a87a8]">
-                    {label}
-                </p>
-            </div>
-        </div>
-    );
-}
-
-StatCard.propTypes = {
-    icon: PropTypes.node.isRequired,
-    iconBg: PropTypes.string.isRequired,
-    label: PropTypes.string.isRequired,
-    value: PropTypes.number.isRequired,
-    valueClass: PropTypes.string,
-};
-
-StatCard.defaultProps = {
-    valueClass: 'text-[#0f1623]',
-};

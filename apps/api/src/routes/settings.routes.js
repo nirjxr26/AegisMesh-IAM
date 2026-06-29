@@ -5,7 +5,7 @@ const requireSuperAdmin = require('../middleware/requireSuperAdmin');
 const { requireReauth, SENSITIVE_ACTIONS } = require('../middleware/requireReauth');
 const { validate } = require('../middleware/validate');
 const schemas = require('../config/validationSchemas');
-const settingsController = require('../controllers/settings.controller');
+const settingsController = require('../controllers/settings');
 
 const router = express.Router();
 

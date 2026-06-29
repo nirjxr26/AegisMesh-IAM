@@ -17,6 +17,7 @@ model User {
   status                  UserStatus        @default(ACTIVE)
   emailVerified           Boolean           @default(false)
   emailVerifyToken        String?
+  emailVerifyTokenCreatedAt DateTime?
   mfaEnabled              Boolean           @default(false)
   mfaSecret               String?
   mfaBackupCodes          String?

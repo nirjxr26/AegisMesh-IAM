@@ -8,7 +8,6 @@ jest.mock('../../src/config/database', () => ({
     userGroup: { findMany: jest.fn() },
 }));
 
-const prisma = require('../../src/config/database');
 const {
     matchesAllowlist,
     normalizeIp,

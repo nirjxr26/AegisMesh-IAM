@@ -2,7 +2,8 @@ import os
 from contextlib import asynccontextmanager
 if os.getenv("DD_APM_ENABLED") == "true":
     from ddtrace import patch_all; patch_all()
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
+from .models import AnalyzeRequest, AnalyzeResponse, HealthResponse, TrainResponse
 from .anomaly_detector import AnomalyDetector
 from prometheus_client import Counter, Histogram, Gauge, make_asgi_app
 import time
@@ -75,8 +76,8 @@ metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
 
-
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse, responses={
+    500: {"description": "Internal Server Error"}})
 def health():
     return {
         "status": "healthy",
@@ -85,12 +86,15 @@ def health():
     }
 
 
-@app.post("/analyze")
-async def analyze(request: Request):
-    data = await request.json()
-
+@app.post("/analyze", response_model=AnalyzeResponse, responses={
+    400: {"description": "Bad Request"},
+    500: {"description": "Internal Server Error"}})
+async def analyze(data: AnalyzeRequest):
     start_total = time.time()
-    risk_score, prep_time, inf_time = detector.predict_risk(data)
+    try:
+        risk_score, prep_time, inf_time = detector.predict_risk(data.model_dump())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
     total_duration = time.time() - start_total
 
     # Record detailed metrics
@@ -110,7 +114,8 @@ async def analyze(request: Request):
     }
 
 
-@app.post("/train", responses={500: {"description": "Internal Server Error"}})
+@app.post("/train", response_model=TrainResponse, responses={
+    500: {"description": "Internal Server Error"}})
 def train():
     try:
         detector.train()

@@ -84,36 +84,36 @@ function isUserSuperAdmin(userRoles, userGroups) {
  * Avoids deep nesting that causes 'column not available' errors with some DB adapters.
  */
 async function fetchFullUserAccessContext(userId) {
-    // 1. Fetch direct roles and their policies
-    const directUserRoles = await prisma.userRole.findMany({
-        where: { userId },
-        include: {
-            role: {
-                include: {
-                    rolePolicies: {
-                        include: {
-                            policy: true
+    // 1. Fetch direct roles and their policies + user's groups in parallel
+    const [directUserRoles, userGroups] = await Promise.all([
+        prisma.userRole.findMany({
+            where: { userId },
+            include: {
+                role: {
+                    include: {
+                        rolePolicies: {
+                            include: {
+                                policy: true
+                            }
                         }
                     }
                 }
             }
-        }
-    });
-
-    // 2. Fetch user's groups
-    const userGroups = await prisma.userGroup.findMany({
-        where: { userId },
-        select: {
-            groupId: true,
-            group: {
-                select: {
-                    id: true,
-                    name: true,
-                    description: true
+        }),
+        prisma.userGroup.findMany({
+            where: { userId },
+            select: {
+                groupId: true,
+                group: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true
+                    }
                 }
             }
-        }
-    });
+        }),
+    ]);
 
     const groupIds = userGroups.map((ug) => ug.groupId);
 

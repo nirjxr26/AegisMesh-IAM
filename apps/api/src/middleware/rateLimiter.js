@@ -66,4 +66,52 @@ const passwordResetLimiter = rateLimit({
     },
 });
 
-module.exports = { loginLimiter, registerLimiter, generalLimiter, passwordResetLimiter };
+const mfaSetupLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'production' ? 10 : 1000,
+    message: {
+        success: false,
+        error: { code: 'RATE_LIMIT', message: 'Too many MFA attempts. Please try again later.' },
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res, next, options) => {
+        logger.warn('Rate limit exceeded for MFA operations', { ip: req.ip });
+        auditSecurity.rateLimitExceeded(req, 'auth/mfa').catch(() => { });
+        res.status(429).json(options.message);
+    },
+});
+
+const tokenRefreshLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'production' ? 30 : 1000,
+    message: {
+        success: false,
+        error: { code: 'RATE_LIMIT', message: 'Too many token refresh attempts. Please try again later.' },
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res, next, options) => {
+        logger.warn('Rate limit exceeded for token refresh', { ip: req.ip });
+        auditSecurity.rateLimitExceeded(req, 'auth/refresh-token').catch(() => { });
+        res.status(429).json(options.message);
+    },
+});
+
+const sessionRevokeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'production' ? 20 : 1000,
+    message: {
+        success: false,
+        error: { code: 'RATE_LIMIT', message: 'Too many session revocation attempts. Please try again later.' },
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res, next, options) => {
+        logger.warn('Rate limit exceeded for session revocation', { ip: req.ip });
+        auditSecurity.rateLimitExceeded(req, 'auth/sessions').catch(() => { });
+        res.status(429).json(options.message);
+    },
+});
+
+module.exports = { loginLimiter, registerLimiter, generalLimiter, passwordResetLimiter, mfaSetupLimiter, tokenRefreshLimiter, sessionRevokeLimiter };

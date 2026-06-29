@@ -33,8 +33,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      datadog-agent:
-        condition: service_started
     environment:
       NODE_ENV: production
       PORT: 5000
@@ -111,6 +109,8 @@ services:
 
   # Prometheus Metrics Store
   prometheus:
+    profiles:
+      - monitoring
     image: prom/prometheus:v3.0.1
     container_name: aegismesh-prometheus
     depends_on:
@@ -132,6 +132,8 @@ services:
 
   # Security Engine (ML-powered Threat Detection)
   security-engine:
+    profiles:
+      - security
     build:
       context: ./apps/security-engine
       dockerfile: Dockerfile
@@ -141,8 +143,6 @@ services:
         condition: service_healthy
       mlflow:
         condition: service_healthy
-      datadog-agent:
-        condition: service_started
     environment:
       DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:?DB_PASSWORD must be set}@db:5432/${DB_NAME:-aegismesh}
       MLFLOW_TRACKING_URI: http://mlflow:5000
@@ -162,6 +162,8 @@ services:
 
   # MLflow Tracking Server (Persistent Metadata in Postgres)
   mlflow:
+    profiles:
+      - security
     build:
       context: ./platform/kubernetes/observability/mlflow
     container_name: aegismesh-mlflow
@@ -181,6 +183,8 @@ services:
 
   # Datadog Agent
   datadog-agent:
+    profiles:
+      - monitoring
     image: gcr.io/datadoghq/agent:7
     container_name: aegismesh-datadog-agent
     environment:

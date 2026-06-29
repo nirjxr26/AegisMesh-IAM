@@ -15,8 +15,8 @@ const {
     deleteUser,
     getUserSessions,
     revokeUserSessions
-} = require('../controllers/users.controller');
-const settingsController = require('../controllers/settings.controller');
+} = require('../controllers/users');
+const settingsController = require('../controllers/settings');
 const userPermissionsController = require('../controllers/userPermissions.controller');
 const { authenticate } = require('../middleware/authenticate');
 const { requireReauth, SENSITIVE_ACTIONS } = require('../middleware/requireReauth');

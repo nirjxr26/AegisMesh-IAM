@@ -44,16 +44,48 @@ export function getInitials(firstName = '', lastName = '') {
     return `${first}${last}`.toUpperCase() || '?';
 }
 
+export function toTitleCase(str = '') {
+    return str
+        .toLowerCase()
+        .split('_')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
+export function daysSince(value) {
+    if (!value) return 'Never';
+    const diff = Date.now() - new Date(value).getTime();
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    if (days <= 0) return 'Today';
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+export function formatRelative(value) {
+    if (!value) return 'Unknown';
+    const now = Date.now();
+    const ts = new Date(value).getTime();
+    const diffMs = Math.max(0, now - ts);
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    return `${months}mo ago`;
+}
+
 export function getAvatarColor(firstName = '', lastName = '') {
     const colors = [
-        '#4f46e5', // indigo
-        '#0284c7', // sky
-        '#16a34a', // green
-        '#e11d48', // rose
-        '#ca8a04', // yellow
-        '#9333ea', // purple
-        '#2563eb', // blue
-        '#0891b2', // cyan
+        '#4f46e5',
+        '#0284c7',
+        '#16a34a',
+        '#e11d48',
+        '#ca8a04',
+        '#9333ea',
+        '#2563eb',
+        '#0891b2',
     ];
 
     const name = `${firstName}${lastName}`;
@@ -63,14 +95,6 @@ export function getAvatarColor(firstName = '', lastName = '') {
     }
 
     return colors[Math.abs(hash) % colors.length];
-}
-
-export function toTitleCase(str = '') {
-    return str
-        .toLowerCase()
-        .split('_')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
 }
 
 export function getStatusMeta(status) {
