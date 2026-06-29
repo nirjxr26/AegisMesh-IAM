@@ -328,17 +328,20 @@ async function createLoginResponse({ user, req }) {
         ? 'SuperAdmin'
         : (roleNames[0] || null);
 
-    const {
-        passwordHash,
-        mfaSecret,
-        mfaBackupCodes,
-        backupCodes,
-        emailVerifyToken,
-        passwordResetToken,
-        passwordResetExpires,
-        userRoles,
-        ...safeUser
-    } = user;
+    const { ...safeUser } = user;
+    const hasPassword = Boolean(safeUser.passwordHash);
+    const hasBackupCodes = hasConfiguredBackupCodes({
+        backupCodes: safeUser.mfaBackupCodes,
+        mfaBackupCodes: safeUser.mfaBackupCodes,
+    });
+    Reflect.deleteProperty(safeUser, 'passwordHash');
+    Reflect.deleteProperty(safeUser, 'mfaSecret');
+    Reflect.deleteProperty(safeUser, 'mfaBackupCodes');
+    Reflect.deleteProperty(safeUser, 'backupCodes');
+    Reflect.deleteProperty(safeUser, 'emailVerifyToken');
+    Reflect.deleteProperty(safeUser, 'passwordResetToken');
+    Reflect.deleteProperty(safeUser, 'passwordResetExpires');
+    Reflect.deleteProperty(safeUser, 'userRoles');
 
     return {
         accessToken,
@@ -346,12 +349,8 @@ async function createLoginResponse({ user, req }) {
         user: {
             ...safeUser,
             role,
-            hasBackupCodes:
-                hasConfiguredBackupCodes({
-                    backupCodes,
-                    mfaBackupCodes,
-                }),
-            hasPassword: Boolean(passwordHash),
+            hasBackupCodes,
+            hasPassword,
         },
     };
 }
@@ -538,19 +537,19 @@ async function getProfile(userId) {
     const roleNames = (user.userRoles || []).map((ur) => ur.role?.name).filter(Boolean);
     const role = roleNames.includes('SuperAdmin') ? 'SuperAdmin' : (roleNames[0] || null);
 
-    const {
-        userRoles,
-        passwordHash,
-        backupCodes,
-        mfaBackupCodes,
-        ...safeUser
-    } = user;
+    const { ...safeUser } = user;
+    const hasPassword = Boolean(safeUser.passwordHash);
+    const hasBackupCodes = hasConfiguredBackupCodes({ backupCodes: safeUser.mfaBackupCodes, mfaBackupCodes: safeUser.mfaBackupCodes });
+    Reflect.deleteProperty(safeUser, 'userRoles');
+    Reflect.deleteProperty(safeUser, 'passwordHash');
+    Reflect.deleteProperty(safeUser, 'backupCodes');
+    Reflect.deleteProperty(safeUser, 'mfaBackupCodes');
 
     return {
         ...safeUser,
         role,
-        hasBackupCodes: hasConfiguredBackupCodes({ backupCodes, mfaBackupCodes }),
-        hasPassword: Boolean(passwordHash),
+        hasBackupCodes,
+        hasPassword,
     };
 }
 
