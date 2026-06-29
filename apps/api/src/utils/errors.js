@@ -35,6 +35,7 @@ const ErrorCodes = {
     USER_006: { code: 'USER_006', message: 'Email already in use', status: 409 },
     USER_007: { code: 'USER_007', message: 'Invalid status value', status: 400 },
     USER_008: { code: 'USER_008', message: 'Cannot change own status', status: 400 },
+    VALIDATION_ERROR: { code: 'VALIDATION_ERROR', message: 'Validation failed', status: 400 },
 };
 
 function createError(errorCode, details = null) {

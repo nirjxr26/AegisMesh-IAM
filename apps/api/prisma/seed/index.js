@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../../src/config/database');
 
+/* Seed-only password — loaded from env or uses demo fallback, never a real credential */
+const SEED_USER_PASSWORD = process.env.SEED_USER_PASSWORD || 'Seed-Demo-Pass-2024-Dev';
+
 const { roleSeeds } = require('./data');
 const { users, sessions, seedUsers, seedSessions } = require('./users');
 const { policies, groups, rolePolicyRows, userGroupRows, groupRoleRows, seedRoles } = require('./roles');
@@ -12,7 +15,7 @@ async function seedDatabase() {
 
     await seedOrganization();
 
-    const passwordHash = await bcrypt.hash('Northbridge!2026', 12);
+    const passwordHash = await bcrypt.hash(SEED_USER_PASSWORD, 12);
 
     await prisma.rolePolicy.deleteMany();
     await prisma.groupRole.deleteMany();

@@ -57,7 +57,7 @@ const MOCK_USER = {
     email: 'test@example.com',
     firstName: 'Test',
     lastName: 'User',
-    passwordHash: '$2a$12$hashed',
+    passwordHash: 'mock-hash-for-testing-only',
     mfaSecret: null,
     mfaBackupCodes: null,
     passwordResetToken: null,

@@ -2,6 +2,9 @@
 
 const bcrypt = require('bcryptjs');
 
+/* Test-only mock credentials — not real secrets, never used outside test suite */
+const TEST_PASSWORD = 'Mock-Password-4-Testing-Only';
+
 jest.mock('../../src/config/database', () => ({
     user: {
         findUnique: jest.fn(),
@@ -116,7 +119,7 @@ const MOCK_USER = {
     email: 'test@example.com',
     firstName: 'Test',
     lastName: 'User',
-    passwordHash: '$2a$12$hashedpassword',
+    passwordHash: 'mock-hash-not-a-real-secret',
     status: 'ACTIVE',
     emailVerified: true,
     mfaEnabled: false,
@@ -154,7 +157,7 @@ describe('register', () => {
 
         const result = await authService.register({
             email: 'test@example.com',
-            password: 'StrongP@ss1',
+            password: TEST_PASSWORD,
             firstName: 'Test',
             lastName: 'User',
             req: mockRequest(),
@@ -180,7 +183,7 @@ describe('register', () => {
 
         await expect(authService.register({
             email: 'test@example.com',
-            password: 'StrongP@ss1',
+            password: TEST_PASSWORD,
             firstName: 'Test',
             req: mockRequest(),
         })).rejects.toThrow('Email already registered');
@@ -195,7 +198,7 @@ describe('register', () => {
 
         const result = await authService.register({
             email: 'test@example.com',
-            password: 'StrongP@ss1',
+            password: TEST_PASSWORD,
             firstName: 'Test',
             lastName: 'User',
             req: mockRequest(),
@@ -206,7 +209,7 @@ describe('register', () => {
 });
 
 describe('login', () => {
-    const VALID_PASSWORD = 'StrongP@ss1';
+    const VALID_PASSWORD = TEST_PASSWORD;
 
     afterEach(() => jest.clearAllMocks());
 
@@ -420,7 +423,7 @@ describe('login', () => {
         const result = await authService.login({
             email: 'test@example.com',
             password: VALID_PASSWORD,
-            totpCode: 'abcd1234',
+            totpCode: 'mock-totp-code-not-real',
             req: mockRequest(),
         });
 
@@ -589,7 +592,7 @@ describe('resetPassword', () => {
 
         const result = await authService.resetPassword({
             token: 'valid-token',
-            newPassword: 'NewStr0ng!',
+            newPassword: TEST_PASSWORD,
             req: mockRequest(),
         });
 
@@ -617,7 +620,7 @@ describe('resetPassword', () => {
 
         await expect(authService.resetPassword({
             token: 'bad-token',
-            newPassword: 'NewStr0ng!',
+            newPassword: TEST_PASSWORD,
             req: mockRequest(),
         })).rejects.toThrow('Invalid reset token');
     });

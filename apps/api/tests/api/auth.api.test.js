@@ -2,6 +2,9 @@
 
 const { request, prisma, tokenService } = require('../helpers/apiSetup');
 
+/* Test-only mock credential — not a real secret */
+const TEST_CREDENTIAL = 'Mock-Credential-4-Testing-Only';
+
 describe('Auth API (/api/auth)', () => {
     beforeAll(() => console.log('Starting Auth API tests...'));
     afterEach(() => {
@@ -31,7 +34,7 @@ describe('Auth API (/api/auth)', () => {
 
             const response = await request
                 .post('/api/auth/login')
-                .send({ email: 'test@example.com', password: 'Password123!' });
+                .send({ email: 'test@example.com', password: TEST_CREDENTIAL });
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
@@ -60,7 +63,7 @@ describe('Auth API (/api/auth)', () => {
                 .post('/api/auth/register')
                 .send({ 
                     email: 'new@example.com', 
-                    password: 'Password123!', 
+                    password: TEST_CREDENTIAL, 
                     firstName: 'New', 
                     lastName: 'User' 
                 });
@@ -74,7 +77,7 @@ describe('Auth API (/api/auth)', () => {
 
             const response = await request
                 .post('/api/auth/register')
-                .send({ email: 'existing@example.com', password: 'Password123!', firstName: 'E', lastName: 'X' });
+                .send({ email: 'existing@example.com', password: TEST_CREDENTIAL, firstName: 'E', lastName: 'X' });
 
             expect(response.status).toBe(409);
         });
