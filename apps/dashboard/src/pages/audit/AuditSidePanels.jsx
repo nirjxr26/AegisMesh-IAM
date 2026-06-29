@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { AlertTriangle, Shield, ShieldCheck, Zap } from 'lucide-react';
-import { toTitleCase, formatNumber, formatIp, getSeverityClass } from './auditHelpers';
+import { formatNumber, formatIp, getSeverityClass } from './auditHelpers';
+import { toTitleCase, formatDate } from '../../../utils/formatters';
 
 function TopActionsPanel({ topActions, rangeLabel }) {
     return (
@@ -122,15 +123,7 @@ function TopFailedIPsPanel({ topFailedIPs }) {
                                     </p>
 
                                     <p className="text-sm text-[#7a87a8]">
-                                        {new Date(
-                                            item.lastSeen,
-                                        ).toLocaleDateString(
-                                            'en-US',
-                                            {
-                                                month: 'short',
-                                                day: 'numeric',
-                                            },
-                                        )}
+                                        {formatDate(item.lastSeen)}
                                     </p>
                                 </div>
                             );

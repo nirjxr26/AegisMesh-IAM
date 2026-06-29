@@ -28,34 +28,8 @@ import {
 } from 'recharts';
 
 import { auditAPI } from '../../services/api';
-
-const DONUT_COLORS = [
-    '#4f46e5',
-    '#2563eb',
-    '#16a34a',
-    '#d97706',
-    '#dc2626',
-    '#7c3aed',
-    '#0891b2',
-    '#be185d',
-    '#65a30d',
-    '#ea580c',
-];
-
-const EMPTY_ARRAY = [];
-
-function toTitleCase(value = '') {
-    return value
-        .toLowerCase()
-        .split('_')
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-}
-
-function formatNumber(value = 0) {
-    return new Intl.NumberFormat('en-US').format(value);
-}
+import { DONUT_COLORS, EMPTY_ARRAY, formatNumber } from './auditHelpers';
+import { toTitleCase } from '../../utils/formatters';
 
 function formatIp(ip) {
     if (ip === '::1' || ip === '127.0.0.1') {

@@ -64,7 +64,8 @@ function checkJsLine(trimmed, lineNum, filePath, findings) {
   let httpMatch;
   while ((httpMatch = httpRegex.exec(trimmed)) !== null) {
     const url = httpMatch[0];
-    const isExcluded = url.includes('localhost') || url.includes('127.0.0.1') || url.includes('w3.org') || url.includes('xml') || url.includes('soap');
+    const host = url.replace(/^http:\/\//, '').split(/[/:]/)[0];
+    const isExcluded = host === 'localhost' || host === '127.0.0.1' || host === 'w3.org' || host.endsWith('.w3.org') || host.endsWith('.xmlsoap.org');
     if (!isExcluded) {
       findings.push({
         ruleId: 'javascript:S5332',

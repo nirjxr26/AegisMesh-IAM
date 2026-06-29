@@ -5,6 +5,7 @@ const {
     USER_AGENTS,
     COUNTRY_CITY,
     hoursAgo,
+    toIso,
     now,
     toPrismaAuditCategory,
     toPrismaAuditResult,
@@ -79,10 +80,6 @@ for (const entry of actionPlan) {
         });
     }
     auditIdx += entry.results.length;
-}
-
-function toIso(date) {
-    return date.toISOString();
 }
 
 const toPrismaAuditData = (log) => ({

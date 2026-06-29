@@ -13,15 +13,6 @@ export const DONUT_COLORS = [
 
 export const EMPTY_ARRAY = [];
 
-export function toTitleCase(value = '') {
-    return value
-        .toLowerCase()
-        .split('_')
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-}
-
 export function formatNumber(value = 0) {
     return new Intl.NumberFormat('en-US').format(value);
 }

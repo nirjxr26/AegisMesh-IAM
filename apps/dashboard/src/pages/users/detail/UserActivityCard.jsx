@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { History } from 'lucide-react';
+import { formatDate } from '../../../utils/formatters';
 
 export default function UserActivityCard({ auditLogs, auditLoading }) {
     return (
@@ -18,7 +19,7 @@ export default function UserActivityCard({ auditLogs, auditLoading }) {
                                     {log.action} <span className="text-[#7a87a8]">on</span> {log.resource}
                                 </div>
                                 <div className="text-xs text-[#7a87a8] mt-1 flex gap-3">
-                                    <span>{new Date(log.createdAt).toLocaleString()}</span>
+                                    <span>{formatDate(log.createdAt)}</span>
                                     <span>IP: {log.ipAddress}</span>
                                 </div>
                             </div>
