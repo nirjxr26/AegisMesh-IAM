@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createElement, useId, Children, cloneElement, isValidElement } from 'react';
 import PropTypes from 'prop-types';
-import { Eye, EyeOff, Bell } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export function classNames(...values) {
     return values.filter(Boolean).join(' ');

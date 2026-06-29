@@ -8,7 +8,7 @@ COPY --chown=root:root --chmod=555 package*.json ./
 
 # Use npm install with cache mount for faster builds
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --ignore-scripts --no-audit --no-fund
+    npm ci --ignore-scripts --no-audit --no-fund
 
 # Copy Prisma schema and generate client
 COPY --chown=root:root --chmod=555 prisma ./prisma

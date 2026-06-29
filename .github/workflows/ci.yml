@@ -40,7 +40,7 @@ jobs:
       - name: Install backend deps
         working-directory: apps/api
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
       - name: Lint backend
         working-directory: apps/api
         run: npm run lint

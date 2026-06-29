@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 const { loadEnv, requestJson, walkDir, getPriority, cleanFilePath, CYAN, RED, BOLD, RESET, GREEN } = require('./utils');
 const { checkers } = require('./fileScanner');
 const { printResults } = require('./reporter');
@@ -56,6 +56,66 @@ async function fetchSonarQubeIssues() {
   }
 }
 
+function parseFilterFile(args) {
+  let fileIndex = args.indexOf('--file');
+  if (fileIndex === -1) fileIndex = args.indexOf('--only');
+
+  if (fileIndex !== -1 && fileIndex < args.length - 1) {
+    return args[fileIndex + 1].trim().toLowerCase();
+  }
+
+  const trailingArgs = args.filter(a => !a.startsWith('--'));
+  if (trailingArgs.length > 0) {
+    return trailingArgs[0].trim().toLowerCase();
+  }
+
+  return null;
+}
+
+function processScannedFile(filePath, allFindings, filterFile) {
+  const ext = path.extname(filePath).toLowerCase();
+  const basename = path.basename(filePath);
+  const cleanPath = cleanFilePath(filePath);
+
+  if (basename === 'scan-repo.js' || basename === 'sonar-report.js' || basename === 'verify-grafana.js') {
+    return 0;
+  }
+
+  if (filterFile) {
+    const lowerPath = cleanPath.toLowerCase();
+    const lowerBase = basename.toLowerCase();
+    if (!lowerPath.includes(filterFile) && !lowerBase.includes(filterFile)) {
+      return 0;
+    }
+  }
+
+  let content;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (err) {
+    console.error(`Warning: Could not read file ${cleanPath}: ${err.message}`);
+    return 0;
+  }
+
+  for (const [, checker] of Object.entries(checkers)) {
+    const matchExt = checker.extensions?.includes(ext);
+    const matchName = checker.filenames?.includes(basename);
+
+    if (matchExt || matchName) {
+      const fileFindings = checker.check(content, filePath);
+      fileFindings.forEach(f => {
+        allFindings.push({
+          ...f,
+          file: cleanPath,
+          priority: getPriority(f.severity)
+        });
+      });
+    }
+  }
+
+  return 1;
+}
+
 async function runScanner() {
   const args = process.argv.slice(2);
 
@@ -65,16 +125,7 @@ async function runScanner() {
 
   console.log(`${BOLD}AegisMesh Codebase Security & Quality Scanner (Live Repo)${RESET}`);
 
-  let filterFile = null;
-  const fileIndex = args.indexOf('--file') !== -1 ? args.indexOf('--file') : args.indexOf('--only');
-  if (fileIndex !== -1 && fileIndex < args.length - 1) {
-    filterFile = args[fileIndex + 1].trim().toLowerCase();
-  } else {
-    const trailingArgs = args.filter(a => !a.startsWith('--'));
-    if (trailingArgs.length > 0) {
-      filterFile = trailingArgs[0].trim().toLowerCase();
-    }
-  }
+  const filterFile = parseFilterFile(args);
 
   if (filterFile) {
     console.log(`Filtering scan results for files containing: "${CYAN}${filterFile}${RESET}"`);
@@ -85,46 +136,7 @@ async function runScanner() {
   let scannedFileCount = 0;
 
   walkDir(process.cwd(), (filePath) => {
-    const ext = path.extname(filePath).toLowerCase();
-    const basename = path.basename(filePath);
-    const cleanPath = cleanFilePath(filePath);
-
-    if (basename === 'scan-repo.js' || basename === 'sonar-report.js' || basename === 'verify-grafana.js') {
-      return;
-    }
-
-    if (filterFile) {
-      const lowerPath = cleanPath.toLowerCase();
-      const lowerBase = basename.toLowerCase();
-      if (!lowerPath.includes(filterFile) && !lowerBase.includes(filterFile)) {
-        return;
-      }
-    }
-
-    let content;
-    try {
-      content = fs.readFileSync(filePath, 'utf8');
-    } catch (err) {
-      return;
-    }
-
-    scannedFileCount++;
-
-    for (const [key, checker] of Object.entries(checkers)) {
-      const matchExt = checker.extensions && checker.extensions.includes(ext);
-      const matchName = checker.filenames && checker.filenames.includes(basename);
-
-      if (matchExt || matchName) {
-        const fileFindings = checker.check(content, filePath);
-        fileFindings.forEach(f => {
-          allFindings.push({
-            ...f,
-            file: cleanPath,
-            priority: getPriority(f.severity)
-          });
-        });
-      }
-    }
+    scannedFileCount += processScannedFile(filePath, allFindings, filterFile);
   });
 
   printResults(allFindings, scannedFileCount, filterFile);

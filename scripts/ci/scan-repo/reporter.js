@@ -1,4 +1,4 @@
-const { COLORS, RED, YELLOW, CYAN, GREEN, BOLD, RESET } = require('./utils');
+const { RED, YELLOW, CYAN, GREEN, BOLD, RESET } = require('./utils');
 
 function printResults(findings, scannedFileCount, filterFile) {
   const total = findings.length;

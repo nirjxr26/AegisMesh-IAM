@@ -1,13 +1,3 @@
-export function daysSince(date) {
-    if (!date) return Infinity;
-
-    const timestamp = new Date(date).getTime();
-    if (Number.isNaN(timestamp)) return Infinity;
-
-    const ms = Date.now() - timestamp;
-    return Math.floor(ms / 86400000);
-}
-
 function hasBackupCodes(user = {}) {
     if (user?.hasBackupCodes === true) {
         return true;
@@ -32,6 +22,8 @@ function hasBackupCodes(user = {}) {
 
     return false;
 }
+
+import { daysSince } from './formatters';
 
 function getRating(score) {
     if (score >= 90) return 'Excellent';

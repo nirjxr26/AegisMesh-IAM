@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { PieChart as PieChartIcon } from 'lucide-react';
 import {
     Pie,
@@ -60,3 +61,14 @@ export default function AuditCategoryPie({ donutData }) {
         </div>
     );
 }
+
+AuditCategoryPie.propTypes = {
+    donutData: PropTypes.arrayOf(
+        PropTypes.shape({
+            id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+            name: PropTypes.string,
+            value: PropTypes.number,
+            fill: PropTypes.string,
+        }),
+    ),
+};

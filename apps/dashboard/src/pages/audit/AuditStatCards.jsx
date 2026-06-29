@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Activity, LogIn, ShieldOff, UserPlus, Users } from 'lucide-react';
 import StatCard from './StatCard';
 
@@ -51,3 +52,13 @@ export default function AuditStatCards({ totalUsers, currentStats }) {
         </div>
     );
 }
+
+AuditStatCards.propTypes = {
+    totalUsers: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    currentStats: PropTypes.shape({
+        totalEvents: PropTypes.number,
+        failedLogins: PropTypes.number,
+        newUsers: PropTypes.number,
+        permissionDenied: PropTypes.number,
+    }),
+};

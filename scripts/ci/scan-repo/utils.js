@@ -1,16 +1,8 @@
-const fs = require('fs');
-const path = require('path');
-const http = require('http');
-const https = require('https');
+const fs = require('node:fs');
+const path = require('node:path');
+const http = require('node:http');
+const https = require('node:https');
 
-const COLORS = {
-  reset: '\x1b[0m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  cyan: '\x1b[36m',
-  green: '\x1b[32m',
-  bold: '\x1b[1m'
-};
 const esc = '\x1b[';
 const RED = esc + '31m';
 const YELLOW = esc + '33m';
@@ -20,7 +12,7 @@ const BOLD = esc + '1m';
 const RESET = esc + '0m';
 
 function cleanFilePath(filePath) {
-  return path.relative(process.cwd(), filePath).replace(/\\/g, '/');
+  return path.relative(process.cwd(), filePath).replaceAll('\\', '/');
 }
 
 function loadEnv() {
@@ -98,6 +90,6 @@ function getPriority(severity) {
 }
 
 module.exports = {
-  COLORS, RED, YELLOW, CYAN, GREEN, BOLD, RESET,
+  RED, YELLOW, CYAN, GREEN, BOLD, RESET,
   cleanFilePath, loadEnv, requestJson, walkDir, getPriority,
 };

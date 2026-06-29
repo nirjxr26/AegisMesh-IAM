@@ -62,7 +62,7 @@ jest.mock('../../src/utils/auditLog', () => ({
     auditAuth: {
         registered: jest.fn(),
         loginFailed: jest.fn(),
-        loginSuccess: jest.fn(),
+        loginSuccess: jest.fn().mockResolvedValue(),
         loginMFAFailed: jest.fn(),
         logout: jest.fn(),
         tokenRefreshed: jest.fn(),

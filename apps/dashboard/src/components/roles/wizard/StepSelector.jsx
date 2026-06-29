@@ -1,5 +1,11 @@
 import PropTypes from 'prop-types';
 
+function getStepClassName(isActive, isCompleted) {
+    if (isActive) return 'bg-indigo-600 text-white shadow-sm';
+    if (isCompleted) return 'bg-emerald-100 text-emerald-700 cursor-pointer hover:bg-emerald-200';
+    return 'bg-slate-100 text-slate-400';
+}
+
 export default function StepSelector({ steps, currentStep, onStepClick }) {
     return (
         <div className="flex items-center justify-center gap-2 px-6 pt-5">
@@ -16,13 +22,7 @@ export default function StepSelector({ steps, currentStep, onStepClick }) {
                         className="flex items-center gap-2"
                     >
                         <span
-                            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                                isActive
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : isCompleted
-                                        ? 'bg-emerald-100 text-emerald-700 cursor-pointer hover:bg-emerald-200'
-                                        : 'bg-slate-100 text-slate-400'
-                            }`}
+                            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${getStepClassName(isActive, isCompleted)}`}
                         >
                             {isCompleted ? '✓' : index + 1}
                         </span>

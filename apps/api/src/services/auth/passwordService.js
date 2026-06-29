@@ -79,9 +79,17 @@ async function verifyEmail({ token, req }) {
         throw createError('AUTH_007', { message: 'Invalid verification token' });
     }
 
+    const TOKEN_EXPIRY_HOURS = 24;
+    if (user.emailVerifyTokenCreatedAt) {
+        const elapsed = Date.now() - new Date(user.emailVerifyTokenCreatedAt).getTime();
+        if (elapsed > TOKEN_EXPIRY_HOURS * 60 * 60 * 1000) {
+            throw createError('AUTH_010', { message: 'Verification token has expired. Please request a new one.' });
+        }
+    }
+
     await prisma.user.update({
         where: { id: user.id },
-        data: { emailVerified: true, emailVerifyToken: null },
+        data: { emailVerified: true, emailVerifyToken: null, emailVerifyTokenCreatedAt: null },
     });
 
     await auditAuth.emailVerified(req, user.id);

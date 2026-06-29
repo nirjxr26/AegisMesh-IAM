@@ -13,11 +13,12 @@ const MAX_FAILED_ATTEMPTS = Number.parseInt(process.env.MAX_FAILED_LOGIN_ATTEMPT
 const LOCK_DURATION_MINUTES = Number.parseInt(process.env.ACCOUNT_LOCK_DURATION_MINUTES, 10) || 30;
 
 async function login({ email, password, totpCode, req }) {
-    const orgSettings = await getOrganizationSettings();
+    const [orgSettings, user] = await Promise.all([
+        getOrganizationSettings(),
+        findUserByEmail(email),
+    ]);
     const maxFailedAttempts =
         orgSettings?.maxFailedAttempts || MAX_FAILED_ATTEMPTS;
-
-    const user = await findUserByEmail(email);
 
     await validateUserAccess(user, req, email);
 
@@ -187,18 +188,19 @@ async function createLoginResponse({ user, req }) {
     const ipAddress =
         req?.ip || req?.socket?.remoteAddress;
 
-    const session = await tokenService.createSession(
-        user.id,
-        refreshToken,
-        deviceInfo,
-        ipAddress
-    );
-
-    await upsertTrustedDevice(
-        user.id,
-        deviceInfo,
-        ipAddress
-    );
+    const [session] = await Promise.all([
+        tokenService.createSession(
+            user.id,
+            refreshToken,
+            deviceInfo,
+            ipAddress
+        ),
+        upsertTrustedDevice(
+            user.id,
+            deviceInfo,
+            ipAddress
+        ),
+    ]);
 
     const accessToken =
         tokenService.generateAccessToken(
@@ -206,10 +208,14 @@ async function createLoginResponse({ user, req }) {
             session.id
         );
 
-    await auditAuth.loginSuccess(
+    auditAuth.loginSuccess(
         req,
         user.id,
         session.id
+    ).catch((err) =>
+        logger.error('Login audit failed', {
+            error: err.message,
+        })
     );
 
     const roleNames = (user.userRoles || [])

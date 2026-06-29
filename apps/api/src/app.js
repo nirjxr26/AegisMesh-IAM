@@ -5,17 +5,46 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const crypto = require('node:crypto');
+const jwt = require('jsonwebtoken');
 const { doubleCsrf } = require('csrf-csrf');
 const passport = require('passport');
 
 const csrfSecret = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 
+function extractRequestToken(req) {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+    if (req.cookies?.accessToken) {
+        const rawCookieToken = req.cookies.accessToken;
+        try {
+            const { decryptText } = require('./utils/crypto');
+            return decryptText(rawCookieToken) || rawCookieToken;
+        } catch {
+            return rawCookieToken;
+        }
+    }
+    return null;
+}
+
 const {
     generateCsrfToken,
-    doubleCsrfProtection,
+    doubleCsrfProtection: baseDoubleCsrfProtection,
 } = doubleCsrf({
     getSecret: (_req) => csrfSecret,
-    getSessionIdentifier: (req) => req.ip + (req.headers['user-agent'] || ''),
+    getSessionIdentifier: (req) => {
+        const token = extractRequestToken(req);
+        if (token) {
+            try {
+                const payload = jwt.decode(token);
+                if (payload?.sessionId) return `session:${payload.sessionId}`;
+            } catch {
+                // fall through to IP+UA fallback
+            }
+        }
+        return req.ip + (req.headers['user-agent'] || '');
+    },
     cookieName: 'x-csrf-token',
     cookieOptions: {
         httpOnly: true,
@@ -24,6 +53,14 @@ const {
     },
     getTokenFromRequest: (req) => req.headers['x-csrf-token'],
 });
+
+function doubleCsrfProtection(req, res, next) {
+    baseDoubleCsrfProtection(req, res, (err) => {
+        if (err) return next(err);
+        generateCsrfToken(req, res);
+        next();
+    });
+}
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const { initializePassport } = require('./config/passport');
@@ -49,9 +86,34 @@ app.set('trust proxy', 1);
 // ═══════════════════════════════════════
 // SECURITY MIDDLEWARE
 // ═══════════════════════════════════════
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'", process.env.FRONTEND_URL || 'http://localhost:3000'],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"],
+            upgradeInsecureRequests: [],
+        },
+    },
+}));
+
+const ALLOWED_ORIGINS = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((s) => s.trim())
+    : ['http://localhost:3000'];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
@@ -60,7 +122,7 @@ app.use(cors({
 // ═══════════════════════════════════════
 // PARSING MIDDLEWARE
 // ═══════════════════════════════════════
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(metricsMiddleware);
@@ -133,7 +195,18 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-app.get('/metrics', metricsHandler);
+function isInternalIP(req) {
+    const ip = req.ip || req.connection?.remoteAddress || '';
+    const internalRanges = ['127.0.0.1', '::1', '::ffff:127.0.0.1', '10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.', '192.168.'];
+    return internalRanges.some((range) => ip.startsWith(range));
+}
+
+app.get('/metrics', (req, res, next) => {
+    if (!isInternalIP(req)) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Metrics accessible only from internal network' } });
+    }
+    next();
+}, metricsHandler);
 
 app.get('/api/csrf-token', (req, res) => {
     res.json({

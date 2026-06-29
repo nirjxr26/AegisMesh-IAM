@@ -25,14 +25,7 @@ async function extractToken(req) {
         return authHeader.substring(7);
     }
 
-    // 2. Check query parameter (often used for SSE/EventSource)
-    // However, do NOT use query param tokens for the live audit feed (/stream)
-    // to prevent logging/exposing sensitive tokens in URL logs unless explicitly required.
-    if (req.query?.token && !req.path.startsWith('/stream')) {
-        return req.query.token;
-    }
-
-    // 3. Check cookies
+    // 2. Check cookies
     if (req.cookies?.accessToken) {
         const rawCookieToken = req.cookies.accessToken;
 
@@ -75,41 +68,43 @@ async function authenticateApiRequest(req, token) {
     return { user: apiUser };
 }
 
-async function getProfileVersion() {
-    if (redis.status !== 'ready') return '1';
-    try {
-        return (await redis.get('user:profile:version')) || '1';
-    } catch (err) {
-        logger.error('Redis error getting user profile version', { error: err.message });
-        return '1';
+async function redisGet(key) {
+    if (redis.status !== 'ready') return null;
+    try { return await redis.get(key); } catch (err) {
+        logger.error('Redis error getting key', { key, error: err.message });
+        return null;
     }
 }
 
+async function redisSetex(key, ttl, value) {
+    if (redis.status !== 'ready') return;
+    try { await redis.setex(key, ttl, value); } catch (err) {
+        logger.error('Redis error setting key', { key, error: err.message });
+    }
+}
+
+async function getProfileVersion() {
+    const val = await redisGet('user:profile:version');
+    return val || '1';
+}
+
 async function getUserFromCache(userId, profileVersion) {
-    if (redis.status !== 'ready') return null;
     const cacheKey = `user:profile:${userId}:${profileVersion}`;
-    try {
-        const cachedUser = await redis.get(cacheKey);
-        if (cachedUser) {
+    const cachedUser = await redisGet(cacheKey);
+    if (cachedUser) {
+        try {
             const user = JSON.parse(cachedUser);
             user.createdAt = new Date(user.createdAt);
             user.updatedAt = new Date(user.updatedAt);
             return user;
-        }
-    } catch (err) {
-        logger.error('Redis error fetching user profile cache', { error: err.message });
+        } catch { return null; }
     }
     return null;
 }
 
 async function cacheUser(userId, profileVersion, user) {
-    if (redis.status !== 'ready') return;
     const cacheKey = `user:profile:${userId}:${profileVersion}`;
-    try {
-        await redis.setex(cacheKey, 300, JSON.stringify(user));
-    } catch (err) {
-        logger.error('Redis error writing user profile cache', { error: err.message });
-    }
+    await redisSetex(cacheKey, 300, JSON.stringify(user));
 }
 
 async function fetchUserFromDb(userId) {
@@ -144,23 +139,12 @@ async function fetchUserFromDb(userId) {
 }
 
 async function isSessionCached(sessionId) {
-    if (redis.status !== 'ready') return false;
-    try {
-        const cachedSession = await redis.get(`session:valid:${sessionId}`);
-        return cachedSession === '1';
-    } catch (err) {
-        logger.error('Redis error checking session cache', { error: err.message });
-        return false;
-    }
+    const result = await redisGet(`session:valid:${sessionId}`);
+    return result === '1';
 }
 
 async function cacheSessionValidity(sessionId) {
-    if (redis.status !== 'ready') return;
-    try {
-        await redis.setex(`session:valid:${sessionId}`, 60, '1');
-    } catch (err) {
-        logger.error('Redis error setting session cache', { error: err.message });
-    }
+    await redisSetex(`session:valid:${sessionId}`, 60, '1');
 }
 
 async function validateAndRefreshSession(sessionId, userId) {

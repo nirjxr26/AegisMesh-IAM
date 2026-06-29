@@ -44,6 +44,10 @@ function sanitizeValue(value) {
     return sanitizedObj;
   }
 
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return sanitizeValue(String(value));
+  }
+
   return value;
 }
 

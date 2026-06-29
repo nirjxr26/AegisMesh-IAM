@@ -4,20 +4,15 @@ import { useQuery } from '@tanstack/react-query';
 
 import { auditAPI } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
+import { getInitials as getInitialsFromUser, toTitleCase } from '../../utils/formatters';
+import { formatIp as formatIpAddress } from './auditHelpers';
 
 function toTitleCaseAction(action = '') {
-    return action
-        .toLowerCase()
-        .split('_')
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
+    return toTitleCase(action);
 }
 
 function formatShortTimestamp(value) {
-    if (!value) {
-        return '-';
-    }
+    if (!value) return '-';
 
     return new Date(value).toLocaleString('en-US', {
         month: 'short',
@@ -30,9 +25,7 @@ function formatShortTimestamp(value) {
 }
 
 function formatFullTimestamp(value) {
-    if (!value) {
-        return '-';
-    }
+    if (!value) return '-';
 
     return new Date(value).toLocaleString('en-US', {
         year: 'numeric',
@@ -46,13 +39,7 @@ function formatFullTimestamp(value) {
 }
 
 function getCategoryBadge(category = '') {
-    const label = category
-        .toLowerCase()
-        .split('_')
-        .map((part) => (
-            part.charAt(0).toUpperCase() + part.slice(1)
-        ))
-        .join(' ') || 'General';
+    const label = toTitleCase(category) || 'General';
 
     return {
         label,
@@ -82,35 +69,8 @@ function getResultBadge(result = '') {
     }
 }
 
-function formatIp(ipAddress) {
-    if (!ipAddress) {
-        return '-';
-    }
-
-    if (
-        ipAddress === '127.0.0.1' ||
-        ipAddress === '::1'
-    ) {
-        return 'localhost';
-    }
-
-    return ipAddress;
-}
-
 function getInitials(log) {
-    const first = log.user?.firstName?.[0] || '';
-    const last = log.user?.lastName?.[0] || '';
-
-    const combined = `${first}${last}`.toUpperCase();
-
-    if (combined) {
-        return combined;
-    }
-
-    return (
-        log.user?.email?.[0]?.toUpperCase() ||
-        'U'
-    );
+    return getInitialsFromUser(log.user?.firstName, log.user?.lastName) || log.user?.email?.[0]?.toUpperCase() || 'U';
 }
 
 function getRequestPath(log) {
@@ -128,26 +88,14 @@ function getRequestPath(log) {
 function getResponseCode(log) {
     const metadata = log.metadata || {};
 
-    if (metadata.responseCode) {
-        return String(metadata.responseCode);
-    }
-
-    if (metadata.statusCode) {
-        return String(metadata.statusCode);
-    }
+    if (metadata.responseCode) return String(metadata.responseCode);
+    if (metadata.statusCode) return String(metadata.statusCode);
 
     switch (log.result) {
-        case 'SUCCESS':
-            return '200';
-
-        case 'BLOCKED':
-            return '403';
-
-        case 'FAILURE':
-            return '401';
-
-        default:
-            return '-';
+        case 'SUCCESS': return '200';
+        case 'BLOCKED': return '403';
+        case 'FAILURE': return '401';
+        default: return '-';
     }
 }
 
@@ -220,7 +168,7 @@ function AuditLogRow({
                 </td>
 
                 <td className="px-4 py-3 text-center font-mono text-[11px] text-[#64748b]">
-                    {formatIp(log.ipAddress)}
+                    {formatIpAddress(log.ipAddress)}
                 </td>
             </tr>
 

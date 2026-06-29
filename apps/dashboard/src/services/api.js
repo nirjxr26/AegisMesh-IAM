@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const AUTH_EXPIRED_EVENT = 'iam:auth-expired';
 const REAUTH_HEADER = 'x-reauth-token';
-const REAUTH_TOKEN_STORAGE_KEY = 'iam:reauth-token';
 const CSRF_TOKEN_HEADER = 'x-csrf-token';
 
 const PUBLIC_AUTH_PATHS = [
@@ -16,8 +15,7 @@ const PUBLIC_AUTH_PATHS = [
 
 let csrfToken = null;
 let csrfPromise = null;
-
-const getSessionStorage = () => (typeof globalThis === 'undefined' ? null : globalThis.sessionStorage);
+let _reauthToken = null;
 
 const api = axios.create({
     baseURL: '/api',
@@ -51,19 +49,18 @@ export const fetchCsrfToken = async () => {
     return csrfPromise;
 };
 
-const getStoredReauthToken = () => {
-    return getSessionStorage()?.getItem(REAUTH_TOKEN_STORAGE_KEY) || null;
-};
+const getStoredReauthToken = () => _reauthToken;
 
 const storeReauthToken = (token) => {
-    const storage = getSessionStorage();
-    if (storage && token) {
-        storage.setItem(REAUTH_TOKEN_STORAGE_KEY, token);
-    }
+    _reauthToken = token || null;
 };
 
 const clearStoredReauthToken = () => {
-    getSessionStorage()?.removeItem(REAUTH_TOKEN_STORAGE_KEY);
+    _reauthToken = null;
+};
+
+export const setReauthToken = (token) => {
+    storeReauthToken(token);
 };
 
 const notifyAuthExpired = () => {

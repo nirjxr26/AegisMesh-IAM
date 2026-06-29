@@ -1,10 +1,11 @@
 const express = require('express');
+const crypto = require('node:crypto');
 const passport = require('passport');
 const authController = require('../controllers/auth.controller');
 const mfaController = require('../controllers/mfa.controller');
 const { authenticate } = require('../middleware/authenticate');
 const { validate } = require('../middleware/validate');
-const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
+const { loginLimiter, registerLimiter, passwordResetLimiter, mfaSetupLimiter, tokenRefreshLimiter, sessionRevokeLimiter } = require('../middleware/rateLimiter');
 const schemas = require('../config/validationSchemas');
 const tokenService = require('../services/token.service');
 const { auditAuth } = require('../utils/auditLog');
@@ -91,6 +92,23 @@ function getOAuthFailureUrl() {
     return `${getFrontendUrl()}/login?error=oauth_failed`;
 }
 
+const OAUTH_STATE_SECRET = process.env.JWT_SECRET || 'oauth-state-secret';
+
+function generateOAuthState() {
+    const state = crypto.randomBytes(16).toString('hex');
+    const hmac = crypto.createHmac('sha256', OAUTH_STATE_SECRET).update(state).digest('hex');
+    return `${state}.${hmac}`;
+}
+
+function validateOAuthState(token) {
+    if (!token || typeof token !== 'string') return false;
+    const parts = token.split('.');
+    if (parts.length !== 2) return false;
+    const [state, hmac] = parts;
+    const expectedHmac = crypto.createHmac('sha256', OAUTH_STATE_SECRET).update(state).digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(expectedHmac));
+}
+
 async function enforceOAuthAllowed(req, res, next) {
     try {
         const settings = await getOrganizationSettings();
@@ -139,6 +157,7 @@ router.post(
 // Refresh token
 router.post(
     '/refresh-token',
+    tokenRefreshLimiter,
     validate(schemas.refreshToken),
     authController.refreshToken
 );
@@ -182,6 +201,7 @@ router.get(
 // Revoke session (protected)
 router.delete(
     '/sessions/:sessionId',
+    sessionRevokeLimiter,
     authenticate,
     authController.revokeSession
 );
@@ -193,6 +213,7 @@ router.delete(
 // Setup MFA (protected)
 router.post(
     '/mfa/setup',
+    mfaSetupLimiter,
     authenticate,
     mfaController.setupMFA
 );
@@ -200,6 +221,7 @@ router.post(
 // Verify MFA setup (protected)
 router.post(
     '/mfa/verify-setup',
+    mfaSetupLimiter,
     authenticate,
     validate(schemas.mfaVerifySetup),
     mfaController.verifySetup
@@ -208,6 +230,7 @@ router.post(
 // Disable MFA (protected)
 router.post(
     '/mfa/disable',
+    mfaSetupLimiter,
     authenticate,
     validate(schemas.mfaDisable),
     mfaController.disableMFA
@@ -221,11 +244,20 @@ router.post(
 router.get(
     '/oauth/google',
     enforceOAuthAllowed,
-    passport.authenticate('google', { scope: ['profile', 'email'] })
+    passport.authenticate('google', {
+        scope: ['profile', 'email'],
+        state: generateOAuthState(),
+    })
 );
 
 router.get(
     '/oauth/google/callback',
+    (req, res, next) => {
+        if (!validateOAuthState(req.query?.state)) {
+            return res.redirect(getOAuthFailureUrl());
+        }
+        next();
+    },
     passport.authenticate('google', {
         session: false,
         failureRedirect: getOAuthFailureUrl(),
@@ -237,11 +269,20 @@ router.get(
 router.get(
     '/oauth/github',
     enforceOAuthAllowed,
-    passport.authenticate('github', { scope: ['user:email'] })
+    passport.authenticate('github', {
+        scope: ['user:email'],
+        state: generateOAuthState(),
+    })
 );
 
 router.get(
     '/oauth/github/callback',
+    (req, res, next) => {
+        if (!validateOAuthState(req.query?.state)) {
+            return res.redirect(getOAuthFailureUrl());
+        }
+        next();
+    },
     passport.authenticate('github', {
         session: false,
         failureRedirect: getOAuthFailureUrl(),

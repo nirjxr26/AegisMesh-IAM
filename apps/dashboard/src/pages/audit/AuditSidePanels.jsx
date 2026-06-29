@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { AlertTriangle, Shield, ShieldCheck, Zap } from 'lucide-react';
 import { toTitleCase, formatNumber, formatIp, getSeverityClass } from './auditHelpers';
 
@@ -206,6 +207,19 @@ function SecurityAlertsPanel({ alerts }) {
     );
 }
 
+TopActionsPanel.propTypes = {
+    topActions: PropTypes.array,
+    rangeLabel: PropTypes.string,
+};
+
+TopFailedIPsPanel.propTypes = {
+    topFailedIPs: PropTypes.array,
+};
+
+SecurityAlertsPanel.propTypes = {
+    alerts: PropTypes.array,
+};
+
 export default function AuditSidePanels({ topActions, topFailedIPs, alerts, rangeLabel }) {
     return (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -215,3 +229,10 @@ export default function AuditSidePanels({ topActions, topFailedIPs, alerts, rang
         </div>
     );
 }
+
+AuditSidePanels.propTypes = {
+    topActions: PropTypes.array,
+    topFailedIPs: PropTypes.array,
+    alerts: PropTypes.array,
+    rangeLabel: PropTypes.string,
+};

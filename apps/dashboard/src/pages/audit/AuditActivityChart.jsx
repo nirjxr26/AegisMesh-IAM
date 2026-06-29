@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { BarChart2 } from 'lucide-react';
 import {
     Area,
@@ -105,3 +106,13 @@ export default function AuditActivityChart({ activityData, rangeLabel }) {
         </div>
     );
 }
+
+AuditActivityChart.propTypes = {
+    activityData: PropTypes.arrayOf(
+        PropTypes.shape({
+            label: PropTypes.string,
+            count: PropTypes.number,
+        }),
+    ),
+    rangeLabel: PropTypes.string,
+};

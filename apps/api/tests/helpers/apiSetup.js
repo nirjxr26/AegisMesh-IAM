@@ -78,6 +78,9 @@ jest.mock('../../src/middleware/rateLimiter', () => ({
     registerLimiter: jest.fn((req, res, next) => next()),
     generalLimiter: jest.fn((req, res, next) => next()),
     passwordResetLimiter: jest.fn((req, res, next) => next()),
+    mfaSetupLimiter: jest.fn((req, res, next) => next()),
+    tokenRefreshLimiter: jest.fn((req, res, next) => next()),
+    sessionRevokeLimiter: jest.fn((req, res, next) => next()),
 }));
 
 // Mock bcryptjs
@@ -91,7 +94,7 @@ jest.mock('../../src/utils/auditLog', () => ({
     audit: jest.fn().mockResolvedValue({}),
     createAuditLog: jest.fn().mockResolvedValue({}),
     auditAuth: {
-        registered: jest.fn(), loginSuccess: jest.fn(), loginFailed: jest.fn(),
+        registered: jest.fn(), loginSuccess: jest.fn().mockResolvedValue(), loginFailed: jest.fn(),
         loginMFAFailed: jest.fn(), logout: jest.fn(), tokenRefreshed: jest.fn(),
         emailVerified: jest.fn(), passwordResetRequested: jest.fn(), passwordReset: jest.fn(),
         oauthLogin: jest.fn()
