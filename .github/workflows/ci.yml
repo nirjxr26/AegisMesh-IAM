@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: 'npm'
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npx turbo run build --filter=@aegismesh/shared
       - run: npx turbo run lint
 
@@ -57,9 +57,9 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: 'npm'
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npx turbo run build --filter=@aegismesh/shared
-      - run: npm test --silent
+      - run: npx jest --runInBand --passWithNoTests --silent
         working-directory: apps/api
 
   frontend:
@@ -73,7 +73,7 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: 'npm'
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npx turbo run build --filter=@aegismesh/shared
       - run: npm run lint -- --max-warnings=0
         working-directory: apps/dashboard
