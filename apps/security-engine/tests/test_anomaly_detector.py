@@ -26,7 +26,7 @@ class TestAnomalyDetector:
     def test_predict_risk_with_missing_columns(self):
         detector = AnomalyDetector()
         data = {"action": "LOGIN"}
-        risk_score, prep_time, inf_time = detector.predict_risk(data)
+        risk_score, _, _ = detector.predict_risk(data)
         assert 0.0 <= risk_score <= 1.0
 
     def test_predict_risk_with_empty_dict(self):

@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../../src/config/database');
 
 /* Seed-only password — loaded from env or uses demo fallback, never a real credential */
-const SEED_USER_PASSWORD = process.env.SEED_USER_PASSWORD || 'Seed-Demo-Pass-2024-Dev';
+const SEED_USER_PASSWORD = process.env.SEED_USER_PASSWORD || 'Seed-Demo-Pass-2024-Dev'; // NOSONAR — dev-only fallback
 
 const { roleSeeds } = require('./data');
 const { users, sessions, seedUsers, seedSessions } = require('./users');

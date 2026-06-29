@@ -60,42 +60,55 @@ function printResults(findings, scannedFileCount, filterFile) {
       console.log(`    Message: ${color}${f.message}${RESET}`);
     });
   } else {
-    console.log(`\n${BOLD}[P1 - Critical & Blocker Findings Details]${RESET}`);
-    const p1s = findings.filter(f => f.priority === 'P1');
-    if (p1s.length === 0) {
-      console.log(`${GREEN} Excellent! No P1 (Blocker/Critical) issues found in the current codebase.${RESET}`);
-    } else {
-      p1s.forEach((f, i) => {
-        console.log(` ${i + 1}. [${f.ruleId}] [${f.type}] ${CYAN}${f.file}:L${f.line}${RESET}`);
-        console.log(`    Message: ${RED}${f.message}${RESET}`);
-      });
-    }
-
-    console.log(`\n${BOLD}[P2 - Major Findings Details (Showing first 10)]${RESET}`);
-    const p2s = findings.filter(f => f.priority === 'P2');
-    if (p2s.length === 0) {
-      console.log(`${GREEN} No P2 (Major) issues found in the current codebase.${RESET}`);
-    } else {
-      p2s.slice(0, 10).forEach((f, i) => {
-        console.log(` ${i + 1}. [${f.ruleId}] ${CYAN}${f.file}:L${f.line}${RESET}`);
-        console.log(`    Message: ${YELLOW}${f.message}${RESET}`);
-      });
-      if (p2s.length > 10) {
-        console.log(` ... and ${p2s.length - 10} more P2 findings.`);
-      }
-    }
+    printP1Details(findings);
+    printP2Details(findings);
   }
 
+  printHotspots(findings);
+
+  console.log('='.repeat(70));
+}
+
+function printP1Details(findings) {
+  console.log(`\n${BOLD}[P1 - Critical & Blocker Findings Details]${RESET}`);
+  const p1s = findings.filter(f => f.priority === 'P1');
+  if (p1s.length === 0) {
+    console.log(`${GREEN} Excellent! No P1 (Blocker/Critical) issues found in the current codebase.${RESET}`);
+    return;
+  }
+  p1s.forEach((f, i) => {
+    console.log(` ${i + 1}. [${f.ruleId}] [${f.type}] ${CYAN}${f.file}:L${f.line}${RESET}`);
+    console.log(`    Message: ${RED}${f.message}${RESET}`);
+  });
+}
+
+function printP2Details(findings) {
+  console.log(`\n${BOLD}[P2 - Major Findings Details (Showing first 10)]${RESET}`);
+  const p2s = findings.filter(f => f.priority === 'P2');
+  if (p2s.length === 0) {
+    console.log(`${GREEN} No P2 (Major) issues found in the current codebase.${RESET}`);
+    return;
+  }
+  p2s.slice(0, 10).forEach((f, i) => {
+    console.log(` ${i + 1}. [${f.ruleId}] ${CYAN}${f.file}:L${f.line}${RESET}`);
+    console.log(`    Message: ${YELLOW}${f.message}${RESET}`);
+  });
+  if (p2s.length > 10) {
+    console.log(` ... and ${p2s.length - 10} more P2 findings.`);
+  }
+}
+
+function printHotspots(findings) {
   console.log(`\n${BOLD}[Security Hotspots requiring Review]${RESET}`);
   const hotspots = findings.filter(f => f.type === 'SECURITY_HOTSPOT');
   if (hotspots.length === 0) {
     console.log(`${GREEN} No Security Hotspots found.${RESET}`);
-  } else {
-    hotspots.forEach((f, i) => {
-      console.log(` ${i + 1}. [${f.ruleId}] [Prob: ${f.severity}] ${CYAN}${f.file}:L${f.line}${RESET}`);
-      console.log(`    Message: ${f.message}`);
-    });
+    return;
   }
+  hotspots.forEach((f, i) => {
+    console.log(` ${i + 1}. [${f.ruleId}] [Prob: ${f.severity}] ${CYAN}${f.file}:L${f.line}${RESET}`);
+    console.log(`    Message: ${f.message}`);
+  });
 
   console.log('='.repeat(70));
 }

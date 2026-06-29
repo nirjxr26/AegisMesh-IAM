@@ -142,8 +142,7 @@ async function runScanner() {
   printResults(allFindings, scannedFileCount, filterFile);
 }
 
-/* global require */
-(async () => {
+;(async () => {
   await runScanner();
 })().catch(err => {
   console.error(`${RED}Scanner error: ${err.message}${RESET}`);

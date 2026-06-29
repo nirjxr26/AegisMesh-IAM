@@ -31,7 +31,7 @@ function checkJsLine(trimmed, lineNum, filePath, findings) {
     });
   }
 
-  const lineWithoutRegex = trimmed.replace(/\/.*?\//g, '');
+  const lineWithoutRegex = trimmed.replace(/\/[^/]*?\//g, '');
   const ternaryCount = (lineWithoutRegex.match(/(?<!\?)\?(?![.?])/g) || []).length;
   if (ternaryCount > 1) {
     findings.push({
@@ -43,9 +43,8 @@ function checkJsLine(trimmed, lineNum, filePath, findings) {
     });
   }
 
-  const ipRegex = new RegExp(String.raw`(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?`, 'g');
   const isTestFile = filePath.includes('test') || filePath.includes('fixture') || filePath.includes('seed');
-  for (const ip of trimmed.matchAll(ipRegex)) {
+  for (const ip of trimmed.matchAll(IP_REGEX)) {
     const ipVal = ip[0];
     const isSafeIp = SAFE_IPS.has(ipVal);
     const isUserAgent = trimmed.includes('Chrome/') || trimmed.includes('Mozilla/') || trimmed.includes('AppleWebKit/');
@@ -88,12 +87,8 @@ function checkJsLine(trimmed, lineNum, filePath, findings) {
   }
 }
 
-const JS_FUNC_NAME = String.raw`[a-zA-Z0-9_$]+`;
-const JS_FUNC_REGEX = new RegExp(
-  String.raw`(?:async\s+)?function\s+(` + JS_FUNC_NAME + String.raw`)\s*\(` +
-  String.raw`|(` + JS_FUNC_NAME + String.raw`(?:\.[` + JS_FUNC_NAME + String.raw`]+)*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|` + JS_FUNC_NAME + String.raw`)\s*=>\s*\{`,
-  'g'
-);
+const IP_REGEX = /(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?/g;
+const JS_FUNC_REGEX = /(?:(?:async\s+)?function\s+([a-zA-Z0-9_$]+)\s*\(|([a-zA-Z0-9_$]+(?:\.[a-zA-Z0-9_$]+)*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[a-zA-Z0-9_$]+)\s*=>\s*\{)/g;
 
 function checkJsFunctionComplexity(content, findings) {
   let match;
@@ -113,7 +108,7 @@ function checkJsFunctionComplexity(content, findings) {
     const body = content.substring(braceIndex, currentIndex);
     const lineNum = content.substring(0, startIndex).split('\n').length;
 
-    const bodyWithoutRegex = body.replace(/\/.*?\//g, '');
+    const bodyWithoutRegex = body.replace(/\/[^/]*?\//g, '');
     const conditionals = (bodyWithoutRegex.match(/\bif\b|\bfor\b|\bwhile\b|\bcatch\b|\bswitch\b/g) || []).length;
     const operators = (bodyWithoutRegex.match(/&&|\|\|/g) || []).length;
     const ternaries = (bodyWithoutRegex.match(/(?<!\?)\?(?![.?])/g) || []).length;
