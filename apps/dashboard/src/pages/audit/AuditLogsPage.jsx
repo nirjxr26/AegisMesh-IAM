@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { auditAPI } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 import { getInitials as getInitialsFromUser, toTitleCase } from '../../utils/formatters';
-import { formatIp as formatIpAddress } from './auditHelpers';
+import { formatIp as formatIpAddress } from '../../components/audit/auditHelpers';
 
 function toTitleCaseAction(action = '') {
     return toTitleCase(action);

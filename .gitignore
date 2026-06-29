@@ -36,8 +36,7 @@ lerna-debug.log*
 dist/
 build/
 *.tsbuildinfo
-
-# Coverage
+packages/*/dist/
 coverage/
 .nyc_output/
 

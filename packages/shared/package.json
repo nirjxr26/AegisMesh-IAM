@@ -3,23 +3,30 @@
   "version": "1.0.0",
   "private": true,
   "description": "Shared constants, formatters, and utilities for AegisMesh IAM",
-  "main": "src/index.js",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.js",
-      "require": "./src/index.cjs"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./constants": {
-      "import": "./src/constants.js",
-      "require": "./src/constants.cjs"
+      "import": "./dist/constants.js",
+      "types": "./dist/constants.d.ts"
     },
     "./formatters": {
-      "import": "./src/formatters.js",
-      "require": "./src/formatters.cjs"
+      "import": "./dist/formatters.js",
+      "types": "./dist/formatters.d.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "lint": "eslint .",
-    "clean": "echo clean"
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "echo ok"
   }
 }

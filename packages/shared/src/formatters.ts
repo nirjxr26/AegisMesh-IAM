@@ -1,4 +1,6 @@
-function formatDate(value) {
+type ValueOrDate = string | number | Date | null | undefined;
+
+export function formatDate(value: ValueOrDate): string {
     if (!value) return 'N/A';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'N/A';
@@ -11,7 +13,7 @@ function formatDate(value) {
     });
 }
 
-function formatRelativeTime(value) {
+export function formatRelativeTime(value: ValueOrDate): string {
     if (!value) return 'N/A';
     const timestamp = new Date(value).getTime();
     if (Number.isNaN(timestamp)) return 'N/A';
@@ -30,13 +32,13 @@ function formatRelativeTime(value) {
     return `${years} yr ago`;
 }
 
-function getInitials(firstName = '', lastName = '') {
+export function getInitials(firstName = '', lastName = ''): string {
     const first = firstName?.[0] || '';
     const last = lastName?.[0] || '';
     return `${first}${last}`.toUpperCase() || '?';
 }
 
-function toTitleCase(str = '') {
+export function toTitleCase(str = ''): string {
     return str
         .toLowerCase()
         .split('_')
@@ -44,7 +46,7 @@ function toTitleCase(str = '') {
         .join(' ');
 }
 
-function daysSince(value) {
+export function daysSince(value: ValueOrDate): string {
     if (!value) return 'Never';
     const diff = Date.now() - new Date(value).getTime();
     const days = Math.floor(diff / (24 * 60 * 60 * 1000));
@@ -52,7 +54,7 @@ function daysSince(value) {
     return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
-function formatRelative(value) {
+export function formatRelative(value: ValueOrDate): string {
     if (!value) return 'Unknown';
     const now = Date.now();
     const ts = new Date(value).getTime();
@@ -67,5 +69,3 @@ function formatRelative(value) {
     const months = Math.floor(days / 30);
     return `${months}mo ago`;
 }
-
-module.exports = { formatDate, formatRelativeTime, getInitials, toTitleCase, daysSince, formatRelative };
