@@ -2,37 +2,24 @@
 # AegisMesh IAM - Global Git Ignore
 # ═══════════════════════════════════════════════════════════════
 
-# Environment & Secrets
+# ── Environment & Secrets ──────────────────────────────────────
 .env
 .env.local
 .env.*.local
 .env.*
 !.env.example
-!backend/.env.example
-!frontend/.env.example
-
 *.pem
 *.key
 *.crt
 *.p12
 *.pfx
 *.cred
-
 credentials-*
-credentials-velero
 
-# Dependencies
+# ── Dependencies ────────────────────────────────────────────────
 node_modules/
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# Build Outputs
+# ── Build Outputs ───────────────────────────────────────────────
 dist/
 build/
 *.tsbuildinfo
@@ -40,43 +27,18 @@ packages/*/dist/
 coverage/
 .nyc_output/
 
-# Temporary Files
-tmp/
-temp/
-*.tmp
-.kpatch/
-.datadog/
+# ── Logs ────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# IDE & Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# ── Python ──────────────────────────────────────────────────────
+__pycache__/
+*.pyc
 
-# OS Files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-
-# Docker Volumes & Local Data
-db_data/
-backups/
-
-# Documentation / Internal Files
-docs/
-AegisMesh-IAM-Fix-Logic-Guide.md
-CI_CD_RUNBOOK.md
-.antigravitycli/
-
-# Jenkins
-.jenkins/
-.archive/
-
-# Terraform
+# ── Infrastructure ──────────────────────────────────────────────
 **/.terraform/
 *.tfstate
 *.tfstate.backup
@@ -85,39 +47,52 @@ terraform/*.tfvars
 terraform/*.tfvars.json
 terraform/crash.log
 terraform/**/*.tfstate
-
-# Kubernetes & Cluster Configs
 kubeconfig*
 **/kubeconfig*
 .kube/
-
-# Database Dumps
 *.sql
 *.sql.gz
 pg_dump*
 pg_dumpall*
-
-# Secret Manifests
 *secrets*.yaml
 *secrets*.yml
+db_data/
 
-# Local Cloud Credentials
-*.aws/credentials
+# ── IDE & Editor ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ──────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# ── Temporary / Cache ───────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+backups/
+.turbo/
+.datadog/
+.kpatch/
+.continue/
+
+# ── Agent / CLI Artifacts ──────────────────────────────────────
+.aider*
 .antigravitycli/
+.claude/
 .agents/
-.claude/    
 .sonarqube_report/
 .code-quality/
+.archive/
+.jenkins/
 
-# Monorepo
-.turbo/
-
-# Custom local tools/scripts
+# ── Local Dev Scripts (not needed in CI) ───────────────────────
 scripts/ci/sonar-report.js
-scripts/ci/scan-repo.js
-
-.aider*
-
-# Python Compilation Cache
-__pycache__/
-*.pyc
+scripts/ci/scan-repo/
