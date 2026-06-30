@@ -26,10 +26,15 @@
   "optionalDependencies": {
     "@esbuild/linux-x64": "0.28.1",
     "@oxc-parser/binding-linux-x64-gnu": "0.132.0",
+    "@oxc-parser/binding-linux-x64-musl": "0.132.0",
     "@rollup/rollup-linux-x64-gnu": "4.60.3",
+    "@rollup/rollup-linux-x64-musl": "4.60.3",
     "@tailwindcss/oxide-linux-x64-gnu": "4.3.0",
+    "@tailwindcss/oxide-linux-x64-musl": "4.3.0",
     "@unrs/resolver-binding-linux-x64-gnu": "1.12.2",
-    "lightningcss-linux-x64-gnu": "1.32.0"
+    "@unrs/resolver-binding-linux-x64-musl": "1.12.2",
+    "lightningcss-linux-x64-gnu": "1.32.0",
+    "lightningcss-linux-x64-musl": "1.32.0"
   },
   "engines": {
     "node": ">=22.0.0"

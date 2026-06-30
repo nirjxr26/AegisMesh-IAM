@@ -92,7 +92,7 @@ jobs:
         run: docker build -t aegismesh-backend:ci -f apps/api/Dockerfile ./apps/api
 
       - name: Build frontend image
-        run: docker build -t aegismesh-frontend:ci -f apps/dashboard/Dockerfile ./apps/dashboard
+        run: docker build -t aegismesh-frontend:ci -f apps/dashboard/Dockerfile .
 
       - name: Build security-engine image
         run: docker build -t aegismesh-security-engine:ci -f apps/security-engine/Dockerfile ./apps/security-engine
@@ -132,13 +132,12 @@ jobs:
             docker push $ECR_REGISTRY/aegismesh-backend:$STABLE_TAG
 
       - name: Build and push frontend image
-        working-directory: apps/dashboard
         env:
           IMAGE_TAG: ${{ github.sha }}
           STABLE_TAG: v1
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
-            docker build -t $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-frontend:$STABLE_TAG -f Dockerfile .
+            docker build -t $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG -t $ECR_REGISTRY/aegismesh-frontend:$STABLE_TAG -f apps/dashboard/Dockerfile .
             docker push $ECR_REGISTRY/aegismesh-frontend:$IMAGE_TAG
             docker push $ECR_REGISTRY/aegismesh-frontend:$STABLE_TAG
 
