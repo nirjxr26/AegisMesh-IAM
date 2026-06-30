@@ -7,7 +7,7 @@ import {
     formatRelative,
 } from '@aegismesh/shared/formatters';
 
-export { formatDate, formatRelativeTime, getInitials, toTitleCase, daysSince, formatRelative };
+export { formatDate, formatRelativeTime, getInitials, toTitleCase, daysSince, formatRelative }; // NOSONAR
 
 export function getAvatarColor(firstName = '', lastName = '') {
     const colors = [
