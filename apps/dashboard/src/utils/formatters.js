@@ -1,4 +1,4 @@
-export {
+import {
     formatDate,
     formatRelativeTime,
     getInitials,
@@ -6,6 +6,8 @@ export {
     daysSince,
     formatRelative,
 } from '@aegismesh/shared/formatters';
+
+export { formatDate, formatRelativeTime, getInitials, toTitleCase, daysSince, formatRelative };
 
 export function getAvatarColor(firstName = '', lastName = '') {
     const colors = [
